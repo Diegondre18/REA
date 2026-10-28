@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage
+	SchemaVersion="1.0"
+	AutodeskProduct="3ds Max"
+	ProductType="Application"
+	Name="REA Scene Manager"
+	Description="Estados de escena, render por lotes, camaras y render elements para 3ds Max + Corona"
+	AppVersion="0.1.0"
+	ProductCode="{6B0E5C1A-3F7D-4C2E-9A61-2D8B7F4E1C05}"
+	UpgradeCode="{A3D94F27-81C6-4B5E-B0F2-7E19C6D3A842}">
+	<CompanyDetails Name="REA" />
+	<RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2021" SeriesMax="2026" />
+	<Components Description="post-start-up scripts parts">
+		<RuntimeRequirements OS="Win64" Platform="3ds Max" SeriesMin="2021" SeriesMax="2026" />
+		<ComponentEntry ModuleName="./Contents/scripts/REASM_startup.ms" />
+	</Components>
+</ApplicationPackage>

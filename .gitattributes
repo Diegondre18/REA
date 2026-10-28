@@ -1,0 +1,3 @@
+*.bat text eol=crlf
+*.ms text eol=crlf
+*.xml text eol=crlf
