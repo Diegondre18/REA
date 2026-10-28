@@ -92,10 +92,7 @@ fn REASM_onInit s e =
 		core.Settings.IsStatusBarEnabled = false
 		core.Settings.IsZoomControlEnabled = false
 		core.Settings.AreDevToolsEnabled = true
-		local uiDir = REASM_fullPath (REASM_dir + "..\\ui")
-		core.SetVirtualHostNameToFolderMapping "reasm.local" uiDir (dotNetClass "Microsoft.Web.WebView2.Core.CoreWebView2HostResourceAccessKind").Allow
 		REASM_ready = true
-		core.Navigate ("https://reasm.local/index.html?t=" + (timeStamp() as string))
 	)
 	else
 	(
@@ -172,7 +169,10 @@ fn REASM_open =
 	dotNet.setLifetimeControl REASM_form #dotnet
 
 	REASM_form.ShowModeless()
-	REASM_wv.EnsureCoreWebView2Async undefined
+	-- Asignar Source inicia WebView2 (con CreationProperties) y abre la interfaz local.
+	local page = REASM_fullPath (REASM_dir + "..\\ui\\index.html")
+	local uri = dotNetObject "System.Uri" page
+	REASM_wv.Source = dotNetObject "System.Uri" (uri.AbsoluteUri + "?t=" + (timeStamp() as string))
 	true
 )
 
