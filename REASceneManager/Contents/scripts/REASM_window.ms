@@ -171,8 +171,7 @@ fn REASM_open =
 	REASM_form.ShowModeless()
 	-- Asignar Source inicia WebView2 (con CreationProperties) y abre la interfaz local.
 	local page = REASM_fullPath (REASM_dir + "..\\ui\\index.html")
-	local uri = dotNetObject "System.Uri" page
-	REASM_wv.Source = dotNetObject "System.Uri" (uri.AbsoluteUri + "?t=" + (timeStamp() as string))
+	REASM_wv.Source = dotNetObject "System.Uri" page
 	true
 )
 
