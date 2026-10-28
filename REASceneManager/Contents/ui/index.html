@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REA Scene Manager</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">R</span>
+      <div class="brand-text">
+        <strong>Scene Manager</strong>
+        <span id="fileName" class="muted">Sin archivo</span>
+      </div>
+    </div>
+    <div class="spacer"></div>
+    <button class="icon-btn" data-action="refresh" title="Actualizar desde la escena" data-icon="refresh"></button>
+    <button class="icon-btn" data-action="renderSetup" title="Abrir Render Setup" data-icon="settings"></button>
+    <button class="btn primary" data-action="goBatch" data-icon-left="render">Render por lotes</button>
+  </header>
+
+  <nav class="sidebar">
+    <button class="nav-btn" data-view="setups" title="Setups" data-icon="list"></button>
+    <button class="nav-btn" data-view="cameras" title="Camaras" data-icon="camera"></button>
+    <button class="nav-btn" data-view="elements" title="Render elements y salida" data-icon="layers2"></button>
+    <button class="nav-btn" data-view="batch" title="Render por lotes" data-icon="render"></button>
+    <div class="spacer"></div>
+    <button class="nav-btn" data-view="help" title="Ayuda" data-icon="help"></button>
+  </nav>
+
+  <main id="main"></main>
+
+  <footer class="statusbar">
+    <span id="dot" class="dot"></span>
+    <span id="status">Conectando...</span>
+    <span class="spacer"></span>
+    <span id="version" class="muted">v0.2.0</span>
+  </footer>
+</div>
+<div id="toasts"></div>
+<script src="icons.js"></script>
+<script src="bridge.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

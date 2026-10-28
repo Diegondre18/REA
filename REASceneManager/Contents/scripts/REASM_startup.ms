@@ -4,7 +4,7 @@
 (
 	local dir = getFilenamePath (getSourceFileName())
 	fileIn (dir + "REASM_core.ms")
-	fileIn (dir + "REASM_ui.ms")
+	fileIn (dir + "REASM_window.ms")
 )
 
 macroScript REASceneManager
