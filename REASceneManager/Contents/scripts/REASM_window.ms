@@ -179,6 +179,6 @@ fn REASM_open =
 -- Avisos a la web cuando cambia la escena (archivo abierto, camaras/capas creadas, etc.)
 callbacks.removeScripts id:#REASM
 for ev in #(#filePostOpen, #systemPostNew, #systemPostReset, #filePostMerge) do
-	callbacks.addScript ev "REASM_notify \"scene\"" id:#REASM
-for ev in #(#nodeCreated, #nodePostDelete, #nodeNameSet, #layerCreated, #layerDeleted, #renderEnd) do
-	callbacks.addScript ev "REASM_notify \"nodes\"" id:#REASM
+	try (callbacks.addScript ev "REASM_notify \"scene\"" id:#REASM) catch ()
+for ev in #(#nodeCreated, #nodePostDelete, #nodeNameSet, #layerCreated, #layerDeleted, #postRender) do
+	try (callbacks.addScript ev "REASM_notify \"nodes\"" id:#REASM) catch ()
