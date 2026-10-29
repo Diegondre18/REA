@@ -83,7 +83,9 @@ fn REASM_onInit s e =
 	else
 	(
 		local msg = try (e.InitializationException.Message) catch ("error desconocido")
-		messageBox ("No se pudo iniciar WebView2:\n" + msg) title:"REA Scene Manager"
+		format "REA Scene Manager - WebView2 no pudo iniciar: %\n" msg
+		messageBox ("No se pudo iniciar la ventana (WebView2):\n\n" + msg + "\n\nSi falta, instala Microsoft Edge WebView2 Runtime:\nhttps://go.microsoft.com/fwlink/p/?LinkId=2124703\ny reinicia 3ds Max.") title:"REA Scene Manager"
+		try (REASM_form.Close()) catch ()
 	)
 )
 
@@ -106,6 +108,25 @@ fn REASM_loadDll path =
 	)
 )
 
+-- Busca el WebView2 Runtime instalado (API del SDK o carpetas de instalacion habituales).
+fn REASM_hasRuntime envCls =
+(
+	local ver = try (envCls.GetAvailableBrowserVersionString()) catch (undefined)
+	if ver != undefined and ver != "" then true
+	else
+	(
+		local roots = #( \
+			(systemTools.getEnvVariable "ProgramFiles(x86)") + "\\Microsoft\\EdgeWebView\\Application", \
+			(systemTools.getEnvVariable "ProgramFiles") + "\\Microsoft\\EdgeWebView\\Application", \
+			(systemTools.getEnvVariable "LOCALAPPDATA") + "\\Microsoft\\EdgeWebView\\Application")
+		local found = false
+		for r in roots while not found do
+			for d in (getDirectories (r + "\\*")) while not found do
+				if doesFileExist (d + "msedgewebview2.exe") do found = true
+		found
+	)
+)
+
 fn REASM_open =
 (
 	if REASM_form != undefined and not REASM_form.IsDisposed then
@@ -121,18 +142,13 @@ fn REASM_open =
 	local envCls = dotNetClass "Microsoft.Web.WebView2.Core.CoreWebView2Environment"
 	try (envCls.SetLoaderDllFolderPath bin) catch ()
 
-	-- Edge WebView2 Runtime viene con Windows 10/11. Si no esta, se usa el de Pulze si existe.
+	-- Edge WebView2 Runtime viene con Windows 10/11. Se usa el de Windows; solo si no se
+	-- encuentra de ninguna forma y existe el de Pulze, se usa ese. Si falla, REASM_onInit avisa.
 	local browserFolder = ""
-	local ver = try (envCls.GetAvailableBrowserVersionString()) catch (undefined)
-	if ver == undefined do
+	if not (REASM_hasRuntime envCls) do
 	(
 		local pulze = (systemTools.getEnvVariable "ProgramFiles") + "\\Pulze\\Scene Manager\\runtime"
-		if doesFileExist pulze then browserFolder = pulze
-		else
-		(
-			messageBox "Falta Microsoft Edge WebView2 Runtime.\nDescargalo gratis de:\nhttps://go.microsoft.com/fwlink/p/?LinkId=2124703\ny vuelve a abrir REA Scene Manager." title:"REA Scene Manager"
-			return false
-		)
+		if doesFileExist pulze do browserFolder = pulze
 	)
 
 	local bg = (dotNetClass "System.Drawing.Color").FromArgb 255 30 30 30
