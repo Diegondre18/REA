@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "0.4.0"
+global REASM_VERSION = "0.5.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -182,12 +182,137 @@ fn REASM_elementClasses =
 	sort (for c in src collect (c as string))
 )
 
+-- ==================================================================== propiedades de Corona (se detectan por nombre)
+
+-- Devuelve el nombre de la primera propiedad de obj que coincide con alguno de los patrones ("" si ninguna).
+fn REASM_findProp obj patterns =
+(
+	local names = try (getPropNames obj) catch (#())
+	local res = ""
+	for pat in patterns while res == "" do
+		for n in names while res == "" do
+			if matchPattern (n as string) pattern:pat do res = n as string
+	res
+)
+
+fn REASM_coronaProp key =
+(
+	local r = renderers.current
+	case key of
+	(
+		"passLimit": "progressive_passLimit"
+		"noiseLimit": "adaptivity_targetError"
+		"timeLimit": "progressive_timeLimit"
+		"denoiseType": REASM_findProp r #("denoise_filterType", "*denois*filter*", "*denois*type*", "*denois*mode*")
+		"denoiseAmount": REASM_findProp r #("denoise_blendAmount", "*denois*blend*", "*denois*amount*")
+		"overrideOn": REASM_findProp r #("mtlOverride_enabled", "*override*enable*", "*override*on")
+		"overrideMtl": REASM_findProp r #("mtlOverride", "*mtl*override", "*override*mtl", "*override*material")
+		default: ""
+	)
+)
+
+fn REASM_getCorona key =
+(
+	local r = renderers.current
+	local pn = REASM_coronaProp key
+	if pn == "" or not (isProperty r (pn as name)) then undefined else (getProperty r (pn as name))
+)
+
+-- Asigna un valor (texto) respetando el tipo actual de la propiedad.
+fn REASM_setCorona key txt =
+(
+	local r = renderers.current
+	local pn = REASM_coronaProp key
+	if pn != "" and isProperty r (pn as name) do
+	(
+		local cur = getProperty r (pn as name)
+		local v = case of
+		(
+			(isKindOf cur Integer): (txt as integer)
+			(isKindOf cur BooleanClass): (txt == "1" or txt == "true")
+			default: (txt as float)
+		)
+		setProperty r (pn as name) v
+	)
+)
+
+-- Material clay: usa "REA_Clay" si ya existe en la escena; si no, crea uno (CoronaPhysicalMtl > CoronaMtl > Standard).
+fn REASM_clayMtl =
+(
+	local cur = REASM_getCorona "overrideMtl"
+	local found = for m in sceneMaterials where m.name == "REA_Clay" collect m
+	if cur != undefined and (try (cur.name == "REA_Clay") catch (false)) then cur
+	else if found.count > 0 then found[1]
+	else
+	(
+		local m = undefined
+		local cls = try (execute "CoronaPhysicalMtl") catch (undefined)
+		if cls != undefined then
+		(
+			m = cls()
+			try (m.baseColor = color 200 200 200) catch ()
+			try (m.baseRoughness = 0.55) catch ()
+		)
+		else
+		(
+			cls = try (execute "CoronaMtl") catch (undefined)
+			if cls != undefined then
+			(
+				m = cls()
+				try (m.colorDiffuse = color 200 200 200) catch ()
+			)
+			else m = StandardMaterial diffuse:(color 200 200 200)
+		)
+		m.name = "REA_Clay"
+		m
+	)
+)
+
+fn REASM_clayOn =
+(
+	local v = REASM_getCorona "overrideOn"
+	v == true
+)
+
+fn REASM_setClay val =
+(
+	local r = renderers.current
+	local pOn = REASM_coronaProp "overrideOn"
+	if pOn == "" do throw "No se encontro el Material Override de Corona en esta version."
+	local wasOpen = renderSceneDialog.isOpen()
+	if wasOpen do renderSceneDialog.close()
+	if val do
+	(
+		local pM = REASM_coronaProp "overrideMtl"
+		if pM != "" do setProperty r (pM as name) (REASM_clayMtl())
+	)
+	setProperty r (pOn as name) val
+	if wasOpen do renderSceneDialog.open()
+	val
+)
+
+-- Proyeccion de una CoronaCam (perspectiva, esferica 360, VR...). "" si la camara no la tiene.
+fn REASM_camProjProp c = (REASM_findProp c #("projection", "*projection*", "*proj*type*"))
+
+fn REASM_camProj c =
+(
+	local pn = REASM_camProjProp c
+	if pn == "" then undefined else (getProperty c (pn as name))
+)
+
+fn REASM_setCamProj c val =
+(
+	local pn = REASM_camProjProp c
+	if pn != "" do setProperty c (pn as name) val
+	pn != ""
+)
+
 -- ==================================================================== consultas
 
 fn REASM_getScene =
 (
 	local cams = for c in REASM_cameras() collect \
-		REASM_obj #(#("name", c.name), #("locked", REASM_isLocked c), #("cls", (classOf c) as string))
+		REASM_obj #(#("name", c.name), #("locked", REASM_isLocked c), #("cls", (classOf c) as string), #("proj", REASM_camProj c))
 	local ac = getActiveCamera()
 	local layers = for i = 0 to (LayerManager.count - 1) collect \
 		REASM_obj #(#("name", (LayerManager.getLayer i).name), #("on", (LayerManager.getLayer i).on))
@@ -207,7 +332,12 @@ fn REASM_getScene =
 			#("isCorona", true), \
 			#("passLimit", (if isProperty r #progressive_passLimit then r.progressive_passLimit else undefined)), \
 			#("noiseLimit", (if isProperty r #adaptivity_targetError then r.adaptivity_targetError else undefined)), \
-			#("timeLimit", (if isProperty r #progressive_timeLimit then r.progressive_timeLimit else undefined)))
+			#("timeLimit", (if isProperty r #progressive_timeLimit then r.progressive_timeLimit else undefined)), \
+			#("denoiseType", REASM_getCorona "denoiseType"), \
+			#("denoiseAmount", REASM_getCorona "denoiseAmount"), \
+			#("hasDenoise", (REASM_coronaProp "denoiseType") != ""), \
+			#("hasOverride", (REASM_coronaProp "overrideOn") != ""), \
+			#("clay", REASM_clayOn()))
 	)
 	REASM_obj #( \
 		#("version", REASM_VERSION), \
@@ -315,16 +445,16 @@ fn REASM_applyOps ops =
 			)
 			"corona":
 			(
-				local r = renderers.current
-				if REASM_isCorona() and f[3] != "" do
-				(
-					case f[2] of
-					(
-						"passLimit": if isProperty r #progressive_passLimit do r.progressive_passLimit = (f[3] as integer)
-						"noiseLimit": if isProperty r #adaptivity_targetError do r.adaptivity_targetError = (f[3] as float)
-						"timeLimit": if isProperty r #progressive_timeLimit do r.progressive_timeLimit = (f[3] as integer)
-					)
-				)
+				if REASM_isCorona() and f[3] != "" do REASM_setCorona f[2] f[3]
+			)
+			"clay":
+			(
+				if REASM_isCorona() do try (REASM_setClay (f[2] == "1")) catch (append missing "Clay (Material Override)")
+			)
+			"proj":
+			(
+				local c = REASM_findCamera f[2]
+				if c != undefined and f[3] != "" do REASM_setCamProj c (f[3] as integer)
 			)
 		)
 	)
@@ -376,7 +506,8 @@ fn REASM_batchBegin =
 		(if REASM_isCorona() then #( \
 			(if isProperty r #progressive_passLimit then r.progressive_passLimit else undefined), \
 			(if isProperty r #adaptivity_targetError then r.adaptivity_targetError else undefined), \
-			(if isProperty r #progressive_timeLimit then r.progressive_timeLimit else undefined)) else undefined))
+			(if isProperty r #progressive_timeLimit then r.progressive_timeLimit else undefined), \
+			(REASM_getCorona "denoiseType"), (REASM_getCorona "denoiseAmount"), (REASM_clayOn())) else undefined))
 	true
 )
 
@@ -408,6 +539,9 @@ fn REASM_batchEnd restore =
 			if b[13][1] != undefined do try (r.progressive_passLimit = b[13][1]) catch ()
 			if b[13][2] != undefined do try (r.adaptivity_targetError = b[13][2]) catch ()
 			if b[13][3] != undefined do try (r.progressive_timeLimit = b[13][3]) catch ()
+			if b[13][4] != undefined do try (REASM_setCorona "denoiseType" (b[13][4] as string)) catch ()
+			if b[13][5] != undefined do try (REASM_setCorona "denoiseAmount" (b[13][5] as string)) catch ()
+			try (REASM_setClay b[13][6]) catch ()
 		)
 		if b[1] != undefined and isValidNode b[1] do viewport.setCamera b[1]
 	)
@@ -434,7 +568,7 @@ fn REASM_render folder nm ext =
 
 -- ==================================================================== camaras y render elements
 
-fn REASM_camCreate nm =
+fn REASM_camCreate nm proj =
 (
 	local tm = inverse (getViewTM())
 	local fovv = viewport.GetFOV()
@@ -471,7 +605,8 @@ fn REASM_camCreate nm =
 		)
 	)
 	cam.transform = tm
-	cam.name = if nm == "" then (uniqueName "REA_Cam_") else nm
+	if proj != "" do REASM_setCamProj cam (proj as integer)
+	cam.name = if nm == "" then (uniqueName (if proj != "" then "REA_Cam360_" else "REA_Cam_")) else nm
 	viewport.setCamera cam
 	cam.name
 )

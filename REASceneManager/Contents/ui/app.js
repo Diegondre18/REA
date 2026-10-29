@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '0.4.0';
+const VERSION = '0.5.0';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -13,13 +13,18 @@ const PROPS = [
   { key: 'objects', title: 'Objetos', icon: 'cube', color: '#8E8E93' },
   { key: 'elements', title: 'Render elements', icon: 'layers2', color: '#BF5AF2' },
   { key: 'corona', title: 'Corona', icon: 'zap', color: '#FF453A' },
+  { key: 'clay', title: 'Clay', icon: 'sphere', color: '#AC8E68' },
 ];
+// Valores de Corona (se confirman en 3ds Max; si no coinciden, solo hay que cambiar estas listas)
+const PROJECTIONS = [['0', 'Perspectiva'], ['1', 'Cilíndrica'], ['2', 'Esférica 360°'], ['3', 'Esférica 360° VR'], ['4', 'Cubemap']];
+const DENOISERS = [['0', 'Desactivado'], ['1', 'Corona alta calidad'], ['2', 'NVIDIA AI'], ['3', 'Intel']];
 const COLORS = ['#0A84FF', '#FF9F0A', '#30D158', '#FF453A', '#BF5AF2', '#32ADE6', '#FF375F', '#FFD60A'];
 const ACCENTS = ['#0A84FF', '#30D158', '#BF5AF2', '#FF9F0A', '#FF375F', '#8E8E93'];
 const FORMATS = ['.exr', '.png', '.jpg', '.tif'];
 const PRESETS = [
   ['1920x1080', 'Full HD'], ['2560x1440', 'QHD'], ['3840x2160', '4K'], ['2000x2000', 'Cuadrado'],
   ['1080x1350', 'Instagram 4:5'], ['1080x1920', 'Vertical 9:16'], ['3000x2000', 'Foto 3:2'], ['2480x3508', 'A4 300 dpi'],
+  ['4096x2048', '360°'], ['4096x4096', '360° VR'],
 ];
 
 const S = {
@@ -48,7 +53,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 // ---------------------------------------------------------------- preferencias de la interfaz (por PC)
 
 function loadUi() {
-  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {} };
+  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {}, theme: 'dark' };
   try { return Object.assign(def, JSON.parse(localStorage.getItem('reasm-ui2') || '{}')); } catch (e) { return def; }
 }
 function saveUi() {
@@ -57,6 +62,7 @@ function saveUi() {
 }
 function applyAccent() {
   document.documentElement.style.setProperty('--accent', S.ui.accent);
+  document.documentElement.dataset.theme = S.ui.theme === 'light' ? 'light' : 'dark';
 }
 
 // ---------------------------------------------------------------- datos
@@ -67,14 +73,15 @@ function defaultData() {
 
 function defaultComp() {
   return {
-    camera: { on: true, name: '' },
+    camera: { on: true, name: '', proj: '' },
     res: { on: true, w: 1920, h: 1080 },
     sun: { on: false, name: '' },
     env: { on: false, name: '' },
     layers: { on: true, items: [] },
     objects: { on: false, items: [] },
     elements: { on: false, items: [] },
-    corona: { on: false, passLimit: '', noiseLimit: '', timeLimit: '' },
+    corona: { on: false, passLimit: '', noiseLimit: '', timeLimit: '', denoiseType: '', denoiseAmount: '' },
+    clay: { on: false, value: true },
   };
 }
 
@@ -94,6 +101,8 @@ function setupFromScene(name) {
   const sc = S.scene;
   const comp = defaultComp();
   comp.camera.name = sc.activeCamera || '';
+  const cam = sc.cameras.find(c => c.name === comp.camera.name);
+  comp.camera.proj = cam && cam.proj != null ? String(cam.proj) : '';
   comp.res.w = sc.res.w;
   comp.res.h = sc.res.h;
   const sun = sc.suns.find(s => s.on);
@@ -105,6 +114,9 @@ function setupFromScene(name) {
     comp.corona.passLimit = sc.corona.passLimit ?? '';
     comp.corona.noiseLimit = sc.corona.noiseLimit ?? '';
     comp.corona.timeLimit = sc.corona.timeLimit ?? '';
+    comp.corona.denoiseType = sc.corona.denoiseType != null ? String(sc.corona.denoiseType) : '';
+    comp.corona.denoiseAmount = sc.corona.denoiseAmount ?? '';
+    comp.clay.value = !!sc.corona.clay;
   }
   return { id: uid(), name, color: COLORS[S.data.setups.length % COLORS.length], batch: true, group: '', thumb: '', thumbV: 0, comp };
 }
@@ -183,7 +195,11 @@ async function loadData() {
 function summary(s, key) {
   const c = s.comp[key];
   switch (key) {
-    case 'camera': return c.name || 'Sin cámara';
+    case 'camera': {
+      const p = PROJECTIONS.find(x => x[0] === String(c.proj));
+      return (c.name || 'Sin cámara') + (p && c.proj !== '0' && c.proj !== '' ? `  ·  ${p[1]}` : '');
+    }
+    case 'clay': return c.value ? 'Render en clay' : 'Materiales normales';
     case 'res': return `${c.w} × ${c.h}`;
     case 'layers': return c.items.length ? `${c.items.filter(i => i.on).length} de ${c.items.length} visibles` : 'Sin capas';
     case 'objects': {
@@ -198,6 +214,8 @@ function summary(s, key) {
       if (c.passLimit !== '' && c.passLimit != null) parts.push(+c.passLimit ? `${c.passLimit} pases` : 'Pases ∞');
       if (c.noiseLimit !== '' && c.noiseLimit != null) parts.push(`Ruido ${c.noiseLimit}%`);
       if (c.timeLimit !== '' && c.timeLimit != null) parts.push(+c.timeLimit ? `${+(c.timeLimit / 60000).toFixed(1)} min` : 'Tiempo ∞');
+      const dn = DENOISERS.find(x => x[0] === String(c.denoiseType));
+      if (dn) parts.push(c.denoiseType === '0' ? 'Sin denoiser' : `Denoiser ${c.denoiseAmount !== '' ? Math.round(c.denoiseAmount * 100) + '%' : ''}`.trim());
       return parts.join(' · ') || 'Sin cambios';
     }
   }
@@ -221,6 +239,7 @@ function diffs(s) {
     if (c.sun.name ? (on.length !== 1 || on[0] !== c.sun.name) : on.length) out.push('sol');
   }
   if (c.env.on && (sc.activeEnv || '') !== (c.env.name || '')) out.push('entorno');
+  if (c.clay.on && sc.corona.hasOverride && !!sc.corona.clay !== !!c.clay.value) out.push('clay');
   if (c.elements.on) {
     const map = new Map(sc.elements.map(e => [e.name, e.enabled]));
     if (c.elements.items.some(e => map.has(e.name) && map.get(e.name) !== e.on)) out.push('render elements');
@@ -235,7 +254,10 @@ const isCurrent = s => S.scene && s.comp.camera.on && s.comp.camera.name && !dif
 function opsFor(s) {
   const c = s.comp;
   const ops = [];
-  if (c.camera.on && c.camera.name) ops.push(['cam', c.camera.name]);
+  if (c.camera.on && c.camera.name) {
+    ops.push(['cam', c.camera.name]);
+    if (c.camera.proj !== '' && c.camera.proj != null) ops.push(['proj', c.camera.name, c.camera.proj]);
+  }
   if (c.res.on) ops.push(['res', c.res.w, c.res.h]);
   if (c.layers.on) c.layers.items.forEach(l => ops.push(['layer', l.name, l.on ? 1 : 0]));
   if (c.objects.on) c.objects.items.forEach(o => ops.push(['obj', o.name, o.hidden ? 1 : 0]));
@@ -243,10 +265,11 @@ function opsFor(s) {
   if (c.sun.on) ops.push(['sun', c.sun.name]);
   if (c.env.on) ops.push(['env', c.env.name]);
   if (c.corona.on) {
-    ['passLimit', 'noiseLimit', 'timeLimit'].forEach(k => {
+    ['passLimit', 'noiseLimit', 'timeLimit', 'denoiseType', 'denoiseAmount'].forEach(k => {
       if (c.corona[k] !== '' && c.corona[k] !== null && c.corona[k] !== undefined) ops.push(['corona', k, c.corona[k]]);
     });
   }
+  if (c.clay.on) ops.push(['clay', c.clay.value ? 1 : 0]);
   return ops.map(o => o.join(RS));
 }
 
@@ -429,8 +452,11 @@ function propBody(s, key) {
       const names = S.scene.cameras.map(x => x.name);
       const opts = [['', 'Elige una cámara'], ...names.map(n => [n, n])];
       if (c.name && !names.includes(c.name)) opts.push([c.name, `${c.name} (no existe)`]);
+      const cam = S.scene.cameras.find(x => x.name === c.name);
+      const proj = cam && cam.proj != null
+        ? `<div class="form-row compact"><span>Proyección</span>${selectHtml('comp.camera.proj', c.proj, [['', 'Sin cambiar'], ...PROJECTIONS], 'class="short"')}</div>` : '';
       return `<div class="line">${selectHtml('comp.camera.name', c.name, opts)}
-          ${ib('useActiveCam', 'target', 'Usar la cámara del visor')}${ib('viewCam', 'eye', 'Ver en el visor', { name: c.name })}</div>
+          ${ib('useActiveCam', 'target', 'Usar la cámara del visor')}${ib('viewCam', 'eye', 'Ver en el visor', { name: c.name })}</div>${proj}
         ${c.name && !names.includes(c.name) ? `<p class="hint warn">${icon('warn')} Esta cámara ya no existe en la escena.</p>` : ''}`;
     }
     case 'res': {
@@ -445,13 +471,24 @@ function propBody(s, key) {
         <p class="hint">Proporción ${ratio}</p>`;
     }
     case 'layers': {
-      const scene = new Set(S.scene.layers.map(l => l.name));
-      return `<div class="items">${c.items.map((l, i) => `<div class="item">
-            ${ib('toggleItem', l.on ? 'eye' : 'eyeOff', l.on ? 'Visible' : 'Oculta', { list: 'layers', index: i }, l.on ? 'accent' : 'dim')}
-            <span class="name ${l.on ? '' : 'off'}">${esc(l.name)}</span>
-            ${scene.has(l.name) ? '' : `<span class="warn-ico" title="No existe en la escena">${icon('warn')}</span>`}
-            ${ib('removeItem', 'x', 'Quitar', { list: 'layers', index: i }, 'hover')}
-          </div>`).join('') || '<p class="hint">Sin capas.</p>'}</div>
+      // todas las capas: las del setup y las nuevas de la escena (que el setup aun no controla)
+      const sceneNames = S.scene.layers.map(l => l.name);
+      const inSetup = new Map(c.items.map((l, i) => [l.name, i]));
+      const rows = [
+        ...c.items.map((l, i) => ({ name: l.name, i, on: l.on, missing: !sceneNames.includes(l.name) })),
+        ...S.scene.layers.filter(l => !inSetup.has(l.name)).map(l => ({ name: l.name, i: -1, on: l.on, fresh: true })),
+      ];
+      return `<div class="items">${rows.map(r => r.fresh
+          ? `<div class="item fresh">
+              ${ib('trackLayer', 'plus', 'Nueva capa: añadir a este setup', { name: r.name }, 'dim')}
+              <span class="name off">${esc(r.name)}</span><span class="tag">Nueva</span>
+            </div>`
+          : `<div class="item">
+              ${ib('toggleItem', r.on ? 'eye' : 'eyeOff', r.on ? 'Visible' : 'Oculta', { list: 'layers', index: r.i }, r.on ? 'accent' : 'dim')}
+              <span class="name ${r.on ? '' : 'off'}">${esc(r.name)}</span>
+              ${r.missing ? `<span class="warn-ico" title="No existe en la escena">${icon('warn')}</span>` : ''}
+              ${ib('removeItem', 'x', 'Quitar', { list: 'layers', index: r.i }, 'hover')}
+            </div>`).join('') || '<p class="hint">Sin capas.</p>'}</div>
         <div class="line end">${btn('setAll', 'Todas', '', { list: 'layers', val: 1 }, 'ghost')}${btn('setAll', 'Ninguna', '', { list: 'layers', val: 0 }, 'ghost')}${btn('captureLayers', 'Capturar', 'target', {}, 'ghost')}</div>`;
     }
     case 'objects':
@@ -480,6 +517,13 @@ function propBody(s, key) {
             ${ib('removeItem', 'x', 'Quitar', { list: 'elements', index: i }, 'hover')}
           </div>`).join('') || '<p class="hint">Sin render elements.</p>'}</div>
         <div class="line end">${btn('captureElements', 'Capturar', 'target', {}, 'ghost')}</div>`;
+    case 'clay':
+      return `${S.scene.corona.hasOverride === false ? `<p class="hint warn">${icon('warn')} No se encontró el Material Override de Corona.</p>` : ''}
+        <div class="seg full">
+          <button class="seg-btn ${c.value ? 'on' : ''}" data-action="setClay" data-v="1">Clay</button>
+          <button class="seg-btn ${c.value ? '' : 'on'}" data-action="setClay" data-v="0">Materiales normales</button>
+        </div>
+        <p class="hint">Usa un material REA_Clay (Corona Physical gris) como Material Override. Puedes editarlo en el Material Editor.</p>`;
     case 'corona': {
       const mins = c.timeLimit === '' ? '' : +(c.timeLimit / 60000).toFixed(2);
       return `${S.scene.corona.isCorona ? '' : `<p class="hint warn">${icon('warn')} El motor actual no es Corona.</p>`}
@@ -489,6 +533,9 @@ function propBody(s, key) {
           <label><span>Minutos</span><input type="number" min="0" step="0.5" data-field="comp.corona.timeLimit" data-type="minutes" value="${esc(mins)}" placeholder="—"></label>
         </div>
         <p class="hint">0 = sin límite · vacío = no cambiar</p>
+        ${S.scene.corona.hasDenoise === false ? '' : `<div class="form-row compact"><span>Denoiser</span>${selectHtml('comp.corona.denoiseType', c.denoiseType, [['', 'Sin cambiar'], ...DENOISERS], 'class="short"')}</div>
+        <div class="form-row compact ${c.denoiseType === '' || c.denoiseType === '0' ? 'disabled' : ''}"><span>Cantidad</span>
+          <div class="range"><input type="range" min="0" max="100" step="1" data-field="comp.corona.denoiseAmount" data-type="pct" value="${c.denoiseAmount === '' ? 100 : Math.round(c.denoiseAmount * 100)}"><output>${c.denoiseAmount === '' ? '—' : Math.round(c.denoiseAmount * 100) + '%'}</output></div></div>`}
         <div class="line end">${btn('useCurrentCorona', 'Usar valores actuales', 'target', {}, 'ghost')}</div>`;
     }
   }
@@ -499,7 +546,7 @@ function propCard(s, def) {
   const c = s.comp[def.key];
   return `<section class="pcard ${c.on ? '' : 'off'}">
     <header class="pcard-h">
-      <span class="pico" style="background:${def.color}">${icon(def.icon)}</span>
+      <span class="pico" style="--c:${def.color}">${icon(def.icon)}</span>
       <span class="pcard-t">${esc(def.title)}</span>
       <span class="pcard-sum">${esc(c.on ? summary(s, def.key) : 'No se aplica')}</span>
       ${ib('copyToAll', 'copy', 'Copiar a todos los setups', { key: def.key }, 'subtle')}
@@ -552,11 +599,11 @@ function multiDetail(list) {
     </div>
   </section>
   <div class="pgrid">
-    <section class="pcard"><header class="pcard-h"><span class="pico" style="background:${PROPS[1].color}">${icon('aspect')}</span><span class="pcard-t">Resolución</span></header>
+    <section class="pcard"><header class="pcard-h"><span class="pico" style="--c:${PROPS[1].color}">${icon('aspect')}</span><span class="pcard-t">Resolución</span></header>
       <div class="pcard-b"><div class="line">
         <input type="number" min="1" id="multiW" value="${r.w}"><span class="x">×</span><input type="number" min="1" id="multiH" value="${r.h}">
         <span class="spacer"></span>${btn('multiRes', 'Aplicar a todos', 'check')}</div></div></section>
-    <section class="pcard"><header class="pcard-h"><span class="pico" style="background:#8E8E93">${icon('folder')}</span><span class="pcard-t">Grupo</span></header>
+    <section class="pcard"><header class="pcard-h"><span class="pico" style="--c:#8E8E93">${icon('folder')}</span><span class="pcard-t">Grupo</span></header>
       <div class="pcard-b"><div class="line"><input type="text" id="multiGroup" list="groupList2" placeholder="Nombre del grupo"><datalist id="groupList2">${groups().map(g => `<option value="${esc(g)}">`).join('')}</datalist>
         ${btn('multiGroup', 'Mover', 'check')}</div></div></section>
   </div>`;
@@ -568,12 +615,16 @@ function viewSetups() {
   const toolbar = `<div class="toolbar">
       <h1>Setups</h1>${n ? `<span class="count">${n}</span>` : ''}
       <span class="spacer"></span>
-      ${ib('undo', 'undo', 'Deshacer (Ctrl Z)', {}, S.undo.length ? '' : 'disabled')}
-      ${ib('redo', 'redo', 'Rehacer (Ctrl Y)', {}, S.redo.length ? '' : 'disabled')}
-      <label class="search">${icon('search')}<input id="search" type="text" value="${esc(S.search)}" placeholder="Buscar" autocomplete="off" spellcheck="false"></label>
-      <div class="seg">
-        <button class="seg-btn ${S.ui.layout === 'list' ? 'on' : ''}" data-action="setLayout" data-v="list" title="Lista">${icon('rows')}</button>
-        <button class="seg-btn ${S.ui.layout === 'grid' ? 'on' : ''}" data-action="setLayout" data-v="grid" title="Galería">${icon('grid')}</button>
+      <div class="capsule">
+        ${ib('undo', 'undo', 'Deshacer (Ctrl Z)', {}, S.undo.length ? '' : 'disabled')}
+        ${ib('redo', 'redo', 'Rehacer (Ctrl Y)', {}, S.redo.length ? '' : 'disabled')}
+        <span class="sep"></span>
+        ${S.scene.corona.hasOverride ? `<button class="pill ${S.scene.corona.clay ? 'on' : ''}" data-action="toggleClay" title="Clay en la escena (Material Override de Corona)">${icon('sphere')}<span>Clay</span></button>` : ''}
+        <label class="search">${icon('search')}<input id="search" type="text" value="${esc(S.search)}" placeholder="Buscar" autocomplete="off" spellcheck="false"></label>
+        <div class="seg">
+          <button class="seg-btn ${S.ui.layout === 'list' ? 'on' : ''}" data-action="setLayout" data-v="list" title="Lista">${icon('rows')}</button>
+          <button class="seg-btn ${S.ui.layout === 'grid' ? 'on' : ''}" data-action="setLayout" data-v="grid" title="Galería">${icon('grid')}</button>
+        </div>
       </div>
       ${btn('newSetup', 'Nuevo setup', 'plus', {}, 'primary')}
     </div>`;
@@ -591,8 +642,8 @@ function viewCameras() {
   const cams = S.scene.cameras;
   const used = name => S.data.setups.filter(s => s.comp.camera.name === name).length;
   const rows = cams.map(c => `<div class="lrow">
-      <span class="pico" style="background:${PROPS[0].color}">${icon('camera')}</span>
-      <div class="row-main"><span class="name">${esc(c.name)}</span><span class="meta">${esc(c.cls)}${used(c.name) ? `  ·  ${plural(used(c.name), 'setup', 'setups')}` : ''}</span></div>
+      <span class="pico" style="--c:${PROPS[0].color}">${icon('camera')}</span>
+      <div class="row-main"><span class="name">${esc(c.name)}</span><span class="meta">${esc(c.cls)}${c.proj != null && String(c.proj) !== '0' ? '  ·  ' + esc((PROJECTIONS.find(p => p[0] === String(c.proj)) || ['', 'Proyección ' + c.proj])[1]) : ''}${used(c.name) ? `  ·  ${plural(used(c.name), 'setup', 'setups')}` : ''}</span></div>
       ${c.name === S.scene.activeCamera ? '<span class="live-pill"><i></i>En el visor</span>' : ''}
       ${c.locked ? `<span class="lock-ico" title="Bloqueada">${icon('lock')}</span>` : ''}
       <span class="lrow-tools">
@@ -606,8 +657,9 @@ function viewCameras() {
   return `<div class="page">
     <div class="toolbar"><h1>Cámaras</h1><span class="count">${cams.length}</span></div>
     <section class="panel pad">
-      <div class="line"><input type="text" id="newCamName" placeholder="Nombre de la nueva cámara (opcional)">${btn('camCreate', 'Crear desde la vista', 'plus', {}, 'primary')}</div>
-      <p class="hint">Crea una CoronaCam con el encuadre del visor activo.</p>
+      <div class="line"><input type="text" id="newCamName" placeholder="Nombre de la nueva cámara (opcional)">
+        ${btn('camCreate', 'Cámara 360°', 'globe', { proj: '2' })}${btn('camCreate', 'Crear desde la vista', 'plus', {}, 'primary')}</div>
+      <p class="hint">Crea una CoronaCam con el encuadre del visor activo. La 360° usa proyección esférica (resolución 2:1, por ejemplo 4096 × 2048).</p>
     </section>
     <h2>En la escena</h2>
     <section class="panel">${rows || empty('No hay cámaras', 'Crea una desde la vista del visor.')}</section>
@@ -675,7 +727,12 @@ function viewSettings() {
   return `<div class="page narrow">
     <div class="toolbar"><h1>Ajustes</h1></div>
     <section class="panel pad">
-      <div class="form-row"><div><strong>Color de acento</strong><p class="hint">Botones principales y selección.</p></div>
+      <div class="form-row"><div><strong>Apariencia</strong></div>
+        <div class="seg">
+          <button class="seg-btn wide ${S.ui.theme !== 'light' ? 'on' : ''}" data-action="setTheme" data-v="dark">Oscuro</button>
+          <button class="seg-btn wide ${S.ui.theme === 'light' ? 'on' : ''}" data-action="setTheme" data-v="light">Claro</button>
+        </div></div>
+      <div class="form-row"><div><strong>Color de acento</strong><p class="hint">Foco y luz ambiental del fondo.</p></div>
         <div class="colors">${ACCENTS.map(a => `<button class="cdot ${a === S.ui.accent ? 'on' : ''}" style="background:${a}" data-action="setAccent" data-v="${a}"></button>`).join('')}</div></div>
       <div class="form-row"><div><strong>Miniaturas</strong><p class="hint">Captura del visor al crear un setup.</p></div>${toggle(S.ui.thumbs, 'toggleThumbs')}</div>
       <div class="form-row"><div><strong>Vista de setups</strong></div>
@@ -770,7 +827,9 @@ function paletteItems() {
     ['Crear cámara desde la vista', 'camera', () => { S.view = 'cameras'; render(); A.camCreate(); }],
     ['Cambiar galería / lista', 'grid', () => A.toggleLayout()],
     ['Leer la escena de nuevo', 'refresh', () => A.refresh()],
+    ['Activar / desactivar clay', 'sphere', () => A.toggleClay()],
     ['Ajustes', 'settings', () => { S.view = 'settings'; render(); }],
+    ['Cambiar tema claro / oscuro', 'sparkle', () => { S.ui.theme = S.ui.theme === 'light' ? 'dark' : 'light'; saveUi(); render(); }],
   ].map(([label, ic, run]) => ({ label, ic, run, kind: 'Acción' }));
   const sets = S.data.setups.flatMap(s => [
     { label: `Aplicar ${s.name}`, ic: 'play', run: () => applySetup(s), kind: s.group || 'Setup' },
@@ -841,6 +900,7 @@ function readValue(el) {
   if (el.value === '') return '';
   if (t === 'int') return Math.max(0, parseInt(el.value, 10) || 0);
   if (t === 'float') return Math.max(0, parseFloat(el.value) || 0);
+  if (t === 'pct') return Math.max(0, Math.min(100, parseFloat(el.value) || 0)) / 100;
   if (t === 'minutes') return Math.round(Math.max(0, parseFloat(el.value) || 0) * 60000);
   return el.value;
 }
@@ -869,6 +929,7 @@ const A = {
   toggleLayout() { S.ui.layout = S.ui.layout === 'grid' ? 'list' : 'grid'; saveUi(); render(); },
   setLayout(el) { S.ui.layout = el.dataset.v; saveUi(); render(); },
   setAccent(el) { S.ui.accent = el.dataset.v; saveUi(); render(); },
+  setTheme(el) { S.ui.theme = el.dataset.v; saveUi(); render(); },
   toggleThumbs() { S.ui.thumbs = !S.ui.thumbs; saveUi(); render(); },
 
   // seleccion
@@ -963,6 +1024,18 @@ const A = {
   toggleComp(el) { const k = el.dataset.key; mutate(() => { const c = primary().comp[k]; c.on = !c.on; }); },
   setColor(el) { const s = primary(); mutate(() => { s.color = el.dataset.color; }); },
   renderOne(el) { return runBatch([el.dataset.id]); },
+  setClay(el) { mutate(() => { comp('clay').value = el.dataset.v === '1'; }); },
+  trackLayer(el) {
+    const l = S.scene.layers.find(x => x.name === el.dataset.name);
+    mutate(() => comp('layers').items.push({ name: el.dataset.name, on: l ? l.on : true }));
+  },
+  async toggleClay() {
+    if (!S.scene.corona.hasOverride) return toast('No se encontró el Material Override de Corona.', 'warn');
+    const on = !S.scene.corona.clay;
+    await Bridge.call('clay', on ? '1' : '0');
+    await refreshScene(); render();
+    toast(on ? 'Clay activado' : 'Clay desactivado', 'ok');
+  },
   copyToAll(el) {
     const s = primary();
     const k = el.dataset.key;
@@ -1008,9 +1081,9 @@ const A = {
   },
 
   // camaras
-  async camCreate() {
+  async camCreate(el) {
     const inp = $('#newCamName');
-    const name = await Bridge.call('camCreate', inp ? inp.value.trim() : '');
+    const name = await Bridge.call('camCreate', inp ? inp.value.trim() : '', el && el.dataset.proj ? el.dataset.proj : '');
     await refreshScene(); render();
     toast(`Cámara ${name} creada`, 'ok');
   },
@@ -1104,6 +1177,7 @@ document.addEventListener('change', e => {
 });
 
 document.addEventListener('input', e => {
+  if (e.target.type === 'range') { const out = e.target.parentNode.querySelector('output'); if (out) out.textContent = e.target.value + '%'; }
   if (e.target.id === 'search') { S.search = e.target.value; renderList(); }
   if (e.target.id === 'palInput') { S.palette.q = e.target.value; S.palette.i = 0; renderOverlay(); }
 });

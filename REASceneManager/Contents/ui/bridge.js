@@ -38,10 +38,10 @@ const Mock = (() => {
   const scene = {
     version: 'mock', file: 'Casa_Playa_v12.max', filePath: 'D:\\Proyectos\\CasaPlaya\\', renderer: 'CoronaRenderer',
     cameras: [
-      { name: 'CAM_Salon', locked: false, cls: 'Physical' },
-      { name: 'CAM_Cocina', locked: true, cls: 'Physical' },
-      { name: 'CAM_Exterior_Dia', locked: false, cls: 'Physical' },
-      { name: 'CAM_Exterior_Noche', locked: false, cls: 'Physical' },
+      { name: 'CAM_Salon', locked: false, cls: 'CoronaCam', proj: 0 },
+      { name: 'CAM_Cocina', locked: true, cls: 'CoronaCam', proj: 0 },
+      { name: 'CAM_Exterior_Dia', locked: false, cls: 'CoronaCam', proj: 0 },
+      { name: 'CAM_Exterior_Noche', locked: false, cls: 'CoronaCam', proj: 2 },
     ],
     activeCamera: 'CAM_Salon',
     layers: [
@@ -58,7 +58,7 @@ const Mock = (() => {
     suns: [{ name: 'CoronaSun001', on: true }],
     envMaps: ['CoronaSky_Dia', 'HDRI_Atardecer.exr', 'HDRI_Noche.hdr'],
     activeEnv: 'CoronaSky_Dia',
-    corona: { isCorona: true, passLimit: 0, noiseLimit: 3.0, timeLimit: 0 },
+    corona: { isCorona: true, passLimit: 0, noiseLimit: 3.0, timeLimit: 0, denoiseType: 1, denoiseAmount: 0.65, hasDenoise: true, hasOverride: true, clay: false },
     selection: ['Sofa_01', 'Mesa_Centro'],
     outputFile: 'D:\\Proyectos\\CasaPlaya\\render\\Casa_Playa.exr',
     defaultFolder: 'D:\\Proyectos\\CasaPlaya\\render',
@@ -95,6 +95,7 @@ const Mock = (() => {
           const f = op.split(RS);
           if (f[0] === 'cam') { if (camByName(f[1])) scene.activeCamera = f[1]; else missing.push('Camara: ' + f[1]); }
           if (f[0] === 'res') scene.res = { w: +f[1], h: +f[2] };
+          if (f[0] === 'clay') scene.corona.clay = f[1] === '1';
           if (f[0] === 'layer') { const l = scene.layers.find(x => x.name === f[1]); if (l) l.on = f[2] === '1'; else missing.push('Capa: ' + f[1]); }
         });
         return wait(missing);
@@ -102,7 +103,8 @@ const Mock = (() => {
       case 'batchBegin': case 'batchEnd': return wait(true);
       case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + a[2], aborted: false }), 700));
       case 'setOutput': scene.outputFile = a[0] + '\\' + a[1] + a[2]; return wait(scene.outputFile);
-      case 'camCreate': { const n = a[0] || ('REA_Cam_' + String(scene.cameras.length + 1).padStart(3, '0')); scene.cameras.push({ name: n, locked: false, cls: 'Physical' }); scene.activeCamera = n; return wait(n); }
+      case 'clay': scene.corona.clay = a[0] === '1'; return wait(scene.corona.clay);
+      case 'camCreate': { const n = a[0] || ((a[1] ? 'REA_Cam360_' : 'REA_Cam_') + String(scene.cameras.length + 1).padStart(3, '0')); scene.cameras.push({ name: n, locked: false, cls: 'CoronaCam', proj: a[1] ? +a[1] : 0 }); scene.activeCamera = n; return wait(n); }
       case 'cam': {
         const c = camByName(a[1]); if (!c) return wait(false);
         if (a[0] === 'view') scene.activeCamera = c.name;

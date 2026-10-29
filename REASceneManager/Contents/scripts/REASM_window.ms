@@ -32,7 +32,7 @@ fn REASM_dispatch cmd a =
 		"batchEnd": REASM_batchEnd (g[1] == "1")
 		"render": REASM_render g[1] g[2] g[3]
 		"setOutput": REASM_setOutput g[1] g[2] g[3]
-		"camCreate": REASM_camCreate g[1]
+		"camCreate": REASM_camCreate g[1] g[2]
 		"cam": REASM_camCommand g[1] g[2] g[3]
 		"elem": REASM_elemCommand g[1] (g[2] as integer) g[3]
 		"browseFolder":
@@ -43,6 +43,7 @@ fn REASM_dispatch cmd a =
 		"selection": (for o in selection collect o.name)
 		"openRenderSetup": (renderSceneDialog.open(); true)
 		"thumbViewport": REASM_thumbViewport g[1]
+		"clay": REASM_setClay (g[1] == "1")
 		"thumbFromFile": REASM_thumbFromFile g[1] g[2]
 		default: throw ("Comando desconocido: " + cmd)
 	)
