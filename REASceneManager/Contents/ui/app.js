@@ -2,20 +2,20 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '0.3.0';
+const VERSION = '0.4.0';
 
 const PROPS = [
-  { key: 'camera', title: 'Cámara', icon: 'camera' },
-  { key: 'res', title: 'Resolución', icon: 'aspect' },
-  { key: 'layers', title: 'Capas', icon: 'layers' },
-  { key: 'objects', title: 'Objetos', icon: 'cube' },
-  { key: 'sun', title: 'Sol', icon: 'sun' },
-  { key: 'env', title: 'Entorno', icon: 'mountain' },
-  { key: 'elements', title: 'Render elements', icon: 'layers2' },
-  { key: 'corona', title: 'Calidad Corona', icon: 'zap' },
+  { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
+  { key: 'res', title: 'Resolución', icon: 'aspect', color: '#5E5CE6' },
+  { key: 'sun', title: 'Sol', icon: 'sun', color: '#FF9F0A' },
+  { key: 'env', title: 'Entorno', icon: 'mountain', color: '#32ADE6' },
+  { key: 'layers', title: 'Capas', icon: 'layers', color: '#30D158' },
+  { key: 'objects', title: 'Objetos', icon: 'cube', color: '#8E8E93' },
+  { key: 'elements', title: 'Render elements', icon: 'layers2', color: '#BF5AF2' },
+  { key: 'corona', title: 'Corona', icon: 'zap', color: '#FF453A' },
 ];
-const COLORS = ['#7c8cff', '#f2b84b', '#3ecf8e', '#ff6b6b', '#b18cff', '#4cc3ff', '#ff8fc7', '#a3d65c'];
-const ACCENTS = ['#3ecf8e', '#4c8dff', '#a78bfa', '#ff8a4c', '#f5c542', '#ff5c8a'];
+const COLORS = ['#0A84FF', '#FF9F0A', '#30D158', '#FF453A', '#BF5AF2', '#32ADE6', '#FF375F', '#FFD60A'];
+const ACCENTS = ['#0A84FF', '#30D158', '#BF5AF2', '#FF9F0A', '#FF375F', '#8E8E93'];
 const FORMATS = ['.exr', '.png', '.jpg', '.tif'];
 const PRESETS = [
   ['1920x1080', 'Full HD'], ['2560x1440', 'QHD'], ['3840x2160', '4K'], ['2000x2000', 'Cuadrado'],
@@ -35,8 +35,6 @@ const S = {
   search: '',
   menu: null,       // menu contextual / desplegable abierto
   palette: null,    // paleta de comandos
-  inspector: false, // en pantallas estrechas, inspector abierto encima
-  open: {},         // propiedades desplegadas en el inspector
   ui: loadUi(),
 };
 
@@ -50,11 +48,11 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 // ---------------------------------------------------------------- preferencias de la interfaz (por PC)
 
 function loadUi() {
-  const def = { layout: 'grid', accent: ACCENTS[0], thumbs: true, groupsClosed: {} };
-  try { return Object.assign(def, JSON.parse(localStorage.getItem('reasm-ui') || '{}')); } catch (e) { return def; }
+  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {} };
+  try { return Object.assign(def, JSON.parse(localStorage.getItem('reasm-ui2') || '{}')); } catch (e) { return def; }
 }
 function saveUi() {
-  try { localStorage.setItem('reasm-ui', JSON.stringify(S.ui)); } catch (e) { /* sin almacenamiento */ }
+  try { localStorage.setItem('reasm-ui2', JSON.stringify(S.ui)); } catch (e) { /* sin almacenamiento */ }
   applyAccent();
 }
 function applyAccent() {
@@ -163,7 +161,6 @@ function redo() {
 
 async function refreshScene() {
   S.scene = await Bridge.call('getScene');
-  $('#fileName').textContent = S.scene.file || 'Escena sin guardar';
 }
 
 async function loadData() {
@@ -362,41 +359,49 @@ function filteredSetups() {
   return S.data.setups.filter(s => [s.name, s.group, s.comp.camera.name].some(v => (v || '').toLowerCase().includes(q)));
 }
 
-function tile(s) {
-  const sel = S.sel.includes(s.id);
+function metaText(s) {
   const c = s.comp;
-  const meta = [c.camera.on && c.camera.name, c.res.on && `${c.res.w}×${c.res.h}`].filter(Boolean).join(' · ') || 'Sin cámara';
-  const cur = isCurrent(s);
-  if (S.ui.layout === 'list') {
-    return `<div class="row-s ${sel ? 'sel' : ''}" draggable="true" data-sid="${s.id}" data-action="select" data-id="${s.id}" data-dbl="applyId">
-      <span class="grip">${icon('grip')}</span>
-      ${thumbHtml(s, 'sm')}
-      <div class="row-main"><span class="name">${esc(s.name)}</span><span class="meta">${esc(meta)}</span></div>
-      ${cur ? '<span class="live" title="La escena coincide con este setup"></span>' : ''}
-      ${dots(s)}
-      <input type="checkbox" class="chk" data-action="toggleBatch" data-id="${s.id}" ${s.batch ? 'checked' : ''} title="Incluir en el render">
-      ${ib('applyId', 'play', 'Aplicar', { id: s.id }, 'accent quick')}
-    </div>`;
-  }
+  return [c.camera.on && c.camera.name, c.res.on && `${c.res.w} × ${c.res.h}`].filter(Boolean).join('  ·  ') || 'Sin cámara';
+}
+
+function propDots(s) {
+  return `<span class="pdots">${PROPS.filter(p => s.comp[p.key].on).map(p => `<i style="background:${p.color}" title="${esc(p.title)}"></i>`).join('')}</span>`;
+}
+
+function setupRow(s) {
+  const sel = S.sel.includes(s.id);
+  return `<div class="srow ${sel ? 'sel' : ''}" draggable="true" data-sid="${s.id}" data-action="select" data-id="${s.id}" data-dbl="applyId">
+    <span class="stripe" style="background:${esc(s.color)}"></span>
+    <input type="checkbox" class="chk" data-action="toggleBatch" data-id="${s.id}" ${s.batch ? 'checked' : ''} title="Incluir en el render">
+    ${thumbHtml(s, 'sm')}
+    <div class="row-main"><span class="name">${esc(s.name)}</span><span class="meta">${esc(metaText(s))}</span></div>
+    ${isCurrent(s) ? '<span class="live-pill"><i></i>En escena</span>' : ''}
+    ${propDots(s)}
+    ${ib('applyId', 'play', 'Aplicar a la escena', { id: s.id }, 'row-play')}
+  </div>`;
+}
+
+function setupTile(s) {
+  const sel = S.sel.includes(s.id);
   return `<div class="tile ${sel ? 'sel' : ''}" draggable="true" data-sid="${s.id}" data-action="select" data-id="${s.id}" data-dbl="applyId">
     <div class="tile-media">
       ${thumbHtml(s)}
       <input type="checkbox" class="chk ${s.batch ? 'is-on' : ''}" data-action="toggleBatch" data-id="${s.id}" ${s.batch ? 'checked' : ''} title="Incluir en el render">
-      ${cur ? '<span class="live-badge"><span class="live"></span>En escena</span>' : ''}
-      <button class="play" data-action="applyId" data-id="${s.id}" title="Aplicar">${icon('play')}</button>
+      ${isCurrent(s) ? '<span class="live-pill on-media"><i></i>En escena</span>' : ''}
+      <button class="play" data-action="applyId" data-id="${s.id}" title="Aplicar a la escena">${icon('play')}</button>
     </div>
     <div class="tile-info">
       <span class="swatch-dot" style="background:${esc(s.color)}"></span>
-      <div class="row-main"><span class="name">${esc(s.name)}</span><span class="meta">${esc(meta)}</span></div>
+      <div class="row-main"><span class="name">${esc(s.name)}</span><span class="meta">${esc(metaText(s))}</span></div>
     </div>
   </div>`;
 }
 
-function browser() {
+function setupBrowser() {
   const list = filteredSetups();
   if (!S.data.setups.length) {
-    return empty('Crea tu primer setup',
-      'Prepara la vista en 3ds Max (cámara, capas, resolución) y guárdala. Podrás volver a ella con un clic.',
+    return empty('Todavía no hay setups',
+      'Prepara la vista en 3ds Max — cámara, capas, resolución — y guárdala como setup.',
       btn('newSetup', 'Nuevo setup', 'plus', {}, 'primary'));
   }
   if (!list.length) return empty('Sin resultados', `Ningún setup coincide con “${esc(S.search)}”.`);
@@ -406,14 +411,14 @@ function browser() {
     if (!byGroup.has(g)) byGroup.set(g, []);
     byGroup.get(g).push(s);
   });
-  const showHeaders = byGroup.size > 1 || (byGroup.size === 1 && !byGroup.has(''));
+  const showHeaders = byGroup.size > 1 || !byGroup.has('');
+  const grid = S.ui.layout === 'grid';
   return [...byGroup.entries()].map(([g, items]) => {
     const closed = !!S.ui.groupsClosed[g];
     const head = showHeaders ? `<div class="group-h" data-action="toggleGroup" data-group="${esc(g)}" data-dropgroup="${esc(g)}">
-        <span class="chev ${closed ? '' : 'open'}">${icon('chevron')}</span>
-        <span>${esc(g || 'Sin grupo')}</span><span class="count">${items.length}</span>
+        <span class="chev ${closed ? '' : 'open'}">${icon('chevron')}</span><span>${esc(g || 'Sin grupo')}</span><span class="group-n">${items.length}</span>
       </div>` : '';
-    return `<section class="group">${head}${closed ? '' : `<div class="${S.ui.layout === 'list' ? 'rows' : 'tiles'}">${items.map(tile).join('')}</div>`}</section>`;
+    return `<section class="group">${head}${closed ? '' : `<div class="${grid ? 'tiles' : 'srows'}">${items.map(grid ? setupTile : setupRow).join('')}</div>`}</section>`;
   }).join('');
 }
 
@@ -490,81 +495,94 @@ function propBody(s, key) {
   return '';
 }
 
-function inspectorSingle(s) {
-  const active = PROPS.filter(p => s.comp[p.key].on);
-  const inactive = PROPS.filter(p => !s.comp[p.key].on);
-  const d = diffs(s);
-  const groupOpts = groups().map(g => `<option value="${esc(g)}">`).join('');
-  const props = active.map(p => {
-    const open = !!S.open[p.key];
-    return `<div class="prop ${open ? 'open' : ''}">
-      <div class="prop-h" data-action="toggleProp" data-key="${p.key}">
-        <span class="prop-ico">${icon(p.icon)}</span>
-        <span class="prop-t">${esc(p.title)}</span>
-        <span class="prop-sum">${esc(summary(s, p.key))}</span>
-        <span class="chev ${open ? 'open' : ''}">${icon('chevron')}</span>
-      </div>
-      ${open ? `<div class="prop-b">${propBody(s, p.key)}
-        <div class="prop-foot">
-          ${btn('copyToAll', 'Copiar a todos', 'copy', { key: p.key }, 'link')}
-          ${btn('removeProp', 'Quitar', 'minus', { key: p.key }, 'link')}
-        </div></div>` : ''}
-    </div>`;
-  }).join('');
-  return `<div class="insp-head">
-      ${ib('closeInspector', 'back', 'Volver', {}, 'only-narrow')}
-      <div class="insp-thumb">${thumbHtml(s, 'lg')}${ib('thumbUpdate', 'refresh', 'Actualizar miniatura desde el visor', {}, 'thumb-btn')}</div>
-      <div class="insp-title">
-        <button class="color-btn" data-action="colorMenu" style="background:${esc(s.color)}" title="Color"></button>
-        <input class="title-input" type="text" data-field="name" value="${esc(s.name)}" spellcheck="false">
-      </div>
-      <div class="insp-sub">
-        <label class="group-input">${icon('folder')}<input type="text" list="groupList" data-field="group" value="${esc(s.group)}" placeholder="Sin grupo"><datalist id="groupList">${groupOpts}</datalist></label>
-        <label class="render-flag" title="Incluir en el render por lotes">${toggle(s.batch, 'toggleBatchFlag', { id: s.id })}<span>Render</span></label>
-      </div>
-      <div class="insp-actions">
-        ${btn('applyId', 'Aplicar', 'play', { id: s.id }, 'primary grow')}
-        ${btn('updateSetup', 'Capturar', 'target', { id: s.id }, 'ghost')}
-        ${ib('setupMenu', 'more', 'Más', { id: s.id }, 'boxed')}
-      </div>
-      ${d.length ? `<div class="diff">${icon('warn')}<span>La escena difiere en ${esc(d.join(', '))}</span></div>` : ''}
-    </div>
-    <div class="props">${props || '<p class="hint pad">Este setup no cambia nada todavía.</p>'}</div>
-    ${inactive.length ? `<div class="add-prop">${btn('addPropMenu', 'Propiedad', 'plus', {}, 'ghost wide')}</div>` : ''}`;
+function propCard(s, def) {
+  const c = s.comp[def.key];
+  return `<section class="pcard ${c.on ? '' : 'off'}">
+    <header class="pcard-h">
+      <span class="pico" style="background:${def.color}">${icon(def.icon)}</span>
+      <span class="pcard-t">${esc(def.title)}</span>
+      <span class="pcard-sum">${esc(c.on ? summary(s, def.key) : 'No se aplica')}</span>
+      ${ib('copyToAll', 'copy', 'Copiar a todos los setups', { key: def.key }, 'subtle')}
+      ${toggle(c.on, 'toggleComp', { key: def.key }, c.on ? 'Activada: se aplica al setup' : 'Desactivada: no se toca')}
+    </header>
+    <div class="pcard-b">${propBody(s, def.key)}</div>
+  </section>`;
 }
 
-function inspectorMulti(list) {
-  const r = list[0].comp.res;
-  return `<div class="insp-head">
-      ${ib('closeInspector', 'back', 'Volver', {}, 'only-narrow')}
-      <div class="stack">${list.slice(0, 4).map(s => thumbHtml(s)).join('')}</div>
-      <div class="insp-title"><span class="title-static">${plural(list.length, 'setup seleccionado', 'setups seleccionados')}</span></div>
-      <div class="insp-actions">
-        ${btn('renderSelected', 'Renderizar', 'render', {}, 'primary grow')}
-        ${btn('dupSelected', 'Duplicar', 'copy', {}, 'ghost')}
-        ${ib('deleteSelected', 'trash', 'Borrar', {}, 'boxed')}
+function identity(s) {
+  const d = diffs(s);
+  const groupOpts = groups().map(g => `<option value="${esc(g)}">`).join('');
+  return `<section class="identity">
+    <div class="id-thumb">${thumbHtml(s, 'lg')}${ib('thumbUpdate', 'refresh', 'Actualizar miniatura desde el visor', {}, 'thumb-btn')}</div>
+    <div class="id-main">
+      <input class="title-input" type="text" data-field="name" value="${esc(s.name)}" spellcheck="false" title="Nombre del setup">
+      <div class="id-meta">
+        <span class="colors">${COLORS.map(c => `<button class="cdot ${c === s.color ? 'on' : ''}" style="background:${c}" data-action="setColor" data-color="${c}" title="Color"></button>`).join('')}</span>
+        <label class="group-input" title="Grupo">${icon('folder')}<input type="text" list="groupList" data-field="group" value="${esc(s.group)}" placeholder="Sin grupo"><datalist id="groupList">${groupOpts}</datalist></label>
+        <label class="flag">${toggle(s.batch, 'toggleBatchFlag', { id: s.id })}<span>Incluir en render</span></label>
+      </div>
+      ${d.length ? `<div class="diff">${icon('warn')}<span>La escena actual difiere en ${esc(d.join(', '))}.</span></div>` : ''}
+      <div class="id-actions">
+        ${btn('applyId', 'Aplicar a la escena', 'play', { id: s.id }, 'primary')}
+        ${btn('updateSetup', 'Capturar escena', 'target', { id: s.id })}
+        ${btn('renderOne', 'Renderizar', 'render', { id: s.id })}
+        <span class="spacer"></span>
+        ${ib('dupSelected', 'copy', 'Duplicar (Ctrl D)')}
+        ${ib('deleteSelected', 'trash', 'Borrar (Supr)')}
       </div>
     </div>
-    <div class="props">
-      <div class="prop open"><div class="prop-h static"><span class="prop-ico">${icon('aspect')}</span><span class="prop-t">Resolución para todos</span></div>
-        <div class="prop-b"><div class="line">
-          <input type="number" min="1" id="multiW" value="${r.w}"><span class="x">×</span><input type="number" min="1" id="multiH" value="${r.h}">
-          ${btn('multiRes', 'Aplicar', 'check', {}, 'ghost')}</div></div></div>
-      <div class="prop open"><div class="prop-h static"><span class="prop-ico">${icon('folder')}</span><span class="prop-t">Grupo</span></div>
-        <div class="prop-b"><div class="line"><input type="text" id="multiGroup" list="groupList2" placeholder="Nombre del grupo"><datalist id="groupList2">${groups().map(g => `<option value="${esc(g)}">`).join('')}</datalist>
-          ${btn('multiGroup', 'Mover', 'check', {}, 'ghost')}</div></div></div>
-      <div class="prop open"><div class="prop-h static"><span class="prop-ico">${icon('render')}</span><span class="prop-t">Render por lotes</span></div>
-        <div class="prop-b"><div class="line">${btn('multiBatch', 'Incluir', 'check', { val: 1 }, 'ghost')}${btn('multiBatch', 'Excluir', 'x', { val: 0 }, 'ghost')}</div></div></div>
-    </div>`;
+  </section>`;
+}
+
+function multiDetail(list) {
+  const r = list[0].comp.res;
+  return `<section class="identity multi">
+    <div class="stack">${list.slice(0, 4).map(s => thumbHtml(s)).join('')}</div>
+    <div class="id-main">
+      <div class="title-static">${plural(list.length, 'setup seleccionado', 'setups seleccionados')}</div>
+      <p class="hint">Los cambios de abajo se aplican a todos los seleccionados.</p>
+      <div class="id-actions">
+        ${btn('renderSelected', 'Renderizar', 'render', {}, 'primary')}
+        ${btn('multiBatch', 'Incluir en render', 'check', { val: 1 })}
+        ${btn('multiBatch', 'Excluir', 'x', { val: 0 })}
+        <span class="spacer"></span>
+        ${ib('dupSelected', 'copy', 'Duplicar')}
+        ${ib('deleteSelected', 'trash', 'Borrar')}
+      </div>
+    </div>
+  </section>
+  <div class="pgrid">
+    <section class="pcard"><header class="pcard-h"><span class="pico" style="background:${PROPS[1].color}">${icon('aspect')}</span><span class="pcard-t">Resolución</span></header>
+      <div class="pcard-b"><div class="line">
+        <input type="number" min="1" id="multiW" value="${r.w}"><span class="x">×</span><input type="number" min="1" id="multiH" value="${r.h}">
+        <span class="spacer"></span>${btn('multiRes', 'Aplicar a todos', 'check')}</div></div></section>
+    <section class="pcard"><header class="pcard-h"><span class="pico" style="background:#8E8E93">${icon('folder')}</span><span class="pcard-t">Grupo</span></header>
+      <div class="pcard-b"><div class="line"><input type="text" id="multiGroup" list="groupList2" placeholder="Nombre del grupo"><datalist id="groupList2">${groups().map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+        ${btn('multiGroup', 'Mover', 'check')}</div></div></section>
+  </div>`;
 }
 
 function viewSetups() {
   const list = selected();
-  const insp = list.length > 1 ? inspectorMulti(list) : list.length ? inspectorSingle(list[0]) : '';
-  return `<div class="split ${S.inspector ? 'insp-open' : ''} ${insp ? '' : 'no-insp'}">
-    <div class="browser" data-action="clearSel">${browser()}</div>
-    ${insp ? `<aside class="inspector">${insp}</aside>` : ''}
-  </div>`;
+  const n = S.data.setups.length;
+  const toolbar = `<div class="toolbar">
+      <h1>Setups</h1>${n ? `<span class="count">${n}</span>` : ''}
+      <span class="spacer"></span>
+      ${ib('undo', 'undo', 'Deshacer (Ctrl Z)', {}, S.undo.length ? '' : 'disabled')}
+      ${ib('redo', 'redo', 'Rehacer (Ctrl Y)', {}, S.redo.length ? '' : 'disabled')}
+      <label class="search">${icon('search')}<input id="search" type="text" value="${esc(S.search)}" placeholder="Buscar" autocomplete="off" spellcheck="false"></label>
+      <div class="seg">
+        <button class="seg-btn ${S.ui.layout === 'list' ? 'on' : ''}" data-action="setLayout" data-v="list" title="Lista">${icon('rows')}</button>
+        <button class="seg-btn ${S.ui.layout === 'grid' ? 'on' : ''}" data-action="setLayout" data-v="grid" title="Galería">${icon('grid')}</button>
+      </div>
+      ${btn('newSetup', 'Nuevo setup', 'plus', {}, 'primary')}
+    </div>`;
+  const listPanel = `<section class="panel list-panel"><div id="setupList" class="setup-scroll ${S.ui.layout}" data-action="clearSel">${setupBrowser()}</div></section>`;
+  let detail = '';
+  if (list.length > 1) detail = multiDetail(list);
+  else if (list.length === 1) detail = identity(list[0]) + `<div class="pgrid">${PROPS.map(p => propCard(list[0], p)).join('')}</div>`;
+  else if (n) detail = `<p class="hint center">Selecciona un setup para ver y editar lo que guarda.</p>`;
+  return `<div class="page wide">${toolbar}${listPanel}${detail}</div>`;
 }
 
 // ---------------------------------------------------------------- vista: camaras
@@ -573,9 +591,9 @@ function viewCameras() {
   const cams = S.scene.cameras;
   const used = name => S.data.setups.filter(s => s.comp.camera.name === name).length;
   const rows = cams.map(c => `<div class="lrow">
-      <span class="lrow-ico">${icon('camera')}</span>
-      <div class="row-main"><span class="name">${esc(c.name)}</span><span class="meta">${esc(c.cls)}${used(c.name) ? ` · ${plural(used(c.name), 'setup', 'setups')}` : ''}</span></div>
-      ${c.name === S.scene.activeCamera ? '<span class="pill">En visor</span>' : ''}
+      <span class="pico" style="background:${PROPS[0].color}">${icon('camera')}</span>
+      <div class="row-main"><span class="name">${esc(c.name)}</span><span class="meta">${esc(c.cls)}${used(c.name) ? `  ·  ${plural(used(c.name), 'setup', 'setups')}` : ''}</span></div>
+      ${c.name === S.scene.activeCamera ? '<span class="live-pill"><i></i>En el visor</span>' : ''}
       ${c.locked ? `<span class="lock-ico" title="Bloqueada">${icon('lock')}</span>` : ''}
       <span class="lrow-tools">
         ${ib('cam', 'eye', 'Ver en el visor', { cmd: 'view', name: c.name })}
@@ -586,13 +604,13 @@ function viewCameras() {
       </span>
     </div>`).join('');
   return `<div class="page">
-    <div class="page-h"><h1>Cámaras</h1><span class="count">${cams.length}</span></div>
-    <div class="create">
-      <input type="text" id="newCamName" placeholder="Nombre de la nueva cámara (opcional)">
-      ${btn('camCreate', 'Crear desde la vista', 'plus', {}, 'primary')}
-    </div>
-    <p class="hint">Crea una CoronaCam con el encuadre del visor activo.</p>
-    <div class="panel">${rows || empty('No hay cámaras', 'Crea una desde la vista del visor.')}</div>
+    <div class="toolbar"><h1>Cámaras</h1><span class="count">${cams.length}</span></div>
+    <section class="panel pad">
+      <div class="line"><input type="text" id="newCamName" placeholder="Nombre de la nueva cámara (opcional)">${btn('camCreate', 'Crear desde la vista', 'plus', {}, 'primary')}</div>
+      <p class="hint">Crea una CoronaCam con el encuadre del visor activo.</p>
+    </section>
+    <h2>En la escena</h2>
+    <section class="panel">${rows || empty('No hay cámaras', 'Crea una desde la vista del visor.')}</section>
   </div>`;
 }
 
@@ -607,9 +625,10 @@ function viewRender() {
   const queue = sets.map(s => {
     const l = logFor(s.id);
     return `<div class="lrow ${s.batch ? '' : 'muted-row'}" draggable="true" data-sid="${s.id}">
+      <span class="stripe" style="background:${esc(s.color)}"></span>
       <input type="checkbox" class="chk" data-action="toggleBatch" data-id="${s.id}" ${s.batch ? 'checked' : ''} ${S.busy ? 'disabled' : ''}>
       ${thumbHtml(s, 'sm')}
-      <div class="row-main"><span class="name">${esc(s.name)}</span><span class="meta">${esc([s.comp.camera.on && s.comp.camera.name, s.comp.res.on && `${s.comp.res.w}×${s.comp.res.h}`].filter(Boolean).join(' · ') || 'Sin cámara')}</span></div>
+      <div class="row-main"><span class="name">${esc(s.name)}</span><span class="meta">${esc(metaText(s))}</span></div>
       ${l ? `<span class="state ${l.state}" title="${esc(l.text)}">${{ wait: 'En cola', run: 'Renderizando', ok: 'Hecho', skip: 'Omitido' }[l.state]}</span>` : ''}
     </div>`;
   }).join('');
@@ -619,29 +638,27 @@ function viewRender() {
       <span class="lrow-tools">${ib('elem', 'trash', 'Borrar', { cmd: 'remove', index: e.index, name: e.name })}</span>
     </div>`).join('');
   return `<div class="page">
-    <div class="page-h"><h1>Render</h1><span class="count">${marked.length}/${sets.length}</span>
-      <span class="spacer"></span>${ib('batchAll', 'check', 'Marcar todos')}${ib('batchNone', 'x', 'Desmarcar todos')}</div>
-    <div class="panel">${queue || empty('No hay setups', 'Crea setups en la galería para renderizarlos aquí.')}</div>
+    <div class="toolbar"><h1>Render</h1><span class="count">${marked.length} de ${sets.length}</span>
+      <span class="spacer"></span>${btn('batchAll', 'Todos', '', {})}${btn('batchNone', 'Ninguno', '', {})}</div>
+    <section class="panel">${queue || empty('No hay setups', 'Crea setups para renderizarlos aquí.')}</section>
 
     <h2>Salida</h2>
-    <div class="panel pad">
-      <div class="fields wide">
-        <label class="span2"><span>Carpeta</span><div class="line"><input type="text" data-scope="data" data-field="batch.folder" value="${esc(b.folder)}" placeholder="${esc(S.scene.defaultFolder)}">${ib('browse', 'folder', 'Elegir carpeta', { target: 'batch' }, 'boxed')}</div></label>
-        <label><span>Formato</span>${selectHtml('batch.fmt', b.fmt, FORMATS.map(f => [f, f.slice(1).toUpperCase()]), 'data-scope="data"')}</label>
-        <label class="switch-label"><span>Restaurar escena al terminar</span>${toggle(b.restore, 'toggleRestore')}</label>
-      </div>
+    <section class="panel pad">
+      <div class="form-row"><span>Carpeta</span><div class="line"><input type="text" data-scope="data" data-field="batch.folder" value="${esc(b.folder)}" placeholder="${esc(S.scene.defaultFolder)}">${ib('browse', 'folder', 'Elegir carpeta', {}, 'boxed')}</div></div>
+      <div class="form-row"><span>Formato</span>${selectHtml('batch.fmt', b.fmt, FORMATS.map(f => [f, f.slice(1).toUpperCase()]), 'data-scope="data" class="short"')}</div>
+      <div class="form-row"><span>Restaurar la escena al terminar</span>${toggle(b.restore, 'toggleRestore')}</div>
       <p class="hint mono">${esc(folder)}\\&lt;setup&gt;\\&lt;setup&gt;${esc(b.fmt)}</p>
-    </div>
+    </section>
 
     <h2>Render elements</h2>
-    <div class="panel">${els || '<p class="hint pad">Sin render elements.</p>'}
+    <section class="panel">${els || '<p class="hint pad">Sin render elements.</p>'}
       <div class="lrow add">
         <select id="elemClass">${S.scene.elementClasses.map(c => `<option>${esc(c)}</option>`).join('')}</select>
-        ${btn('elemAdd', 'Añadir', 'plus', {}, 'ghost')}
+        ${btn('elemAdd', 'Añadir', 'plus')}
       </div>
-    </div>
-    <p class="hint">Desactiva el candado de vista en Render Setup. Mantén ESC para detener el lote.</p>
-    <div class="sticky-cta">
+    </section>
+    <p class="hint">Desactiva el candado de vista en Render Setup. Mantén ESC pulsado para detener el lote.</p>
+    <div class="cta">
       <button class="btn primary big" data-action="startBatch" ${S.busy || !marked.length ? 'disabled' : ''}>${icon('render')}<span>${S.busy ? 'Renderizando…' : `Renderizar ${plural(marked.length, 'setup', 'setups')}`}</span></button>
     </div>
   </div>`;
@@ -652,26 +669,29 @@ function viewRender() {
 function viewSettings() {
   const keys = [
     ['N', 'Nuevo setup con la escena actual'], ['Enter', 'Aplicar el setup seleccionado'], ['F2', 'Renombrar'],
-    ['Ctrl D', 'Duplicar'], ['Supr', 'Borrar'], ['← → ↑ ↓', 'Moverse entre setups'], ['Ctrl A', 'Seleccionar todos'],
-    ['Ctrl Z / Ctrl Y', 'Deshacer / rehacer'], ['Ctrl K', 'Paleta de comandos'], ['Ctrl F', 'Buscar'], ['G', 'Galería / lista'],
+    ['Ctrl D', 'Duplicar'], ['Supr', 'Borrar'], ['Flechas', 'Moverse entre setups'], ['Ctrl A', 'Seleccionar todos'],
+    ['Ctrl Z  /  Ctrl Y', 'Deshacer / rehacer'], ['Ctrl K', 'Paleta de comandos'], ['Ctrl F', 'Buscar'], ['G', 'Lista / galería'],
   ];
   return `<div class="page narrow">
-    <div class="page-h"><h1>Ajustes</h1></div>
-    <div class="panel pad">
-      <div class="setting"><div><strong>Color de acento</strong><p class="hint">El color de botones y selección.</p></div>
-        <div class="accents">${ACCENTS.map(a => `<button class="accent-dot ${a === S.ui.accent ? 'on' : ''}" style="background:${a}" data-action="setAccent" data-v="${a}"></button>`).join('')}</div></div>
-      <div class="setting"><div><strong>Miniaturas</strong><p class="hint">Captura del visor al crear un setup.</p></div>${toggle(S.ui.thumbs, 'toggleThumbs')}</div>
-      <div class="setting"><div><strong>Vista de setups</strong></div>
-        <div class="seg">${btn('setLayout', 'Galería', 'grid', { v: 'grid' }, S.ui.layout === 'grid' ? 'on' : '')}${btn('setLayout', 'Lista', 'rows', { v: 'list' }, S.ui.layout === 'list' ? 'on' : '')}</div></div>
-    </div>
+    <div class="toolbar"><h1>Ajustes</h1></div>
+    <section class="panel pad">
+      <div class="form-row"><div><strong>Color de acento</strong><p class="hint">Botones principales y selección.</p></div>
+        <div class="colors">${ACCENTS.map(a => `<button class="cdot ${a === S.ui.accent ? 'on' : ''}" style="background:${a}" data-action="setAccent" data-v="${a}"></button>`).join('')}</div></div>
+      <div class="form-row"><div><strong>Miniaturas</strong><p class="hint">Captura del visor al crear un setup.</p></div>${toggle(S.ui.thumbs, 'toggleThumbs')}</div>
+      <div class="form-row"><div><strong>Vista de setups</strong></div>
+        <div class="seg">
+          <button class="seg-btn wide ${S.ui.layout === 'list' ? 'on' : ''}" data-action="setLayout" data-v="list">${icon('rows')}<span>Lista</span></button>
+          <button class="seg-btn wide ${S.ui.layout === 'grid' ? 'on' : ''}" data-action="setLayout" data-v="grid">${icon('grid')}<span>Galería</span></button>
+        </div></div>
+    </section>
     <h2>Atajos de teclado</h2>
-    <div class="panel pad keys">${keys.map(([k, d]) => `<div class="key-row"><span>${esc(d)}</span><kbd>${esc(k)}</kbd></div>`).join('')}</div>
-    <h2>Cómo funciona</h2>
-    <div class="panel pad prose">
-      <p>Un <b>setup</b> guarda una vista de la escena: cámara, resolución, capas… Solo se aplican las propiedades que aparecen en su inspector; con <b>+ Propiedad</b> añades más.</p>
+    <section class="panel pad keys">${keys.map(([k, d]) => `<div class="key-row"><span>${esc(d)}</span><kbd>${esc(k)}</kbd></div>`).join('')}</section>
+    <h2>Acerca de</h2>
+    <section class="panel pad prose">
+      <p>Un <b>setup</b> guarda una vista de la escena. Cada tarjeta (Cámara, Resolución, Sol…) tiene un interruptor: solo las activadas se aplican.</p>
       <p>Los setups se guardan dentro del archivo .max. Guarda el archivo para no perderlos.</p>
-      <p class="hint">REA Scene Manager ${esc(VERSION)} · ${esc(S.scene.renderer)}</p>
-    </div>
+      <p class="hint">REA Scene Manager ${esc(VERSION)}  ·  ${esc(S.scene.renderer)}</p>
+    </section>
   </div>`;
 }
 
@@ -679,39 +699,39 @@ function viewSettings() {
 
 const VIEWS = { setups: viewSetups, cameras: viewCameras, render: viewRender, settings: viewSettings };
 
-function renderTop() {
+function renderStatus() {
+  const p = S.progress;
+  const host = Bridge.isHost;
+  $('#navCount').textContent = S.data && S.data.setups.length ? S.data.setups.length : '';
   const marked = S.data ? S.data.setups.filter(s => s.batch).length : 0;
-  $('#topActions').innerHTML = `
-    ${ib('undo', 'undo', 'Deshacer (Ctrl Z)', {}, S.undo.length ? '' : 'disabled')}
-    ${ib('redo', 'redo', 'Rehacer (Ctrl Y)', {}, S.redo.length ? '' : 'disabled')}
-    <span class="sep"></span>
-    ${ib('toggleLayout', S.ui.layout === 'grid' ? 'rows' : 'grid', S.ui.layout === 'grid' ? 'Ver como lista (G)' : 'Ver como galería (G)')}
-    ${ib('refresh', 'refresh', 'Leer la escena de nuevo')}
-    ${btn('newSetup', 'Nuevo', 'plus', {}, 'ghost')}
-    ${btn('goRender', marked ? `Render · ${marked}` : 'Render', 'render', {}, 'primary')}`;
-  $('#search').closest('.search').style.visibility = S.view === 'setups' ? 'visible' : 'hidden';
+  $('#navRender').textContent = marked || '';
+  $('#sideFoot').innerHTML = `
+    ${p ? `<div class="side-prog"><div class="side-prog-t">Renderizando ${p.i} de ${p.n}</div><div class="side-prog-n">${esc(p.name)}</div>
+      <div class="prog-bar"><span style="width:${Math.round((p.i - 1) / p.n * 100)}%"></span></div></div>` : ''}
+    <div class="side-file" title="${esc(S.scene ? S.scene.filePath + S.scene.file : '')}">${esc(S.scene ? (S.scene.file || 'Escena sin guardar') : '')}</div>
+    <div class="side-status"><span class="dot ${S.scene ? (host ? 'ok' : 'demo') : ''}"></span>${S.scene ? (host ? `3ds Max  ·  ${esc(S.scene.renderer)}` : 'Demostración') : 'Conectando…'}</div>`;
 }
 
-function renderStatus() {
-  const ok = S.scene && Bridge.isHost;
-  const p = S.progress;
-  $('#statusbar').innerHTML = `
-    <span class="dot ${S.scene ? (ok ? 'ok' : 'demo') : ''}"></span>
-    <span>${S.scene ? (ok ? `3ds Max · ${esc(S.scene.renderer)}` : 'Modo demostración') : 'Conectando…'}</span>
-    ${p ? `<span class="prog"><span class="prog-bar"><span style="width:${Math.round((p.i - 1) / p.n * 100)}%"></span></span>Renderizando ${p.i}/${p.n} · ${esc(p.name)}</span>` : ''}
-    <span class="spacer"></span>
-    <span>${S.data ? plural(S.data.setups.length, 'setup', 'setups') : ''}</span>
-    <span class="muted">v${esc(VERSION)}</span>`;
+function renderList() {
+  const el = $('#setupList');
+  if (el) el.innerHTML = setupBrowser();
 }
 
 function render() {
-  document.querySelectorAll('.rail-btn').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));
   const main = $('#main');
   if (!S.scene || !S.data) { main.innerHTML = empty('Leyendo la escena…'); renderStatus(); return; }
-  const scrollers = [...main.querySelectorAll('.browser, .inspector, .page')].map(el => [el.className.split(' ')[0], el.scrollTop]);
+  const page = main.querySelector('.page');
+  const list = main.querySelector('#setupList');
+  const top = page ? page.scrollTop : 0;
+  const listTop = list ? list.scrollTop : 0;
+  const focused = document.activeElement && document.activeElement.id === 'search';
   main.innerHTML = VIEWS[S.view]();
-  scrollers.forEach(([cls, top]) => { const el = main.querySelector('.' + cls); if (el) el.scrollTop = top; });
-  renderTop();
+  const page2 = main.querySelector('.page');
+  if (page2) page2.scrollTop = top;
+  const list2 = main.querySelector('#setupList');
+  if (list2) list2.scrollTop = listTop;
+  if (focused) { const s = $('#search'); if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }
   renderStatus();
   renderOverlay();
 }
@@ -801,7 +821,7 @@ function setupMenuItems(s) {
 }
 
 function focusName() {
-  S.view = 'setups'; S.inspector = true; render();
+  S.view = 'setups'; render();
   const el = document.querySelector('.title-input');
   if (el) { el.focus(); el.select(); }
 }
@@ -850,7 +870,6 @@ const A = {
   setLayout(el) { S.ui.layout = el.dataset.v; saveUi(); render(); },
   setAccent(el) { S.ui.accent = el.dataset.v; saveUi(); render(); },
   toggleThumbs() { S.ui.thumbs = !S.ui.thumbs; saveUi(); render(); },
-  closeInspector() { S.inspector = false; render(); },
 
   // seleccion
   select(el, e) {
@@ -865,11 +884,10 @@ const A = {
       S.sel = [...new Set([...S.sel, ...range.filter(x => x !== id)]), id];
     } else {
       S.sel = [id];
-      S.inspector = true;
     }
     render();
   },
-  clearSel(el, e) { if (e.target === el || e.target.classList.contains('group')) { S.sel = []; S.inspector = false; render(); } },
+  clearSel(el, e) { if (e.target === el || e.target.classList.contains('group') || e.target.classList.contains('srows') || e.target.classList.contains('tiles')) { S.sel = []; render(); } },
   toggleGroup(el) { const g = el.dataset.group; S.ui.groupsClosed[g] = !S.ui.groupsClosed[g]; saveUi(); render(); },
 
   // setups
@@ -880,7 +898,7 @@ const A = {
     const s = setupFromScene(uniqueName(base || 'Setup'));
     const p = primary();
     if (p && p.group) s.group = p.group;
-    mutate(() => { S.data.setups.push(s); S.sel = [s.id]; S.inspector = true; });
+    mutate(() => { S.data.setups.push(s); S.sel = [s.id]; });
     toast(`${s.name} creado`, 'ok');
     await updateThumb(s);
     render();
@@ -941,15 +959,10 @@ const A = {
   multiGroup() { const g = $('#multiGroup').value.trim(); mutate(() => selected().forEach(s => { s.group = g; })); },
   multiBatch(el) { mutate(() => selected().forEach(s => { s.batch = el.dataset.val === '1'; })); },
 
-  // propiedades
-  toggleProp(el) { S.open[el.dataset.key] = !S.open[el.dataset.key]; render(); },
-  addPropMenu(el) {
-    const s = primary();
-    openMenu(el, PROPS.filter(p => !s.comp[p.key].on).map(p => ({
-      label: p.title, ic: p.icon, run: () => { S.open[p.key] = true; mutate(() => { s.comp[p.key].on = true; }); },
-    })));
-  },
-  removeProp(el) { const k = el.dataset.key; mutate(() => { primary().comp[k].on = false; }); },
+  // tarjetas
+  toggleComp(el) { const k = el.dataset.key; mutate(() => { const c = primary().comp[k]; c.on = !c.on; }); },
+  setColor(el) { const s = primary(); mutate(() => { s.color = el.dataset.color; }); },
+  renderOne(el) { return runBatch([el.dataset.id]); },
   copyToAll(el) {
     const s = primary();
     const k = el.dataset.key;
@@ -1058,7 +1071,7 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-close]') && !e.target.closest('.palette')) { closeOverlay(); return; }
 
   const nav = e.target.closest('[data-view]');
-  if (nav) { S.view = nav.dataset.view; S.inspector = false; render(); return; }
+  if (nav) { S.view = nav.dataset.view; render(); return; }
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled || el.classList.contains('disabled') || !A[el.dataset.action]) return;
   if (S.busy && !['goRender', 'palette', 'select'].includes(el.dataset.action)) {
@@ -1091,7 +1104,7 @@ document.addEventListener('change', e => {
 });
 
 document.addEventListener('input', e => {
-  if (e.target.id === 'search') { S.search = e.target.value; render(); }
+  if (e.target.id === 'search') { S.search = e.target.value; renderList(); }
   if (e.target.id === 'palInput') { S.palette.q = e.target.value; S.palette.i = 0; renderOverlay(); }
 });
 
@@ -1154,7 +1167,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Enter') { const it = S.palette.items[S.palette.i]; closeOverlay(); if (it) run(it.run); e.preventDefault(); }
     return;
   }
-  if (e.key === 'Escape') { if (S.menu) closeOverlay(); else if (typing) e.target.blur(); else { S.sel = []; S.inspector = false; render(); } return; }
+  if (e.key === 'Escape') { if (S.menu) closeOverlay(); else if (typing) e.target.blur(); else { S.sel = []; render(); } return; }
   if (ctrl && e.key.toLowerCase() === 'k') { e.preventDefault(); A.palette(); return; }
   if (ctrl && e.key.toLowerCase() === 'f') { e.preventDefault(); S.view = 'setups'; render(); $('#search').focus(); return; }
   if (typing) {

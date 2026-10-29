@@ -8,34 +8,19 @@
 </head>
 <body>
 <div id="app">
-  <header class="topbar">
-    <div class="brand">
+  <nav class="sidebar">
+    <div class="side-head">
       <span class="logo">R</span>
-      <div class="brand-text">
-        <strong>Scene Manager</strong>
-        <span id="fileName">Sin archivo</span>
-      </div>
+      <span class="side-title">Scene Manager</span>
     </div>
-    <label class="search">
-      <span data-icon="search"></span>
-      <input id="search" type="text" placeholder="Buscar setups" autocomplete="off" spellcheck="false">
-      <button class="kbd" data-action="palette" title="Paleta de comandos">Ctrl K</button>
-    </label>
+    <button class="nav-item" data-view="setups"><span data-icon="list"></span><span class="label">Setups</span><span class="nav-count" id="navCount"></span></button>
+    <button class="nav-item" data-view="cameras"><span data-icon="camera"></span><span class="label">Cámaras</span></button>
+    <button class="nav-item" data-view="render"><span data-icon="render"></span><span class="label">Render</span><span class="nav-count" id="navRender"></span></button>
     <div class="spacer"></div>
-    <div id="topActions" class="top-actions"></div>
-  </header>
-
-  <nav class="rail">
-    <button class="rail-btn" data-view="setups" title="Setups" data-icon="grid"></button>
-    <button class="rail-btn" data-view="cameras" title="Camaras" data-icon="camera"></button>
-    <button class="rail-btn" data-view="render" title="Render" data-icon="render"></button>
-    <div class="spacer"></div>
-    <button class="rail-btn" data-view="settings" title="Ajustes" data-icon="settings"></button>
+    <button class="nav-item" data-view="settings"><span data-icon="settings"></span><span class="label">Ajustes</span></button>
+    <div class="side-foot" id="sideFoot"></div>
   </nav>
-
   <main id="main"></main>
-
-  <footer id="statusbar" class="statusbar"></footer>
 </div>
 <div id="overlay"></div>
 <div id="toasts"></div>
