@@ -1,0 +1,88 @@
+/* Hoja de contactos con el diseño de presentacion de LAP (Left Angle Partnership).
+   Paginas de 17 x 11 in (1224 x 792 pt). Medidas tomadas de Presentacion_LAP.pdf. */
+
+@font-face { font-family: "LAP Whyte"; font-weight: 400; src: local("Whyte Book"), local("Whyte-Book"), local("Whyte"), url("fonts/Whyte-Book.ttf"); }
+@font-face { font-family: "LAP Whyte"; font-weight: 500; src: local("Whyte Medium"), local("Whyte-Medium"), url("fonts/Whyte-Medium.ttf"), local("Whyte Book"), url("fonts/Whyte-Book.ttf"); }
+
+.lapdoc {
+  --lap-blue: #0057FF;
+  --lap-paper: #E4E3E0;
+  --lap-ink: #1f1f1f;
+  font-family: "LAP Whyte", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  color: var(--lap-ink);
+  -webkit-font-smoothing: antialiased;
+}
+.lp {
+  position: relative; width: 1224pt; height: 792pt; overflow: hidden;
+  background: var(--lap-paper); color: var(--lap-ink);
+  break-after: page; page-break-after: always;
+}
+.lp:last-child { break-after: auto; page-break-after: auto; }
+.lp.blue { background: var(--lap-blue); color: #fff; }
+.lp .up { text-transform: uppercase; }
+
+/* cabecera comun: etiquetas arriba a la derecha con lineas verticales */
+.lp-tags { position: absolute; top: 0; left: 826pt; right: 0; height: 30pt; }
+.lp-tag { position: absolute; top: 0; height: 30pt; padding: 21pt 0 0 6pt; font-size: 6.5pt; letter-spacing: .02em; text-transform: uppercase; border-left: .75pt solid currentColor; }
+.lp-tag.t1 { left: 0; border-color: var(--lap-blue); }
+.lp-tag.t2 { left: 225pt; }
+.lp.photo .lp-tag, .lp.photo .lp-tag.t1 { color: #fff; border-color: rgba(255, 255, 255, .85); }
+
+.lp-rule { position: absolute; left: 0; right: 0; height: 0; border-top: .75pt solid currentColor; }
+.lp-title { position: absolute; left: 56pt; top: 46pt; font-size: 30pt; line-height: 1; letter-spacing: .005em; text-transform: uppercase; }
+.lp-num { position: absolute; left: 28pt; top: 744pt; font-size: 10pt; }
+.lp-lap { position: absolute; top: 726pt; font-size: 37pt; line-height: 1; }
+.lp-lap.l { left: 282pt; } .lp-lap.a { left: 712pt; } .lp-lap.p { right: 56pt; }
+.lp-slash { color: var(--lap-blue); font-weight: 500; letter-spacing: -.04em; margin-right: .35em; }
+.lp.blue .lp-slash { color: #fff; }
+
+/* portada */
+.lp-cover-title { position: absolute; left: 56pt; top: 52pt; font-size: 34pt; line-height: 1.05; text-transform: uppercase; letter-spacing: .005em; max-width: 560pt; }
+.lp-cover-date { position: absolute; left: 56pt; font-size: 16pt; font-weight: 500; text-transform: uppercase; }
+.lp-info { position: absolute; top: 55pt; font-size: 7pt; line-height: 20pt; text-transform: uppercase; }
+.lp-info b { font-weight: 500; text-decoration: underline; text-underline-offset: 2pt; }
+.lp-info.c1 { left: 684pt; } .lp-info.c2 { left: 858pt; } .lp-info.c3 { left: 1031pt; }
+.lp-logo { position: absolute; left: 56pt; top: 659pt; width: 288pt; height: 81pt; background: url("assets/lap_logo.png") left center / contain no-repeat; }
+.lp-contact { position: absolute; top: 658pt; bottom: 0; padding: 4pt 0 0 13pt; border-left: .75pt solid rgba(255, 255, 255, .9); font-size: 10pt; line-height: 19.2pt; text-transform: uppercase; }
+.lp-contact.k1 { left: 768pt; } .lp-contact.k2 { left: 975pt; }
+
+/* capitulo */
+.lp-chapter { position: absolute; left: 56pt; top: 50pt; font-size: 50pt; line-height: 1; text-transform: uppercase; }
+.lp-sub { position: absolute; left: 56pt; top: 105pt; font-size: 17pt; }
+
+/* cuadricula de renders */
+.lp-grid { position: absolute; left: 56pt; right: 56pt; top: 128pt; bottom: 70pt; display: grid; gap: 26pt 22pt; }
+.lp-grid.n6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); }
+.lp-grid.n4 { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); }
+.lp-grid.n2 { grid-template-columns: repeat(2, 1fr); grid-template-rows: 1fr; }
+.lp-cell { display: flex; flex-direction: column; min-height: 0; }
+.lp-label { color: var(--lap-blue); font-weight: 500; font-size: 13pt; line-height: 1.1; text-transform: uppercase; margin-bottom: 9pt; display: flex; gap: 10pt; }
+.lp-label .n { flex: none; }
+.lp-img { flex: 1; min-height: 0; background-color: #d5d3cf; background-size: cover; background-position: center; }
+.lp-meta { margin-top: 8pt; font-size: 7.5pt; line-height: 1.6; }
+.lp-meta span { color: var(--lap-blue); }
+
+/* render a pagina completa */
+.lp.photo { background: #111; color: #fff; }
+.lp-full { position: absolute; inset: 0; background-size: cover; background-position: center; }
+.lp-shade { position: absolute; left: 0; right: 0; top: 0; height: 150pt; background: linear-gradient(rgba(0, 0, 0, .38), rgba(0, 0, 0, 0)); }
+.lp.photo .lp-title, .lp.photo .lp-num { color: #fff; text-shadow: 0 1pt 6pt rgba(0, 0, 0, .25); }
+.lp-photo-meta { position: absolute; right: 56pt; top: 744pt; font-size: 8pt; text-transform: uppercase; letter-spacing: .02em; text-shadow: 0 1pt 6pt rgba(0, 0, 0, .35); }
+
+/* cierre */
+.lp-big { position: absolute; top: 60pt; font-size: 37pt; line-height: 1; }
+.lp-big.l { left: 56pt; } .lp-big.a { left: 597pt; } .lp-big.p { right: 56pt; }
+
+/* vista previa dentro del plugin */
+.sheet-preview { display: grid; gap: 18px; justify-items: center; padding: 6px 0 40px; }
+.sheet-page { width: calc(1224pt * var(--k)); height: calc(792pt * var(--k)); border-radius: 6px; overflow: hidden; box-shadow: 0 0 0 1px var(--line), var(--shadow); }
+.sheet-page > .lp { transform: scale(var(--k)); transform-origin: 0 0; }
+
+/* impresion: solo el documento */
+#printRoot { display: none; }
+@page { size: 17in 11in; margin: 0; }
+@media print {
+  html, body { background: #fff !important; overflow: visible !important; height: auto !important; }
+  body > *:not(#printRoot) { display: none !important; }
+  #printRoot { display: block !important; }
+}

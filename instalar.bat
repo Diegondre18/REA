@@ -27,6 +27,8 @@ if not errorlevel 1 (
 if exist "%DEST%" rmdir /s /q "%DEST%"
 mkdir "%DEST%"
 xcopy /E /I /Y "%SRC%" "%DEST%" >nul
+rem Tipografias de la presentacion LAP (Whyte): si hay una carpeta "fonts" junto a este instalador
+if exist "%~dp0fonts" xcopy /Y "%~dp0fonts\*.*" "%DEST%\Contents\ui\fonts\" >nul
 rem Quitar la marca "descargado de internet" para que .NET pueda cargar las DLL
 powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -LiteralPath $env:DEST -Recurse | Unblock-File" >nul 2>&1
 

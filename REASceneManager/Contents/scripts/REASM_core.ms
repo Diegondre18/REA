@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "0.7.0"
+global REASM_VERSION = "0.8.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -841,12 +841,37 @@ fn REASM_presetThumb folder nm =
 	res
 )
 
+-- Primer archivo de la carpeta con alguna de las extensiones ("" si no hay).
+fn REASM_firstFile dir exts =
+(
+	local res = ""
+	local base = if dir[dir.count] == "\\" then dir else (dir + "\\")
+	for e in exts while res == "" do
+	(
+		local fs = getFiles (base + "*." + e)
+		if fs.count > 0 do res = fs[1]
+	)
+	res
+)
+
 fn REASM_listPresets folder =
 (
 	if folder == "" or not (doesFileExist folder) then #()
 	else
 	(
 		local res = #()
+		-- cada subcarpeta con un .rps y/o un .hdr es un preset
+		for d in (getDirectories (folder + "\\*")) do
+		(
+			local rps = REASM_firstFile d #("rps")
+			local hdr = REASM_firstFile d #("hdr", "exr")
+			if rps != "" or hdr != "" do
+			(
+				local nm = pathConfig.stripPathToLeaf (substring d 1 (d.count - 1))
+				append res (REASM_obj #(#("name", nm), #("file", rps), #("hdr", hdr), #("type", "folder"), \
+					#("thumb", REASM_firstFile d #("png", "jpg", "jpeg"))))
+			)
+		)
 		for ext in #("max", "rps") do
 			for f in (getFiles (folder + "\\*." + ext)) do
 			(
@@ -873,6 +898,30 @@ fn REASM_removePresetLayers =
 		)
 	)
 	true
+)
+
+-- Pone un HDRI como mapa de entorno (Bitmap esferico) y lo devuelve.
+fn REASM_setHdri hdr =
+(
+	local m = Bitmaptexture filename:hdr
+	m.name = "REA_HDRI_" + (getFilenameFile hdr)
+	try (m.coords.mappingType = 1) catch ()
+	try (m.coords.mapping = 0) catch ()
+	environmentMap = m
+	useEnvironmentMap = true
+	m
+)
+
+-- Preset en carpeta: aplica el .rps (si hay) y pone el .hdr de la carpeta como entorno (si se pide).
+fn REASM_loadPresetFolder rps hdr useHdr =
+(
+	if rps != "" and doesFileExist rps do
+	(
+		if renderSceneDialog.isOpen() do renderSceneDialog.close()
+		renderPresets.LoadAll 0 rps
+	)
+	if useHdr and hdr != "" and doesFileExist hdr do REASM_setHdri hdr
+	REASM_obj #(#("type", "folder"), #("layer", ""), #("count", 0), #("env", (if environmentMap != undefined then environmentMap.name else "")))
 )
 
 fn REASM_loadPreset file replaceOld =
@@ -914,3 +963,25 @@ fn REASM_listFiles dir pattern =
 fn REASM_openFile f = (shellLaunch f ""; true)
 fn REASM_showInFolder f = (shellLaunch "explorer.exe" ("/select,\"" + f + "\""); true)
 fn REASM_beep = (try ((dotNetClass "System.Media.SystemSounds").Asterisk.Play()) catch (); true)
+
+-- ==================================================================== hoja de contactos (PDF)
+
+-- Copia reducida (hasta maxW px de ancho) de un render como JPG, para el PDF.
+fn REASM_exportJpg src id maxW =
+(
+	if not (doesFileExist src) then ""
+	else
+	(
+		local b = openBitmap src
+		local w = amin maxW b.width
+		local h = amax 1 (((w as float) * b.height / b.width) as integer)
+		local o = bitmap w h
+		copy b o
+		local f = REASM_thumbDir() + "\\pdf_" + (REASM_safeName id) + ".jpg"
+		o.filename = f
+		save o
+		close o
+		close b
+		f
+	)
+)

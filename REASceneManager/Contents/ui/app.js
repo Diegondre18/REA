@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '0.7.0';
+const VERSION = '0.8.0';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -65,7 +65,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 // ---------------------------------------------------------------- preferencias de la interfaz (por PC)
 
 function loadUi() {
-  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {}, theme: 'dark', presetFolder: NAS_PRESETS, presetReplace: true, sound: true };
+  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {}, theme: 'dark', presetFolder: NAS_PRESETS, presetReplace: true, presetHdr: true, sound: true };
   try { return Object.assign(def, JSON.parse(localStorage.getItem('reasm-ui2') || '{}')); } catch (e) { return def; }
 }
 function saveUi() {
@@ -900,20 +900,20 @@ function viewLights() {
   const list = S.presets || [];
   const cards = list.map(p => {
     const layer = 'REA_Luz_' + p.name;
-    const isLoaded = loaded.some(l => l.name === layer);
+    const isLoaded = p.type === 'folder' ? !!(p.hdr && S.scene.activeEnv && S.scene.activeEnv === 'REA_HDRI_' + p.hdr.split('\\').pop().replace(/\.[^.]+$/, '')) : loaded.some(l => l.name === layer);
     const src = presetSrc(p);
     return `<div class="preset">
       <div class="thumb">${src ? `<img src="${esc(src)}" alt="" draggable="false">` : `<span class="thumb-ph">${icon(p.type === 'rps' ? 'settings' : 'sun')}</span>`}
         ${isLoaded ? '<span class="live-pill on-media"><i></i>En escena</span>' : ''}
-        <button class="play" data-action="loadPreset" data-file="${esc(p.file)}" data-name="${esc(p.name)}" data-type="${p.type}" title="Cargar">${icon('play')}</button>
+        <button class="play" data-action="loadPreset" data-file="${esc(p.file)}" data-hdr="${esc(p.hdr || '')}" data-name="${esc(p.name)}" data-type="${p.type}" title="Cargar">${icon('play')}</button>
       </div>
       <div class="tile-info"><div class="row-main"><span class="name">${esc(p.name)}</span>
-        <span class="meta">${p.type === 'rps' ? 'Preset de render (.rps)' : 'Iluminación (.max)'}</span></div>
-        ${btn('loadPreset', 'Cargar', '', { file: p.file, name: p.name, type: p.type }, 'small')}</div>
+        <span class="meta">${p.type === 'folder' ? [p.file && 'Render preset', p.hdr && 'HDRI'].filter(Boolean).join(' + ') : p.type === 'rps' ? 'Preset de render (.rps)' : 'Iluminación (.max)'}</span></div>
+        ${btn('loadPreset', 'Cargar', '', { file: p.file, hdr: p.hdr || '', name: p.name, type: p.type }, 'small')}</div>
     </div>`;
   }).join('');
   const body = !folder
-    ? empty('Elige tu carpeta de presets', 'Guarda tus rigs de luces como archivos .max (y presets de render .rps) en una carpeta. Si añades una imagen con el mismo nombre (.jpg o .png), se usa como miniatura.',
+    ? empty('Elige tu carpeta de presets', 'Cada preset es una carpeta con su .rps (render preset), su .hdr y una imagen .png de vista previa. También se aceptan archivos .max con luces.',
         btn('pickPresetFolder', 'Elegir carpeta', 'folder', {}, 'primary'))
     : S.presets === null ? empty('Leyendo la carpeta…')
     : !list.length ? empty('No hay presets en esta carpeta', 'Añade archivos .max o .rps y pulsa Actualizar.')
@@ -927,6 +927,7 @@ function viewLights() {
       </div>` : ''}
     </div>
     ${folder ? `<section class="panel pad lights-opts">
+      <div class="form-row"><div><strong>Usar el HDRI de la carpeta como entorno</strong><p class="hint">Al cargar una carpeta de preset, aplica su .rps y pone su .hdr como mapa de entorno.</p></div>${toggle(S.ui.presetHdr, 'togglePresetHdr')}</div>
       <div class="form-row"><div><strong>Reemplazar la iluminación anterior</strong><p class="hint">Al cargar un preset .max se borran los presets REA cargados antes (capas REA_Luz_…).</p></div>${toggle(S.ui.presetReplace, 'togglePresetReplace')}</div>
       ${loaded.length ? `<div class="form-row"><div><strong>En la escena</strong><p class="hint">${loaded.map(l => esc(l.name.replace('REA_Luz_', ''))).join('  ·  ')}</p></div>${btn('removePresets', 'Quitar todos', 'trash')}</div>` : ''}
     </section>` : ''}
@@ -969,6 +970,7 @@ function viewResults() {
     <div class="toolbar"><h1>Resultados</h1>${total ? `<span class="count">${total}</span>` : ''}<span class="spacer"></span>
       ${nCmp ? `<div class="capsule"><span class="capsule-label">${nCmp} de 2 seleccionados</span>${ib('clearCompare', 'x', 'Quitar selección')}</div>` : ''}
       ${btn('compare', 'Comparar', 'compare', {}, nCmp === 2 ? 'primary' : '')}
+      ${total ? btn('goSheet', 'Hoja de contactos', 'grid', {}, 'primary') : ''}
     </div>
     ${total ? '<p class="hint" style="margin-bottom:16px">Marca dos renders para compararlos (antes / después). Clic en una imagen para verla en grande.</p>' : ''}
     ${body}
@@ -1030,7 +1032,7 @@ function viewSettings() {
 
 // ---------------------------------------------------------------- render general
 
-const VIEWS = { setups: viewSetups, cameras: viewCameras, lights: viewLights, render: viewRender, results: viewResults, settings: viewSettings };
+const VIEWS = { setups: viewSetups, cameras: viewCameras, lights: viewLights, render: viewRender, results: viewResults, sheet: () => viewSheet(), settings: viewSettings };
 
 function renderStatus() {
   const p = S.progress;
@@ -1053,7 +1055,7 @@ function renderList() {
 }
 
 function render() {
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view || (S.view === 'sheet' && b.dataset.view === 'results')));
   const main = $('#main');
   if (!S.scene || !S.data) { main.innerHTML = empty('Leyendo la escena…'); renderStatus(); return; }
   const page = main.querySelector('.page');
@@ -1383,6 +1385,14 @@ const A = {
     mutate(() => Object.assign(comp('region'), { type: r.type && r.type !== 'view' ? r.type : 'region', x: r.x, y: r.y, w: r.w, h: r.h }));
   },
 
+  // hoja de contactos
+  goSheet() { S.view = 'sheet'; render(); },
+  goResults() { S.view = 'results'; render(); },
+  exportSheet() { return exportSheet(); },
+  sheetLayout(el) { mutate(() => { sheetOpts().layout = el.dataset.v; }); },
+  sheetFull() { mutate(() => { const o = sheetOpts(); o.full = !o.full; }); },
+  sheetInclude(el) { mutate(() => { sheetOpts().include[el.dataset.id] = el.checked; }); },
+
   // render y resultados
   stopBatch() { S.stop = true; renderStatus(); toast('El lote se detendrá al terminar la imagen actual.'); },
   addToken(el) { mutate(() => { S.data.batch.pattern = (S.data.batch.pattern || '') + (S.data.batch.pattern ? '_' : '') + el.dataset.v; }); },
@@ -1419,7 +1429,13 @@ const A = {
   },
   reloadPresets() { S.presets = null; render(); },
   togglePresetReplace() { S.ui.presetReplace = !S.ui.presetReplace; saveUi(); render(); },
+  togglePresetHdr() { S.ui.presetHdr = !S.ui.presetHdr; saveUi(); render(); },
   async loadPreset(el) {
+    if (el.dataset.type === 'folder') {
+      await Bridge.call('loadPresetFolder', el.dataset.file, el.dataset.hdr, S.ui.presetHdr ? '1' : '0');
+      await refreshScene(); render();
+      return toast(`${el.dataset.name} cargado`, 'ok');
+    }
     const r = await Bridge.call('loadPreset', el.dataset.file, el.dataset.type === 'max' && S.ui.presetReplace ? '1' : '0');
     await refreshScene(); render();
     toast(r.type === 'rps' ? `Preset de render ${el.dataset.name} cargado` : `${el.dataset.name} cargado (${plural(r.count, 'objeto', 'objetos')})`, 'ok');

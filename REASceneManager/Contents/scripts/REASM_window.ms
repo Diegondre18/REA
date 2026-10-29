@@ -46,6 +46,10 @@ fn REASM_dispatch cmd a =
 		"clay": REASM_setClay (g[1] == "1")
 		"listPresets": REASM_listPresets g[1]
 		"listFiles": REASM_listFiles g[1] g[2]
+		"loadPresetFolder": REASM_loadPresetFolder g[1] g[2] (g[3] == "1")
+		"exportJpg": REASM_exportJpg g[1] g[2] (g[3] as integer)
+		"printPdf": REASM_printPdf g[1] (g[2] as float) (g[3] as float)
+		"pdfStatus": REASM_pdfStatus()
 		"openFile": REASM_openFile g[1]
 		"showInFolder": REASM_showInFolder g[1]
 		"beep": REASM_beep()
@@ -94,6 +98,35 @@ fn REASM_onInit s e =
 		messageBox ("No se pudo iniciar la ventana (WebView2):\n\n" + msg + "\n\nSi falta, instala Microsoft Edge WebView2 Runtime:\nhttps://go.microsoft.com/fwlink/p/?LinkId=2124703\ny reinicia 3ds Max.") title:"REA Scene Manager"
 		try (REASM_form.Close()) catch ()
 	)
+)
+
+global REASM_pdfTask = undefined
+
+-- Imprime la pagina actual (solo lo visible en @media print) a un PDF. Asincrono: ver REASM_pdfStatus.
+fn REASM_printPdf path w h =
+(
+	local core = REASM_wv.CoreWebView2
+	local ps = core.Environment.CreatePrintSettings()
+	ps.PageWidth = w
+	ps.PageHeight = h
+	ps.MarginTop = 0.0
+	ps.MarginBottom = 0.0
+	ps.MarginLeft = 0.0
+	ps.MarginRight = 0.0
+	ps.ShouldPrintBackgrounds = true
+	ps.ShouldPrintHeaderAndFooter = false
+	makeDir (getFilenamePath path) all:true
+	REASM_pdfTask = core.PrintToPdfAsync path ps
+	true
+)
+
+fn REASM_pdfStatus =
+(
+	if REASM_pdfTask == undefined then "none"
+	else if not REASM_pdfTask.IsCompleted then "busy"
+	else if REASM_pdfTask.IsFaulted then "error"
+	else if REASM_pdfTask.Result then "ok"
+	else "fail"
 )
 
 fn REASM_onClosed s e =

@@ -557,3 +557,10 @@ input.swatch-in::-webkit-color-swatch { border: 0; border-radius: 8px; box-shado
 .cmp-top { position: absolute; inset: 0; clip-path: inset(0 0 0 var(--p)); }
 .cmp-line { position: absolute; top: 0; bottom: 0; left: var(--p); width: 2px; background: #fff; box-shadow: 0 0 12px rgba(0, 0, 0, .5); pointer-events: none; }
 .cmp-range { width: 100%; }
+
+/* hoja de contactos */
+.sheet-layout { display: grid; grid-template-columns: 300px 1fr; gap: 22px; align-items: start; }
+.sheet-form { position: sticky; top: 90px; }
+.sheet-form .items { max-height: 200px; }
+.item.check { cursor: pointer; gap: 10px; }
+@media (max-width: 1100px) { .sheet-layout { grid-template-columns: 1fr; } .sheet-form { position: static; } }

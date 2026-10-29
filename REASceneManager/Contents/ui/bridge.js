@@ -134,8 +134,9 @@ const Mock = (() => {
       case 'browseFolder': return wait(scene.defaultFolder);
       case 'selection': return wait(scene.selection.slice());
       case 'openRenderSetup': return wait(true);
-      case 'listPresets': return wait(['Dia_Soleado', 'Atardecer_Calido', 'Nublado', 'Noche_Interior', 'Estudio_Producto'].map((n, i) =>
-        ({ name: n, file: a[0] + '\\' + n + '.max', type: 'max', thumb: mockThumb(n + 'light') })).concat([{ name: 'Corona_Final_HQ', file: a[0] + '\\Corona_Final_HQ.rps', type: 'rps', thumb: '' }]));
+      case 'listPresets': return wait(['Interior Dawn Sun', 'Interior Midday', 'Exterior Golden Hour', 'Exterior Overcast', 'Night Interior'].map(n =>
+        ({ name: n, file: a[0] + '\\' + n + '\\M.H Archviz_' + n + '.rps', hdr: a[0] + '\\' + n + '\\sky.hdr', type: 'folder', thumb: mockThumb(n + 'light') })));
+      case 'loadPresetFolder': scene.activeEnv = 'REA_HDRI_sky'; return wait({ type: 'folder', layer: '', count: 0, env: 'REA_HDRI_sky' });
       case 'loadPreset': {
         const n = a[0].split('\\').pop().replace(/\.(max|rps)$/i, '');
         if (/\.rps$/i.test(a[0])) return wait({ type: 'rps', layer: '', count: 0 });

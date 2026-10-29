@@ -1,0 +1,4 @@
+# Tipografias con licencia: se copian en cada PC, no se publican
+REASceneManager/Contents/ui/fonts/*.ttf
+REASceneManager/Contents/ui/fonts/*.otf
+fonts/

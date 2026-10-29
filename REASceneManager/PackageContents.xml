@@ -5,7 +5,7 @@
 	ProductType="Application"
 	Name="REA Scene Manager"
 	Description="Estados de escena, render por lotes, camaras y render elements para 3ds Max + Corona"
-	AppVersion="0.7.0"
+	AppVersion="0.8.0"
 	ProductCode="{6B0E5C1A-3F7D-4C2E-9A61-2D8B7F4E1C05}"
 	UpgradeCode="{A3D94F27-81C6-4B5E-B0F2-7E19C6D3A842}">
 	<CompanyDetails Name="REA" />
