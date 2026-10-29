@@ -766,7 +766,7 @@ Bridge.onEvent(ev => {
     if (!S.data.output.name) S.data.output.name = (S.scene.file || 'render').replace(/\.max$/i, '');
     $('#dot').className = 'dot ' + (Bridge.isHost ? 'ok' : 'demo');
     $('#status').textContent = Bridge.isHost ? `Conectado a 3ds Max - ${S.scene.renderer}` : 'Modo demostracion (sin 3ds Max)';
-    $('#version').textContent = 'v' + (Bridge.isHost ? S.scene.version : '0.2.2');
+    $('#version').textContent = 'v' + (Bridge.isHost ? S.scene.version : '0.2.3');
     render();
   } catch (err) {
     $('#dot').className = 'dot error';
