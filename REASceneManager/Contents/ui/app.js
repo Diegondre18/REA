@@ -403,7 +403,7 @@ function viewCameras() {
       <input type="text" id="newCamName" placeholder="Nombre (opcional)">
       ${btn('camCreate', 'Crear desde la vista', 'plus', {}, 'primary')}
     </div>
-    <div class="note">Crea una camara fisica con el encuadre del visor activo.</div>`;
+    <div class="note">Crea una CoronaCam con el encuadre del visor activo.</div>`;
   return card({ title: 'Nueva camara', ic: 'plus', tone: 'slate', body: create, cls: 'full' }) +
     card({ title: `Camaras de la escena <span class="count">${cams.length}</span>`, ic: 'camera', tone: 'head', body: `<div class="list">${rows}</div>`, cls: 'full' });
 }

@@ -439,17 +439,36 @@ fn REASM_camCreate nm =
 	local tm = inverse (getViewTM())
 	local fovv = viewport.GetFOV()
 	local cam = undefined
-	try
+	-- Preferencia: CoronaCam > Physical > Free camera
+	local coronaCls = try (execute "CoronaCam") catch (undefined)
+	if coronaCls != undefined do
 	(
-		cam = Physical()
-		cam.targeted = false
-		cam.specify_fov = true
-		cam.fov = fovv
+		try
+		(
+			cam = coronaCls()
+			try (cam.targeted = false) catch ()
+			try (cam.fov = fovv) catch ()
+		)
+		catch
+		(
+			if cam != undefined and isValidNode cam do delete cam
+			cam = undefined
+		)
 	)
-	catch
+	if cam == undefined do
 	(
-		if cam != undefined and isValidNode cam do delete cam
-		cam = Freecamera fov:fovv
+		try
+		(
+			cam = Physical()
+			cam.targeted = false
+			cam.specify_fov = true
+			cam.fov = fovv
+		)
+		catch
+		(
+			if cam != undefined and isValidNode cam do delete cam
+			cam = Freecamera fov:fovv
+		)
 	)
 	cam.transform = tm
 	cam.name = if nm == "" then (uniqueName "REA_Cam_") else nm

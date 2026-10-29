@@ -64,7 +64,7 @@ fn REASM_handle raw =
 -- Los mensajes se procesan fuera del evento de WebView2 (con un timer), asi un render largo no lo bloquea.
 fn REASM_onTick s e =
 (
-	REASM_timer.Stop()
+	REASM_timer.Enabled = false
 	while REASM_queue.count > 0 do
 	(
 		local raw = REASM_queue[1]
@@ -79,7 +79,7 @@ fn REASM_onMessage s e =
 	if raw != undefined do
 	(
 		append REASM_queue raw
-		REASM_timer.Start()
+		REASM_timer.Enabled = true
 	)
 )
 
@@ -104,7 +104,7 @@ fn REASM_onInit s e =
 fn REASM_onClosed s e =
 (
 	REASM_ready = false
-	try (REASM_timer.Stop()) catch ()
+	try (REASM_timer.Enabled = false) catch ()
 	REASM_queue = #()
 	REASM_form = undefined
 	REASM_wv = undefined
