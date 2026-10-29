@@ -14,6 +14,16 @@ if not exist "%SRC%\PackageContents.xml" (
 	exit /b 1
 )
 
+tasklist /FI "IMAGENAME eq 3dsmax.exe" 2>nul | find /I "3dsmax.exe" >nul
+if not errorlevel 1 (
+	echo.
+	echo 3ds Max esta abierto. Cierralo ^(y comprueba en el Administrador de tareas
+	echo que no quede ningun proceso 3dsmax.exe^) y vuelve a ejecutar este instalador.
+	echo.
+	pause
+	exit /b 1
+)
+
 if exist "%DEST%" rmdir /s /q "%DEST%"
 mkdir "%DEST%"
 xcopy /E /I /Y "%SRC%" "%DEST%" >nul
