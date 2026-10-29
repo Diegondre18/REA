@@ -1,0 +1,38 @@
+{
+  "name": "lap-cerebro",
+  "productName": "LAP Cerebro",
+  "version": "1.0.0",
+  "description": "Cerebro del área de Visualización 3D de LAP: cronograma, renders en curso, archivo con rutas y quién trabaja en qué.",
+  "author": "Left Angle Partnership",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "vendor": "node scripts/vendor.js",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "build": {
+    "appId": "com.laparq.cerebro",
+    "productName": "LAP Cerebro",
+    "artifactName": "LAP-Cerebro-Setup-${version}.${ext}",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "src/**/*", "package.json"],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "build/icon.ico" },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "LAP Cerebro",
+      "language": "3082"
+    }
+  },
+  "devDependencies": {
+    "electron": "44.7.0",
+    "electron-builder": "26.17.0",
+    "pocketbase": "0.28.1",
+    "@fontsource/hanken-grotesk": "5.3.0",
+    "@fontsource/geist-mono": "5.3.0"
+  }
+}

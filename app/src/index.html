@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: http: https:; connect-src http: https:">
+<title>LAP Cerebro</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true"><symbol id="lap-sym" viewBox="795.55 404.77 88.89 76.26"><path fill="currentColor" d="M 871.976562 420.164062 L 882.9375 414.066406 L 882.9375 424.476562 Z M 847.296875 444.886719 L 835.632812 440.378906 L 870.277344 421.105469 L 881.933594 425.691406 Z M 864.363281 464.203125 L 835.628906 453.132812 L 847.414062 446.539062 L 876.214844 457.5625 Z M 860.242188 468.226562 L 864.480469 465.855469 L 876.191406 470.367188 L 860.242188 479.019531 Z M 809.96875 449.359375 L 858.742188 468.300781 L 858.742188 479.191406 L 798.066406 455.980469 Z M 797.050781 454.828125 L 797.050781 444.339844 L 808.152344 448.652344 Z M 863.894531 417.644531 L 809.855469 447.707031 L 798.066406 443.128906 L 863.894531 406.789062 Z M 870.167969 419.453125 L 865.394531 417.578125 L 865.394531 406.605469 L 881.917969 412.917969 Z M 834.621094 441.597656 L 845.59375 445.835938 L 834.621094 451.980469 Z M 811.671875 448.414062 L 864.699219 418.914062 L 868.472656 420.394531 L 833.507812 439.847656 C 833.292969 439.964844 833.179688 440.1875 833.152344 440.425781 C 833.144531 440.453125 833.121094 440.472656 833.121094 440.5 L 833.121094 453.496094 C 833.121094 453.664062 833.222656 453.8125 833.378906 453.871094 L 862.664062 465.152344 L 859.4375 466.960938 Z M 877.226562 469.15625 L 866.179688 464.898438 L 877.226562 458.714844 Z M 883.953125 412.089844 L 864.910156 404.816406 C 864.703125 404.742188 864.476562 404.753906 864.28125 404.859375 L 795.9375 442.589844 C 795.722656 442.707031 795.605469 442.933594 795.578125 443.175781 C 795.574219 443.203125 795.550781 443.21875 795.550781 443.246094 L 795.550781 456.105469 C 795.550781 456.371094 795.691406 456.617188 795.914062 456.75 C 795.941406 456.761719 795.972656 456.761719 795.996094 456.769531 C 796.011719 456.777344 796.015625 456.800781 796.03125 456.804688 L 859.222656 480.980469 C 859.308594 481.015625 859.398438 481.03125 859.492188 481.03125 C 859.546875 481.03125 859.59375 480.992188 859.648438 480.980469 C 859.652344 480.980469 859.65625 480.988281 859.660156 480.988281 C 859.722656 480.988281 859.789062 480.972656 859.851562 480.9375 L 878.339844 470.90625 C 878.578125 470.773438 878.726562 470.523438 878.726562 470.25 L 878.726562 457.4375 C 878.726562 457.167969 878.585938 456.921875 878.355469 456.789062 C 878.332031 456.773438 878.304688 456.777344 878.28125 456.765625 C 878.265625 456.757812 878.261719 456.742188 878.246094 456.734375 L 849.125 445.585938 L 884.054688 426.230469 C 884.289062 426.097656 884.4375 425.84375 884.4375 425.574219 L 884.4375 412.789062 C 884.4375 412.476562 884.242188 412.195312 883.953125 412.089844"/></symbol></svg>
+
+<div class="titlebar">
+  <svg viewBox="0 0 88.89 76.26" aria-hidden="true"><use href="#lap-sym"/></svg>
+  <b>LAP</b><span>Cerebro · Visualización 3D</span>
+  <span class="spacer"></span>
+  <button class="server" data-act="settings" id="server-btn" title="Servidor y cuenta"></button>
+</div>
+
+<div class="field" aria-hidden="true"><i></i><i></i><i></i><i></i><svg viewBox="0 0 88.89 76.26"><use href="#lap-sym"/></svg></div>
+
+<div class="shell">
+  <header class="top glass">
+    <a class="brand" href="#resumen" aria-label="LAP, Cerebro de Visualización">
+      <svg class="sym" viewBox="0 0 88.89 76.26" aria-hidden="true"><use href="#lap-sym"/></svg>
+      <span class="lap">LAP</span>
+      <span class="rule" aria-hidden="true"></span>
+      <span class="prod"><b>Cerebro</b><span>Visualización 3D</span></span>
+    </a>
+    <nav class="nav" aria-label="Secciones">
+      <a href="#resumen" data-view="resumen">Resumen</a>
+      <a href="#cronograma" data-view="cronograma">Cronograma</a>
+      <a href="#en-curso" data-view="en-curso">En curso <span class="count" id="c-curso"></span></a>
+      <a href="#archivo" data-view="archivo">Archivo <span class="count" id="c-archivo"></span></a>
+    </nav>
+    <div class="tools">
+      <label class="search">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="Buscar render, proyecto, ruta" aria-label="Buscar">
+      </label>
+      <div class="online" id="online" aria-label="Conectados ahora"></div>
+      <div class="sync" id="sync" data-mode="connecting"><i></i><span>Conectando</span></div>
+      <button class="btn primary" data-act="new-render" id="btn-new">
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        Nuevo render
+      </button>
+    </div>
+  </header>
+
+  <div id="banner" hidden></div>
+
+  <main>
+    <section id="v-resumen" data-section="resumen"></section>
+    <section id="v-cronograma" data-section="cronograma" hidden></section>
+    <section id="v-en-curso" data-section="en-curso" hidden></section>
+    <section id="v-archivo" data-section="archivo" hidden></section>
+  </main>
+</div>
+
+<div id="sheet-root"></div>
+<div class="toast" id="toast" role="status" hidden></div>
+<div id="gate-root"></div>
+
+<script src="vendor/pocketbase.iife.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
