@@ -42,6 +42,8 @@ fn REASM_dispatch cmd a =
 		)
 		"selection": (for o in selection collect o.name)
 		"openRenderSetup": (renderSceneDialog.open(); true)
+		"thumbViewport": REASM_thumbViewport g[1]
+		"thumbFromFile": REASM_thumbFromFile g[1] g[2]
 		default: throw ("Comando desconocido: " + cmd)
 	)
 )

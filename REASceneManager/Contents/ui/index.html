@@ -13,33 +13,31 @@
       <span class="logo">R</span>
       <div class="brand-text">
         <strong>Scene Manager</strong>
-        <span id="fileName" class="muted">Sin archivo</span>
+        <span id="fileName">Sin archivo</span>
       </div>
     </div>
+    <label class="search">
+      <span data-icon="search"></span>
+      <input id="search" type="text" placeholder="Buscar setups" autocomplete="off" spellcheck="false">
+      <button class="kbd" data-action="palette" title="Paleta de comandos">Ctrl K</button>
+    </label>
     <div class="spacer"></div>
-    <button class="icon-btn" data-action="refresh" title="Actualizar desde la escena" data-icon="refresh"></button>
-    <button class="icon-btn" data-action="renderSetup" title="Abrir Render Setup" data-icon="settings"></button>
-    <button class="btn primary" data-action="goBatch" data-icon-left="render">Render por lotes</button>
+    <div id="topActions" class="top-actions"></div>
   </header>
 
-  <nav class="sidebar">
-    <button class="nav-btn" data-view="setups" title="Setups" data-icon="list"></button>
-    <button class="nav-btn" data-view="cameras" title="Camaras" data-icon="camera"></button>
-    <button class="nav-btn" data-view="elements" title="Render elements y salida" data-icon="layers2"></button>
-    <button class="nav-btn" data-view="batch" title="Render por lotes" data-icon="render"></button>
+  <nav class="rail">
+    <button class="rail-btn" data-view="setups" title="Setups" data-icon="grid"></button>
+    <button class="rail-btn" data-view="cameras" title="Camaras" data-icon="camera"></button>
+    <button class="rail-btn" data-view="render" title="Render" data-icon="render"></button>
     <div class="spacer"></div>
-    <button class="nav-btn" data-view="help" title="Ayuda" data-icon="help"></button>
+    <button class="rail-btn" data-view="settings" title="Ajustes" data-icon="settings"></button>
   </nav>
 
   <main id="main"></main>
 
-  <footer class="statusbar">
-    <span id="dot" class="dot"></span>
-    <span id="status">Conectando...</span>
-    <span class="spacer"></span>
-    <span id="version" class="muted">v0.2.3</span>
-  </footer>
+  <footer id="statusbar" class="statusbar"></footer>
 </div>
+<div id="overlay"></div>
 <div id="toasts"></div>
 <script src="icons.js"></script>
 <script src="bridge.js"></script>

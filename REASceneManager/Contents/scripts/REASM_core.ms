@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "0.2.3"
+global REASM_VERSION = "0.3.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -525,4 +525,48 @@ fn REASM_elemCommand action idx arg =
 	)
 	if wasOpen do renderSceneDialog.open()
 	res
+)
+
+-- ==================================================================== miniaturas
+
+fn REASM_thumbDir =
+(
+	local d = (systemTools.getEnvVariable "LOCALAPPDATA") + "\\REASceneManager\\thumbs"
+	makeDir d all:true
+	d
+)
+
+-- Guarda una copia reducida (480 px de ancho) de un bitmap como JPG y devuelve la ruta.
+fn REASM_saveThumb src id =
+(
+	local w = 480
+	local h = amax 1 (((w as float) * src.height / src.width) as integer)
+	local b = bitmap w h
+	copy src b
+	local f = REASM_thumbDir() + "\\" + (REASM_safeName id) + ".jpg"
+	b.filename = f
+	save b
+	close b
+	f
+)
+
+-- Miniatura del visor activo.
+fn REASM_thumbViewport id =
+(
+	completeRedraw()
+	local dib = gw.getViewportDib()
+	REASM_saveThumb dib id
+)
+
+-- Miniatura a partir de una imagen renderizada (png/jpg/tif).
+fn REASM_thumbFromFile id file =
+(
+	if not (doesFileExist file) then ""
+	else
+	(
+		local src = openBitmap file
+		local f = REASM_saveThumb src id
+		close src
+		f
+	)
 )

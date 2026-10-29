@@ -63,6 +63,23 @@ const Mock = (() => {
     outputFile: 'D:\\Proyectos\\CasaPlaya\\render\\Casa_Playa.exr',
     defaultFolder: 'D:\\Proyectos\\CasaPlaya\\render',
   };
+  // miniatura de ejemplo: un degradado distinto por camara
+  function mockThumb(seed) {
+    let h = 0;
+    for (const ch of String(seed)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const c = document.createElement('canvas');
+    c.width = 480; c.height = 270;
+    const g = c.getContext('2d');
+    const hue = h % 360;
+    const grad = g.createLinearGradient(0, 0, 480, 270);
+    grad.addColorStop(0, `hsl(${hue},45%,62%)`);
+    grad.addColorStop(1, `hsl(${(hue + 40) % 360},40%,22%)`);
+    g.fillStyle = grad; g.fillRect(0, 0, 480, 270);
+    g.fillStyle = 'rgba(0,0,0,.28)';
+    g.beginPath(); g.moveTo(0, 270); g.lineTo(0, 170); g.lineTo(140, 120); g.lineTo(300, 160); g.lineTo(480, 110); g.lineTo(480, 270); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(70 + h % 120, 60, 110, 80);
+    return c.toDataURL('image/jpeg', 0.85);
+  }
   const wait = v => new Promise(r => setTimeout(() => r(v), 60));
   const camByName = n => scene.cameras.find(c => c.name === n);
 
@@ -105,6 +122,8 @@ const Mock = (() => {
       case 'browseFolder': return wait(scene.defaultFolder);
       case 'selection': return wait(scene.selection.slice());
       case 'openRenderSetup': return wait(true);
+      case 'thumbViewport': return wait(mockThumb(scene.activeCamera));
+      case 'thumbFromFile': return wait(mockThumb(a[0] + 'render'));
     }
     return Promise.reject(new Error('Comando desconocido: ' + cmd));
   }
