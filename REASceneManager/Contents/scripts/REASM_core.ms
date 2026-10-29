@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "0.6.0"
+global REASM_VERSION = "0.7.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -205,6 +205,18 @@ fn REASM_coronaProp key =
 		"timeLimit": "progressive_timeLimit"
 		"denoiseType": REASM_findProp r #("denoise_filterType", "*denois*filter*", "*denois*type*", "*denois*mode*")
 		"denoiseAmount": REASM_findProp r #("denoise_blendAmount", "*denois*blend*", "*denois*amount*")
+		"exposure": REASM_findProp r #("colorMap_simpleExposure", "*colorMap*exposure*", "*tonemap*exposure*")
+		"highlight": REASM_findProp r #("colorMap_highlightCompression", "*highlight*compress*")
+		"contrast": REASM_findProp r #("colorMap_contrast", "*colorMap*contrast*")
+		"saturation": REASM_findProp r #("colorMap_saturation", "*colorMap*saturation*")
+		"whiteBalance": REASM_findProp r #("colorMap_colorTemp", "*colorMap*temp*", "*whiteBalance*")
+		"filmic": REASM_findProp r #("colorMap_filmicHighlights", "*filmic*highlight*")
+		"lutEnable": REASM_findProp r #("colorMap_lut_enable", "*lut*enable*", "*lut*on")
+		"lutFile": REASM_findProp r #("colorMap_lut_path", "*lut*path*", "*lut*file*")
+		"lutOpacity": REASM_findProp r #("colorMap_lut_opacity", "*lut*opacity*", "*lut*amount*")
+		"bloomEnable": REASM_findProp r #("bloomGlare_enabled", "*bloom*enable*", "*bloomGlare*on")
+		"bloomIntensity": REASM_findProp r #("bloomGlare_bloomIntensity", "*bloom*intensity*")
+		"glareIntensity": REASM_findProp r #("bloomGlare_glareIntensity", "*glare*intensity*")
 		"overrideOn": REASM_findProp r #("mtlOverride_enabled", "*override*enable*", "*override*on")
 		"overrideMtl": REASM_findProp r #("mtlOverride", "*mtl*override", "*override*mtl", "*override*material")
 		default: ""
@@ -230,6 +242,7 @@ fn REASM_setCorona key txt =
 		(
 			(isKindOf cur Integer): (txt as integer)
 			(isKindOf cur BooleanClass): (txt == "1" or txt == "true")
+			(isKindOf cur String): txt
 			default: (txt as float)
 		)
 		setProperty r (pn as name) v
@@ -307,6 +320,67 @@ fn REASM_setCamProj c val =
 	pn != ""
 )
 
+-- ==================================================================== luces (LightMix por escena), region y sol
+
+global REASM_TONE_KEYS = #("exposure", "highlight", "contrast", "saturation", "whiteBalance", "filmic", "lutEnable", "lutFile", "lutOpacity", "bloomEnable", "bloomIntensity", "glareIntensity")
+
+fn REASM_hex2 v =
+(
+	local s = bit.intAsHex ((amax 0 (amin 255 (v as integer))) as integer)
+	if s.count < 2 then ("0" + s) else s
+)
+fn REASM_colorHex c = ("#" + (REASM_hex2 c.r) + (REASM_hex2 c.g) + (REASM_hex2 c.b))
+fn REASM_hexColor h =
+(
+	if h.count < 7 then undefined
+	else color (bit.hexAsInt (substring h 2 2)) (bit.hexAsInt (substring h 4 2)) (bit.hexAsInt (substring h 6 2))
+)
+
+fn REASM_sceneLights = (for l in lights where (superClassOf l) == light collect l)
+fn REASM_lightIntProp l = (if isProperty l #intensity then #intensity else if isProperty l #multiplier then #multiplier else undefined)
+fn REASM_lightColProp l = (if isProperty l #color then #color else if isProperty l #rgb then #rgb else undefined)
+
+fn REASM_lightInfo l =
+(
+	local ip = REASM_lightIntProp l
+	local cp = REASM_lightColProp l
+	local col = if cp != undefined then (try (getProperty l cp) catch (undefined)) else undefined
+	REASM_obj #( \
+		#("name", l.name), #("cls", (classOf l) as string), #("on", REASM_lightOn l), \
+		#("intensity", (if ip != undefined then (try (getProperty l ip) catch (undefined)) else undefined)), \
+		#("color", (if col != undefined and (classOf col) == Color then REASM_colorHex col else undefined)), \
+		#("isSun", matchPattern ((classOf l) as string) pattern:"*Sun*"))
+)
+
+fn REASM_regionInfo =
+(
+	local t = try (getRenderType()) catch (#view)
+	local r = try (viewport.getRegionRect viewport.activeViewport) catch (undefined)
+	REASM_obj #(#("type", t as string), \
+		#("x", (if r != undefined then r.x else 0)), #("y", (if r != undefined then r.y else 0)), \
+		#("w", (if r != undefined then r.w else 0)), #("h", (if r != undefined then r.h else 0)))
+)
+
+-- Coloca un sol en la direccion (dx, dy, dz) (vector hacia el sol), manteniendo su distancia al objetivo.
+fn REASM_placeSun s dx dy dz =
+(
+	local d = normalize [dx, dy, dz]
+	local tgt = try (s.target) catch (undefined)
+	if tgt != undefined and isValidNode tgt then
+	(
+		local dist = distance s.pos tgt.pos
+		if dist < 1 do dist = 10000
+		s.pos = tgt.pos + d * dist
+	)
+	else
+	(
+		local dist = length s.pos
+		if dist < 1 do dist = 10000
+		s.pos = d * dist
+		s.dir = d
+	)
+)
+
 -- ==================================================================== consultas
 
 fn REASM_getScene =
@@ -351,6 +425,9 @@ fn REASM_getScene =
 		#("elementClasses", REASM_elementClasses()), \
 		#("res", REASM_obj #(#("w", renderWidth), #("h", renderHeight))), \
 		#("suns", suns), \
+		#("lights", (for l in REASM_sceneLights() collect REASM_lightInfo l)), \
+		#("region", REASM_regionInfo()), \
+		#("tone", (if REASM_isCorona() then (REASM_obj (for k in REASM_TONE_KEYS collect #(k, REASM_getCorona k))) else (REASM_obj #()))), \
 		#("envMaps", envs), \
 		#("activeEnv", (if environmentMap != undefined and useEnvironmentMap then environmentMap.name else "")), \
 		#("corona", corona), \
@@ -399,6 +476,35 @@ fn REASM_applyOps ops =
 			(
 				renderWidth = f[2] as integer
 				renderHeight = f[3] as integer
+			)
+			"light":
+			(
+				local l = getNodeByName f[2] exact:true
+				if l == undefined or (superClassOf l) != light then append missing ("Luz: " + f[2])
+				else
+				(
+					REASM_setLightOn l (f[3] == "1")
+					local ip = REASM_lightIntProp l
+					if ip != undefined and f[4] != "" do try (setProperty l ip (f[4] as float)) catch ()
+					local cp = REASM_lightColProp l
+					local col = if f.count >= 5 then REASM_hexColor f[5] else undefined
+					if cp != undefined and col != undefined do try (setProperty l cp col) catch ()
+				)
+			)
+			"region":
+			(
+				if f[2] == "view" then try (setRenderType #view) catch ()
+				else
+				(
+					try (setRenderType (f[2] as name)) catch ()
+					try (viewport.setRegionRect viewport.activeViewport (box2 (f[3] as integer) (f[4] as integer) (f[5] as integer) (f[6] as integer))) catch ()
+				)
+			)
+			"sunpos":
+			(
+				local s = getNodeByName f[2] exact:true
+				if s == undefined then append missing ("Sol: " + f[2])
+				else REASM_placeSun s (f[3] as float) (f[4] as float) (f[5] as float)
 			)
 			"layer":
 			(
@@ -507,7 +613,12 @@ fn REASM_batchBegin =
 			(if isProperty r #progressive_passLimit then r.progressive_passLimit else undefined), \
 			(if isProperty r #adaptivity_targetError then r.adaptivity_targetError else undefined), \
 			(if isProperty r #progressive_timeLimit then r.progressive_timeLimit else undefined), \
-			(REASM_getCorona "denoiseType"), (REASM_getCorona "denoiseAmount"), (REASM_clayOn())) else undefined))
+			(REASM_getCorona "denoiseType"), (REASM_getCorona "denoiseAmount"), (REASM_clayOn())) else undefined), \
+		(for l in REASM_sceneLights() collect #(l, (REASM_lightOn l), \
+			(if (REASM_lightIntProp l) != undefined then getProperty l (REASM_lightIntProp l) else undefined), \
+			(if (REASM_lightColProp l) != undefined then getProperty l (REASM_lightColProp l) else undefined), l.transform)), \
+		(try (getRenderType()) catch (#view)), \
+		(if REASM_isCorona() then (for k in REASM_TONE_KEYS collect #(k, REASM_getCorona k)) else #()))
 	true
 )
 
@@ -543,6 +654,18 @@ fn REASM_batchEnd restore =
 			if b[13][5] != undefined do try (REASM_setCorona "denoiseAmount" (b[13][5] as string)) catch ()
 			try (REASM_setClay b[13][6]) catch ()
 		)
+		if b.count >= 16 do
+		(
+			for p in b[14] where isValidNode p[1] do
+			(
+				REASM_setLightOn p[1] p[2]
+				if p[3] != undefined do try (setProperty p[1] (REASM_lightIntProp p[1]) p[3]) catch ()
+				if p[4] != undefined do try (setProperty p[1] (REASM_lightColProp p[1]) p[4]) catch ()
+				try (p[1].transform = p[5]) catch ()
+			)
+			try (setRenderType b[15]) catch ()
+			for p in b[16] where p[2] != undefined do try (REASM_setCorona p[1] (p[2] as string)) catch ()
+		)
 		if b[1] != undefined and isValidNode b[1] do viewport.setCamera b[1]
 	)
 	if wasOpen do renderSceneDialog.open()
@@ -551,11 +674,11 @@ fn REASM_batchEnd restore =
 	true
 )
 
--- Renderiza la vista activa (la camara del setup ya aplicada) en <carpeta>\<nombre>\<nombre>.<ext>.
-fn REASM_render folder nm ext =
+-- Renderiza la vista activa (la camara del setup ya aplicada) en <carpeta>\<subcarpeta>\<nombre>.<ext>.
+fn REASM_render folder sub nm ext =
 (
 	local base = REASM_safeName nm
-	local dir = folder + "\\" + base
+	local dir = folder + "\\" + (REASM_safeName sub)
 	makeDir dir all:true
 	if renderSceneDialog.isOpen() do renderSceneDialog.close()
 	rendTimeType = 1
@@ -778,3 +901,16 @@ fn REASM_loadPreset file replaceOld =
 		REASM_obj #(#("type", "max"), #("layer", layerName), #("count", merged.count))
 	)
 )
+
+-- ==================================================================== resultados
+
+fn REASM_listFiles dir pattern =
+(
+	if not (doesFileExist dir) then #()
+	else for f in (getFiles (dir + "\\" + pattern)) collect
+		REASM_obj #(#("name", filenameFromPath f), #("file", f), #("size", getFileSize f), #("date", getFileModDate f))
+)
+
+fn REASM_openFile f = (shellLaunch f ""; true)
+fn REASM_showInFolder f = (shellLaunch "explorer.exe" ("/select,\"" + f + "\""); true)
+fn REASM_beep = (try ((dotNetClass "System.Media.SystemSounds").Asterisk.Play()) catch (); true)

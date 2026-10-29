@@ -2,20 +2,32 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '0.6.0';
+const VERSION = '0.7.0';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
   { key: 'res', title: 'Resolución', icon: 'aspect', color: '#5E5CE6' },
   { key: 'sun', title: 'Sol', icon: 'sun', color: '#FF9F0A' },
   { key: 'env', title: 'Entorno', icon: 'mountain', color: '#32ADE6' },
+  { key: 'lights', title: 'Luces', icon: 'bulb', color: '#FFD60A' },
   { key: 'layers', title: 'Capas', icon: 'layers', color: '#30D158' },
   { key: 'objects', title: 'Objetos', icon: 'cube', color: '#8E8E93' },
   { key: 'elements', title: 'Render elements', icon: 'layers2', color: '#BF5AF2' },
   { key: 'corona', title: 'Corona', icon: 'zap', color: '#FF453A' },
+  { key: 'tone', title: 'Tone mapping', icon: 'contrast', color: '#64D2FF' },
+  { key: 'region', title: 'Región', icon: 'crop', color: '#A2845E' },
 ];
 // Valores de Corona (se confirman en 3ds Max; si no coinciden, solo hay que cambiar estas listas)
 const PROJECTIONS = [['0', 'Perspectiva'], ['1', 'Cilíndrica'], ['2', 'Esférica 360°'], ['3', 'Esférica 360° VR'], ['4', 'Cubemap']];
+const TONE_FIELDS = [
+  ['exposure', 'Exposición (EV)', 'float', 0.1], ['highlight', 'Compresión de luces', 'float', 0.1],
+  ['contrast', 'Contraste', 'float', 0.1], ['saturation', 'Saturación', 'float', 0.05],
+  ['whiteBalance', 'Temperatura (K)', 'float', 100], ['filmic', 'Filmic', 'float', 0.05],
+  ['lutOpacity', 'Opacidad LUT', 'float', 0.05], ['bloomIntensity', 'Bloom', 'float', 0.05], ['glareIntensity', 'Glare', 'float', 0.05],
+];
+const TONE_BOOLS = [['lutEnable', 'LUT'], ['bloomEnable', 'Bloom & Glare']];
+const MONTHS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const NAS_PRESETS = '\\\\LAP-NAS\\LAP Arquitectura NAS\\Arch Viz Lap\\00_Presets\\Light Presets';
 const DENOISERS = [['0', 'Desactivado'], ['1', 'Corona alta calidad'], ['2', 'NVIDIA AI'], ['3', 'Intel']];
 const COLORS = ['#0A84FF', '#FF9F0A', '#30D158', '#FF453A', '#BF5AF2', '#32ADE6', '#FF375F', '#FFD60A'];
 const ACCENTS = ['#0A84FF', '#30D158', '#BF5AF2', '#FF9F0A', '#FF375F', '#8E8E93'];
@@ -53,7 +65,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 // ---------------------------------------------------------------- preferencias de la interfaz (por PC)
 
 function loadUi() {
-  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {}, theme: 'dark', presetFolder: '', presetReplace: true };
+  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {}, theme: 'dark', presetFolder: NAS_PRESETS, presetReplace: true, sound: true };
   try { return Object.assign(def, JSON.parse(localStorage.getItem('reasm-ui2') || '{}')); } catch (e) { return def; }
 }
 function saveUi() {
@@ -68,14 +80,17 @@ function applyAccent() {
 // ---------------------------------------------------------------- datos
 
 function defaultData() {
-  return { version: 2, setups: [], batch: { folder: '', fmt: '.exr', restore: true }, output: { dir: '', name: '', fmt: '.exr' } };
+  return { version: 2, setups: [], batch: { folder: '', fmt: '.exr', restore: true, pattern: '{setup}_v{v}' }, output: { dir: '', name: '', fmt: '.exr' } };
 }
 
 function defaultComp() {
   return {
     camera: { on: true, name: '', proj: '' },
     res: { on: true, w: 1920, h: 1080 },
-    sun: { on: false, name: '' },
+    sun: { on: false, name: '', time: { on: false, hour: 10, month: 6, day: 21, lat: 10.4, north: 0 } },
+    lights: { on: false, items: [] },
+    tone: { on: false, values: {} },
+    region: { on: false, type: 'view', x: 0, y: 0, w: 0, h: 0 },
     env: { on: false, name: '' },
     layers: { on: true, items: [] },
     objects: { on: false, items: [] },
@@ -92,7 +107,8 @@ function normalize(d) {
   d.setups = (d.setups || []).map(s => {
     const comp = defaultComp();
     Object.keys(comp).forEach(k => { comp[k] = Object.assign(comp[k], (s.comp || {})[k] || {}); });
-    return Object.assign({ id: uid(), name: 'Setup', color: COLORS[0], batch: true, group: '', thumb: '', thumbV: 0 }, s, { comp });
+    comp.sun.time = Object.assign(defaultComp().sun.time, ((s.comp || {}).sun || {}).time || {});
+    return Object.assign({ id: uid(), name: 'Setup', color: COLORS[0], batch: true, group: '', thumb: '', thumbV: 0, renders: [] }, s, { comp });
   });
   return d;
 }
@@ -109,6 +125,9 @@ function setupFromScene(name) {
   comp.sun.name = sun ? sun.name : '';
   comp.env.name = sc.activeEnv || '';
   comp.layers.items = sc.layers.map(l => ({ name: l.name, on: l.on }));
+  comp.lights.items = (sc.lights || []).filter(l => !l.isSun).map(lightItem);
+  comp.tone.values = toneFromScene();
+  comp.region = Object.assign(comp.region, sc.region || {}, { on: false });
   comp.elements.items = sc.elements.map(e => ({ name: e.name, on: e.enabled }));
   if (sc.corona.isCorona) {
     comp.corona.passLimit = sc.corona.passLimit ?? '';
@@ -120,6 +139,38 @@ function setupFromScene(name) {
   }
   return { id: uid(), name, color: COLORS[S.data.setups.length % COLORS.length], batch: true, group: '', thumb: '', thumbV: 0, comp };
 }
+
+function lightItem(l) {
+  return { name: l.name, on: l.on, intensity: l.intensity ?? '', color: l.color || '' };
+}
+
+function toneFromScene() {
+  const t = S.scene.tone || {};
+  const v = {};
+  Object.keys(t).forEach(k => { if (t[k] !== null && t[k] !== undefined) v[k] = t[k]; });
+  return v;
+}
+
+// Direccion hacia el sol (ejes de 3ds Max: +Y norte, +X este, +Z arriba) a partir de la hora solar.
+function sunDir(t) {
+  const rad = Math.PI / 180;
+  const n = Math.floor((Date.UTC(2025, t.month - 1, t.day) - Date.UTC(2025, 0, 0)) / 86400000);
+  const decl = 23.44 * Math.sin(rad * 360 / 365 * (284 + n));
+  const H = 15 * (t.hour - 12);
+  const lat = t.lat;
+  const sinEl = Math.sin(lat * rad) * Math.sin(decl * rad) + Math.cos(lat * rad) * Math.cos(decl * rad) * Math.cos(H * rad);
+  const el = Math.asin(Math.max(-1, Math.min(1, sinEl)));
+  let cosAz = (Math.sin(decl * rad) - Math.sin(el) * Math.sin(lat * rad)) / (Math.cos(el) * Math.cos(lat * rad) || 1e-9);
+  let az = Math.acos(Math.max(-1, Math.min(1, cosAz))) / rad;
+  if (H > 0) az = 360 - az;
+  let x = Math.sin(az * rad) * Math.cos(el), y = Math.cos(az * rad) * Math.cos(el);
+  const z = Math.sin(el);
+  const th = (t.north || 0) * rad;
+  [x, y] = [x * Math.cos(th) + y * Math.sin(th), -x * Math.sin(th) + y * Math.cos(th)];
+  return { x, y, z, el: el / rad, az };
+}
+
+const hhmm = h => `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
 
 function uniqueName(base) {
   base = (base || 'Setup').trim() || 'Setup';
@@ -206,7 +257,10 @@ function summary(s, key) {
       const h = c.items.filter(i => i.hidden).length;
       return c.items.length ? [h && `${h} ocultos`, c.items.length - h && `${c.items.length - h} visibles`].filter(Boolean).join(' · ') : 'Sin objetos';
     }
-    case 'sun': return c.name || 'Soles apagados';
+    case 'sun': return (c.name || 'Soles apagados') + (c.time.on && c.name ? `  ·  ${hhmm(c.time.hour)}, ${c.time.day} ${MONTHS[c.time.month - 1]}` : '');
+    case 'lights': return c.items.length ? `${c.items.filter(i => i.on).length} de ${c.items.length} encendidas` : 'Sin luces';
+    case 'tone': { const n = Object.keys(c.values).filter(k => c.values[k] !== '').length; return n ? `${n} ajustes` : 'Sin cambios'; }
+    case 'region': return { view: 'Vista completa', region: 'Región', crop: 'Recorte', blowup: 'Ampliación' }[c.type] || c.type;
     case 'env': return c.name || 'Sin entorno';
     case 'elements': return c.items.length ? `${c.items.filter(i => i.on).length} de ${c.items.length} activos` : 'Sin elementos';
     case 'corona': {
@@ -261,7 +315,13 @@ function opsFor(s) {
   if (c.layers.on) c.layers.items.forEach(l => ops.push(['layer', l.name, l.on ? 1 : 0]));
   if (c.objects.on) c.objects.items.forEach(o => ops.push(['obj', o.name, o.hidden ? 1 : 0]));
   if (c.elements.on) c.elements.items.forEach(e => ops.push(['elem', e.name, e.on ? 1 : 0]));
-  if (c.sun.on) ops.push(['sun', c.sun.name]);
+  if (c.sun.on) {
+    ops.push(['sun', c.sun.name]);
+    if (c.sun.time.on && c.sun.name) { const d = sunDir(c.sun.time); ops.push(['sunpos', c.sun.name, d.x.toFixed(5), d.y.toFixed(5), d.z.toFixed(5)]); }
+  }
+  if (c.lights.on) c.lights.items.forEach(l => ops.push(['light', l.name, l.on ? 1 : 0, l.intensity ?? '', l.color || '']));
+  if (c.tone.on) Object.entries(c.tone.values).forEach(([k, v]) => { if (v !== '' && v !== null) ops.push(['corona', k, typeof v === 'boolean' ? (v ? 1 : 0) : v]); });
+  if (c.region.on) ops.push(['region', c.region.type, c.region.x, c.region.y, c.region.w, c.region.h]);
   if (c.env.on) ops.push(['env', c.env.name]);
   if (c.corona.on) {
     ['passLimit', 'noiseLimit', 'timeLimit', 'denoiseType', 'denoiseAmount'].forEach(k => {
@@ -288,11 +348,14 @@ async function updateThumb(s, file) {
   } catch (err) { /* la miniatura es opcional */ }
 }
 
-function thumbSrc(s) {
-  if (!s.thumb) return '';
-  if (s.thumb.startsWith('data:')) return s.thumb;
-  return 'file:///' + s.thumb.replace(/\\/g, '/') + '?v=' + (s.thumbV || 0);
+function fileUrl(p, v) {
+  if (!p) return '';
+  if (p.startsWith('data:')) return p;
+  const u = p.startsWith('\\\\') ? 'file:' + p.replace(/\\/g, '/') : 'file:///' + p.replace(/\\/g, '/');
+  return encodeURI(u).replace(/#/g, '%23') + (v ? '?v=' + v : '');
 }
+
+function thumbSrc(s) { return fileUrl(s.thumb, s.thumbV || 0); }
 
 function setLog(s, state, text) {
   const item = S.batchLog.find(l => l.id === s.id);
@@ -300,36 +363,89 @@ function setLog(s, state, text) {
   else S.batchLog.push({ id: s.id, name: s.name, color: s.color, state, text });
 }
 
+const safeName = n => (String(n).replace(/[\\/:*?"<>|]/g, '_') || 'sin_nombre');
+const pad2 = n => String(n).padStart(2, '0');
+
+// Nombre del archivo segun el patron de Render (variables {setup} {proyecto} {grupo} {camara} {fecha} {hora} {v}).
+function fileBase(s, v) {
+  const d = new Date();
+  return (S.data.batch.pattern || '{setup}')
+    .replace(/\{setup\}/g, s.name)
+    .replace(/\{proyecto\}/g, (S.scene.file || 'escena').replace(/\.max$/i, ''))
+    .replace(/\{grupo\}/g, s.group || '')
+    .replace(/\{camara\}/g, s.comp.camera.name || '')
+    .replace(/\{fecha\}/g, `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`)
+    .replace(/\{hora\}/g, `${pad2(d.getHours())}${pad2(d.getMinutes())}`)
+    .replace(/\{v\}/g, pad2(v));
+}
+
+async function nextVersion(s, folder, ext) {
+  let v = (s.v || 0) + 1;
+  if (!/\{v\}/.test(S.data.batch.pattern || '')) return v;
+  const files = await Bridge.call('listFiles', folder + '\\' + safeName(s.name), '*' + ext).catch(() => []);
+  const names = new Set(files.map(f => f.name.toLowerCase()));
+  while (names.has((safeName(fileBase(s, v)) + ext).toLowerCase())) v++;
+  return v;
+}
+
+const fmtDur = ms => { const m = Math.round(ms / 60000); return m < 1 ? `${Math.max(1, Math.round(ms / 1000))} s` : m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+
+function chime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 1320].forEach((f, i) => {
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.value = f; o.type = 'sine';
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + i * 0.16);
+      g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + i * 0.16 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.16 + 0.5);
+      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + i * 0.16); o.stop(ctx.currentTime + i * 0.16 + 0.55);
+    });
+  } catch (e) { /* sin audio */ }
+}
+
 async function runBatch(ids) {
   if (S.busy) return;
   const sets = S.data.setups.filter(s => ids.includes(s.id));
   if (!sets.length) return toast('No hay setups para renderizar.', 'warn');
   const folder = (S.data.batch.folder || '').trim() || S.scene.defaultFolder;
+  const ext = S.data.batch.fmt;
   S.busy = true;
+  S.stop = false;
   S.batchLog = [];
   sets.forEach(s => setLog(s, 'wait', 'En cola'));
+  const times = [];
+  const t0 = Date.now();
   render();
   let done = 0;
   try {
     await Bridge.call('batchBegin');
     for (let i = 0; i < sets.length; i++) {
       const s = sets[i];
-      S.progress = { i: i + 1, n: sets.length, name: s.name };
+      if (S.stop) { sets.slice(i).forEach(x => setLog(x, 'skip', 'Detenido')); break; }
+      const avg = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+      S.progress = { i: i + 1, n: sets.length, name: s.name, eta: avg ? fmtDur(avg * (sets.length - i)) : '' };
       if (!s.comp.camera.on || !s.comp.camera.name) { setLog(s, 'skip', 'Sin cámara'); render(); continue; }
       setLog(s, 'run', 'Renderizando');
       render();
       await nextFrame();
       const missing = await Bridge.call('apply', ...opsFor(s));
       if ((missing || []).some(m => m.startsWith('Camara:'))) { setLog(s, 'skip', `No existe la cámara ${s.comp.camera.name}`); render(); continue; }
-      const r = await Bridge.call('render', folder, s.name, S.data.batch.fmt);
-      setLog(s, 'ok', r.file);
+      const v = await nextVersion(s, folder, ext);
+      const start = Date.now();
+      const r = await Bridge.call('render', folder, s.name, fileBase(s, v), ext);
+      const dur = Date.now() - start;
+      times.push(dur);
+      let thumb = '';
+      if (S.ui.thumbs) thumb = await Bridge.call('thumbFromFile', `${s.id}_v${v}`, r.file).catch(() => '');
+      s.v = v;
+      s.renders = [{ file: r.file, v, time: Date.now(), dur, thumb }, ...(s.renders || [])].slice(0, 40);
+      if (thumb) { s.thumb = thumb; s.thumbV = Date.now(); }
+      save();
+      setLog(s, 'ok', `${fmtDur(dur)}  ·  ${r.file}`);
       done++;
-      if (S.data.batch.fmt !== '.exr') await updateThumb(s, r.file);
       render();
-      if (r.aborted) {
-        sets.slice(i + 1).forEach(x => setLog(x, 'skip', 'Detenido con ESC'));
-        break;
-      }
+      if (r.aborted) { sets.slice(i + 1).forEach(x => setLog(x, 'skip', 'Detenido con ESC')); break; }
     }
   } catch (err) {
     toast('Error durante el render: ' + err.message, 'error');
@@ -339,7 +455,8 @@ async function runBatch(ids) {
     S.progress = null;
     await refreshScene().catch(() => {});
     render();
-    toast(`Render terminado: ${done} de ${sets.length}`, done ? 'ok' : 'warn');
+    if (S.ui.sound) { chime(); Bridge.call('beep').catch(() => {}); }
+    toast(`Render terminado: ${done} de ${sets.length} en ${fmtDur(Date.now() - t0)}`, done ? 'ok' : 'warn');
   }
 }
 
@@ -500,7 +617,62 @@ function propBody(s, key) {
       const suns = S.scene.suns.map(x => x.name);
       const opts = [['', 'Apagar todos los soles'], ...suns.map(n => [n, n])];
       if (c.name && !suns.includes(c.name)) opts.push([c.name, `${c.name} (no existe)`]);
-      return `${selectHtml('comp.sun.name', c.name, opts)}${suns.length ? '' : '<p class="hint">No hay soles en la escena.</p>'}`;
+      const t = c.time;
+      const d = sunDir(t);
+      const timeUi = c.name ? `<div class="subcard ${t.on ? '' : 'dimmed'}">
+          <div class="form-row compact"><span><strong>Posición por hora</strong></span>${toggle(t.on, 'toggleSunTime')}</div>
+          <div class="sun-time">
+            <div class="range wide"><input type="range" min="5" max="19" step="0.25" data-field="comp.sun.time.hour" data-type="float" data-fmt="time" value="${t.hour}"><output>${hhmm(t.hour)}</output></div>
+            <div class="fields four">
+              <label><span>Día</span><input type="number" min="1" max="31" data-field="comp.sun.time.day" data-type="int" value="${t.day}"></label>
+              <label><span>Mes</span>${selectHtml('comp.sun.time.month', t.month, MONTHS.map((m, i) => [i + 1, m]), 'data-type="int"')}</label>
+              <label><span>Latitud</span><input type="number" step="0.1" data-field="comp.sun.time.lat" data-type="signed" value="${t.lat}"></label>
+              <label><span>Norte (°)</span><input type="number" step="1" data-field="comp.sun.time.north" data-type="signed" value="${t.north}"></label>
+            </div>
+            <p class="hint">${d.el > 0 ? `Altura ${d.el.toFixed(0)}°  ·  Azimut ${d.az.toFixed(0)}°` : `${icon('warn')} El sol está bajo el horizonte a esa hora.`}  ·  Hora solar; +Y de la escena es el norte.</p>
+          </div>
+        </div>` : '';
+      return `${selectHtml('comp.sun.name', c.name, opts)}${suns.length ? '' : '<p class="hint">No hay soles en la escena.</p>'}${timeUi}`;
+    }
+    case 'lights': {
+      const sceneL = (S.scene.lights || []).filter(l => !l.isSun);
+      const names = new Set(c.items.map(l => l.name));
+      const rows = [
+        ...c.items.map((l, i) => ({ l, i, missing: !sceneL.some(x => x.name === l.name) })),
+        ...sceneL.filter(l => !names.has(l.name)).map(l => ({ l, i: -1, fresh: true })),
+      ];
+      return `<div class="items" data-scroll="lights">${rows.map(({ l, i, missing, fresh }) => fresh
+          ? `<div class="item fresh">${ib('trackLight', 'plus', 'Nueva luz: añadir a este setup', { name: l.name }, 'dim')}<span class="name off">${esc(l.name)}</span><span class="tag">Nueva</span></div>`
+          : `<div class="item light-row">
+              ${toggle(l.on, 'toggleItem', { list: 'lights', index: i }, l.on ? 'Encendida' : 'Apagada')}
+              <span class="name ${l.on ? '' : 'off'}">${esc(l.name)}</span>
+              ${missing ? `<span class="warn-ico" title="No existe en la escena">${icon('warn')}</span>` : ''}
+              ${l.intensity !== '' ? `<input class="mini" type="number" step="0.1" data-field="comp.lights.items.${i}.intensity" data-type="float" value="${esc(l.intensity)}" title="Intensidad">` : ''}
+              ${l.color ? `<input class="swatch-in" type="color" data-field="comp.lights.items.${i}.color" value="${esc(l.color)}" title="Color">` : ''}
+              ${ib('removeItem', 'x', 'Quitar', { list: 'lights', index: i }, 'hover')}
+            </div>`).join('') || '<p class="hint">No hay luces en la escena.</p>'}</div>
+        <p class="hint">Como el LightMix, pero guardado en las luces: encendido, intensidad y color de cada una.</p>
+        <div class="line end">${btn('setAll', 'Todas', '', { list: 'lights', val: 1 }, 'ghost')}${btn('setAll', 'Ninguna', '', { list: 'lights', val: 0 }, 'ghost')}${btn('captureLights', 'Capturar', 'target', {}, 'ghost')}</div>`;
+    }
+    case 'tone': {
+      const t = S.scene.tone || {};
+      const avail = TONE_FIELDS.filter(([k]) => k in t && t[k] !== null);
+      const bools = TONE_BOOLS.filter(([k]) => k in t && t[k] !== null);
+      if (!avail.length && !bools.length) return `<p class="hint warn">${icon('warn')} No se encontraron los ajustes de tone mapping de Corona en esta versión.</p>`;
+      const val = k => (c.values[k] === undefined ? '' : c.values[k]);
+      return `<div class="fields">${avail.map(([k, label, type, step]) => `<label><span>${esc(label)}</span><input type="number" step="${step}" data-field="comp.tone.values.${k}" data-type="signed" value="${esc(val(k))}" placeholder="—"></label>`).join('')}</div>
+        ${bools.map(([k, label]) => `<div class="form-row compact"><span>${esc(label)}</span>${selectHtml(`comp.tone.values.${k}`, val(k) === '' ? '' : (val(k) ? '1' : '0'), [['', 'Sin cambiar'], ['1', 'Activado'], ['0', 'Desactivado']], 'data-type="bool3" class="short"')}</div>`).join('')}
+        ${'lutFile' in t ? `<label class="stack-label"><span>Archivo LUT</span><input type="text" data-field="comp.tone.values.lutFile" value="${esc(val('lutFile'))}" placeholder="Sin cambiar"></label>` : ''}
+        <p class="hint">Vacío = no cambiar.</p>
+        <div class="line end">${btn('captureTone', 'Usar valores actuales', 'target', {}, 'ghost')}</div>`;
+    }
+    case 'region': {
+      const r = S.scene.region || {};
+      return `<div class="seg full">${[['view', 'Vista completa'], ['region', 'Región'], ['crop', 'Recorte']].map(([v, l]) =>
+          `<button class="seg-btn ${c.type === v ? 'on' : ''}" data-action="setRegionType" data-v="${v}">${l}</button>`).join('')}</div>
+        ${c.type !== 'view' ? `<p class="hint">Rectángulo: ${c.x}, ${c.y} · ${c.w} × ${c.h} px</p>` : '<p class="hint">Renderiza la imagen completa.</p>'}
+        <div class="line end">${btn('captureRegion', 'Usar la región del visor', 'target', {}, 'ghost')}</div>
+        <p class="hint">Dibuja la región en el visor con la herramienta Region de 3ds Max y pulsa “Usar la región del visor”.</p>`;
     }
     case 'env': {
       const envs = S.scene.envMaps;
@@ -695,9 +867,12 @@ function viewRender() {
     <h2>Salida</h2>
     <section class="panel pad">
       <div class="form-row"><span>Carpeta</span><div class="line"><input type="text" data-scope="data" data-field="batch.folder" value="${esc(b.folder)}" placeholder="${esc(S.scene.defaultFolder)}">${ib('browse', 'folder', 'Elegir carpeta', {}, 'boxed')}</div></div>
+      <div class="form-row"><span>Nombre</span><div class="line"><input type="text" data-scope="data" data-field="batch.pattern" value="${esc(b.pattern)}" spellcheck="false"></div></div>
+      <div class="chips tokens">${['{setup}', '{proyecto}', '{grupo}', '{camara}', '{fecha}', '{hora}', 'v{v}'].map(t => `<button class="chip" data-action="addToken" data-v="${t}">${t}</button>`).join('')}</div>
       <div class="form-row"><span>Formato</span>${selectHtml('batch.fmt', b.fmt, FORMATS.map(f => [f, f.slice(1).toUpperCase()]), 'data-scope="data" class="short"')}</div>
       <div class="form-row"><span>Restaurar la escena al terminar</span>${toggle(b.restore, 'toggleRestore')}</div>
-      <p class="hint mono">${esc(folder)}\\&lt;setup&gt;\\&lt;setup&gt;${esc(b.fmt)}</p>
+      <p class="hint mono">${esc(folder)}\\&lt;setup&gt;\\${esc(sets[0] ? safeName(fileBase(sets[0], (sets[0].v || 0) + 1)) : 'Salon_v01')}${esc(b.fmt)}</p>
+      <p class="hint">Con {v} cada render es una versión nueva (v01, v02…) y no se sobrescribe nada.</p>
     </section>
 
     <h2>Render elements</h2>
@@ -716,10 +891,7 @@ function viewRender() {
 
 // ---------------------------------------------------------------- vista: iluminacion
 
-function presetSrc(p) {
-  if (!p.thumb) return '';
-  return p.thumb.startsWith('data:') ? p.thumb : 'file:///' + p.thumb.replace(/\\/g, '/');
-}
+function presetSrc(p) { return fileUrl(p.thumb); }
 
 function viewLights() {
   const folder = S.ui.presetFolder;
@@ -769,6 +941,56 @@ async function loadPresets() {
   if (S.view === 'lights') render();
 }
 
+// ---------------------------------------------------------------- vista: resultados
+
+function resultTile(s, r) {
+  const sel = (S.compare || []).some(x => x.file === r.file);
+  const d = new Date(r.time);
+  return `<div class="result ${sel ? 'sel' : ''}">
+    <div class="thumb" data-action="viewResult" data-id="${s.id}" data-file="${esc(r.file)}">${r.thumb ? `<img src="${esc(fileUrl(r.thumb))}" alt="" draggable="false">` : `<span class="thumb-ph">${icon('image')}</span>`}
+      <input type="checkbox" class="chk ${sel ? 'is-on' : ''}" data-action="toggleCompare" data-id="${s.id}" data-file="${esc(r.file)}" ${sel ? 'checked' : ''} title="Seleccionar para comparar">
+    </div>
+    <div class="tile-info"><div class="row-main"><span class="name">v${pad2(r.v)}</span>
+      <span class="meta">${d.toLocaleDateString('es', { day: 'numeric', month: 'short' })} ${pad2(d.getHours())}:${pad2(d.getMinutes())}${r.dur ? `  ·  ${fmtDur(r.dur)}` : ''}</span></div>
+      ${ib('openFile', 'image', 'Abrir imagen', { file: r.file })}${ib('showInFolder', 'folder', 'Mostrar en la carpeta', { file: r.file })}</div>
+  </div>`;
+}
+
+function viewResults() {
+  const sets = S.data.setups.filter(s => (s.renders || []).length);
+  const total = sets.reduce((n, s) => n + s.renders.length, 0);
+  const nCmp = (S.compare || []).length;
+  const body = !sets.length ? empty('Todavía no hay renders', 'Los renders hechos con REA aparecen aquí, con su versión, fecha y duración.', btn('goRender', 'Ir a Render', 'render', {}, 'primary'))
+    : sets.map(s => `<section class="result-group">
+        <div class="group-h static"><span class="swatch-dot" style="background:${esc(s.color)}"></span><span>${esc(s.name)}</span><span class="group-n">${s.renders.length}</span></div>
+        <div class="tiles">${s.renders.map(r => resultTile(s, r)).join('')}</div>
+      </section>`).join('');
+  return `<div class="page wide">
+    <div class="toolbar"><h1>Resultados</h1>${total ? `<span class="count">${total}</span>` : ''}<span class="spacer"></span>
+      ${nCmp ? `<div class="capsule"><span class="capsule-label">${nCmp} de 2 seleccionados</span>${ib('clearCompare', 'x', 'Quitar selección')}</div>` : ''}
+      ${btn('compare', 'Comparar', 'compare', {}, nCmp === 2 ? 'primary' : '')}
+    </div>
+    ${total ? '<p class="hint" style="margin-bottom:16px">Marca dos renders para compararlos (antes / después). Clic en una imagen para verla en grande.</p>' : ''}
+    ${body}
+  </div>`;
+}
+
+function viewerHtml() {
+  const v = S.viewer;
+  const src = r => fileUrl(/\.(png|jpe?g)$/i.test(r.file) ? r.file : r.thumb);
+  if (v.items.length === 2) {
+    const [a, b] = v.items;
+    return `<div class="scrim viewer" data-close="1"><div class="viewer-box" data-stop="1">
+      <div class="cmp" style="--p:${v.pos}%"><img src="${esc(src(a))}" alt=""><div class="cmp-top"><img src="${esc(src(b))}" alt=""></div><span class="cmp-line"></span></div>
+      <input type="range" min="0" max="100" value="${v.pos}" id="cmpRange" class="cmp-range">
+      <div class="viewer-cap"><span>v${pad2(a.v)}</span><span class="muted">${esc(a.name)}  ·  antes / después</span><span>v${pad2(b.v)}</span></div>
+    </div></div>`;
+  }
+  const r = v.items[0];
+  return `<div class="scrim viewer" data-close="1"><div class="viewer-box" data-stop="1"><img class="viewer-img" src="${esc(src(r))}" alt="">
+    <div class="viewer-cap"><span>${esc(r.name)}  ·  v${pad2(r.v)}</span><span class="spacer"></span>${btn('openFile', 'Abrir', 'image', { file: r.file })}${btn('showInFolder', 'Carpeta', 'folder', { file: r.file })}</div></div></div>`;
+}
+
 // ---------------------------------------------------------------- vista: ajustes
 
 function viewSettings() {
@@ -787,7 +1009,8 @@ function viewSettings() {
         </div></div>
       <div class="form-row"><div><strong>Color de acento</strong><p class="hint">Foco y luz ambiental del fondo.</p></div>
         <div class="colors">${ACCENTS.map(a => `<button class="cdot ${a === S.ui.accent ? 'on' : ''}" style="background:${a}" data-action="setAccent" data-v="${a}"></button>`).join('')}</div></div>
-      <div class="form-row"><div><strong>Miniaturas</strong><p class="hint">Captura del visor al crear un setup.</p></div>${toggle(S.ui.thumbs, 'toggleThumbs')}</div>
+      <div class="form-row"><div><strong>Miniaturas</strong><p class="hint">Captura del visor al crear un setup, y del render al terminar.</p></div>${toggle(S.ui.thumbs, 'toggleThumbs')}</div>
+      <div class="form-row"><div><strong>Sonido al terminar el render</strong></div>${toggle(S.ui.sound, 'toggleSound')}</div>
       <div class="form-row"><div><strong>Vista de setups</strong></div>
         <div class="seg">
           <button class="seg-btn wide ${S.ui.layout === 'list' ? 'on' : ''}" data-action="setLayout" data-v="list">${icon('rows')}<span>Lista</span></button>
@@ -807,7 +1030,7 @@ function viewSettings() {
 
 // ---------------------------------------------------------------- render general
 
-const VIEWS = { setups: viewSetups, cameras: viewCameras, lights: viewLights, render: viewRender, settings: viewSettings };
+const VIEWS = { setups: viewSetups, cameras: viewCameras, lights: viewLights, render: viewRender, results: viewResults, settings: viewSettings };
 
 function renderStatus() {
   const p = S.progress;
@@ -817,7 +1040,9 @@ function renderStatus() {
   $('#navRender').textContent = marked || '';
   $('#sideFoot').innerHTML = `
     ${p ? `<div class="side-prog"><div class="side-prog-t">Renderizando ${p.i} de ${p.n}</div><div class="side-prog-n">${esc(p.name)}</div>
-      <div class="prog-bar"><span style="width:${Math.round((p.i - 1) / p.n * 100)}%"></span></div></div>` : ''}
+      <div class="prog-bar"><span style="width:${Math.round((p.i - 1) / p.n * 100)}%"></span></div>
+      <div class="side-prog-n">${p.eta ? `Quedan ~${esc(p.eta)}` : 'Calculando tiempo…'}</div>
+      <button class="btn small stop" data-action="stopBatch">${S.stop ? 'Se detendrá al terminar esta imagen' : 'Detener'}</button></div>` : ''}
     <div class="side-file" title="${esc(S.scene ? S.scene.filePath + S.scene.file : '')}">${esc(S.scene ? (S.scene.file || 'Escena sin guardar') : '')}</div>
     <div class="side-status"><span class="dot ${S.scene ? (host ? 'ok' : 'demo') : ''}"></span>${S.scene ? (host ? `3ds Max  ·  ${esc(S.scene.renderer)}` : 'Demostración') : 'Conectando…'}</div>`;
 }
@@ -871,7 +1096,7 @@ function openMenuAt(x, y, items) {
   S.menu = { x: Math.min(x, window.innerWidth - 230), y: Math.min(y, window.innerHeight - items.length * 34 - 20), items };
   renderOverlay();
 }
-function closeOverlay() { S.menu = null; S.palette = null; renderOverlay(); }
+function closeOverlay() { S.menu = null; S.palette = null; S.viewer = null; renderOverlay(); }
 
 function paletteItems() {
   const acts = [
@@ -880,6 +1105,7 @@ function paletteItems() {
     ['Ir a cámaras', 'camera', () => { S.view = 'cameras'; render(); }],
     ['Ir a render', 'render', () => { S.view = 'render'; render(); }],
     ['Ir a iluminación', 'sun', () => { S.view = 'lights'; render(); }],
+    ['Ir a resultados', 'image', () => { S.view = 'results'; render(); }],
     ['Renderizar setups marcados', 'render', () => A.startBatch()],
     ['Crear cámara desde la vista', 'camera', () => { S.view = 'cameras'; render(); A.camCreate(); }],
     ['Cambiar galería / lista', 'grid', () => A.toggleLayout()],
@@ -897,6 +1123,7 @@ function paletteItems() {
 
 function renderOverlay() {
   const ov = $('#overlay');
+  if (S.viewer) { ov.innerHTML = viewerHtml(); return; }
   if (S.palette) {
     const q = S.palette.q.toLowerCase();
     const items = paletteItems().filter(it => it.label.toLowerCase().includes(q)).slice(0, 9);
@@ -955,8 +1182,11 @@ function readValue(el) {
   const t = el.dataset.type;
   if (t === 'bool') return el.checked;
   if (el.value === '') return '';
+  if (el.type === 'color') return el.value;
   if (t === 'int') return Math.max(0, parseInt(el.value, 10) || 0);
   if (t === 'float') return Math.max(0, parseFloat(el.value) || 0);
+  if (t === 'signed') return parseFloat(el.value) || 0;
+  if (t === 'bool3') return el.value === '' ? '' : el.value === '1';
   if (t === 'pct') return Math.max(0, Math.min(100, parseFloat(el.value) || 0)) / 100;
   if (t === 'minutes') return Math.round(Math.max(0, parseFloat(el.value) || 0) * 60000);
   return el.value;
@@ -1131,10 +1361,55 @@ const A = {
       });
     });
   },
+  async useCurrentCoronaAll() { return A.useCurrentCorona(); },
   async useCurrentCorona() {
     await refreshScene();
     if (!S.scene.corona.isCorona) return toast('El motor actual no es Corona.', 'warn');
     mutate(() => { const c = comp('corona'); ['passLimit', 'noiseLimit', 'timeLimit'].forEach(k => { c[k] = S.scene.corona[k] ?? ''; }); });
+  },
+
+  // tarjetas nuevas
+  toggleSunTime() { mutate(() => { const t = comp('sun').time; t.on = !t.on; }); },
+  trackLight(el) {
+    const l = (S.scene.lights || []).find(x => x.name === el.dataset.name);
+    if (l) mutate(() => comp('lights').items.push(lightItem(l)));
+  },
+  async captureLights() { await refreshScene(); mutate(() => { comp('lights').items = (S.scene.lights || []).filter(l => !l.isSun).map(lightItem); }); },
+  async captureTone() { await refreshScene(); mutate(() => { comp('tone').values = toneFromScene(); }); },
+  setRegionType(el) { mutate(() => { comp('region').type = el.dataset.v; }); },
+  async captureRegion() {
+    await refreshScene();
+    const r = S.scene.region || {};
+    mutate(() => Object.assign(comp('region'), { type: r.type && r.type !== 'view' ? r.type : 'region', x: r.x, y: r.y, w: r.w, h: r.h }));
+  },
+
+  // render y resultados
+  stopBatch() { S.stop = true; renderStatus(); toast('El lote se detendrá al terminar la imagen actual.'); },
+  addToken(el) { mutate(() => { S.data.batch.pattern = (S.data.batch.pattern || '') + (S.data.batch.pattern ? '_' : '') + el.dataset.v; }); },
+  openFile(el) { return Bridge.call('openFile', el.dataset.file); },
+  showInFolder(el) { return Bridge.call('showInFolder', el.dataset.file); },
+  toggleSound() { S.ui.sound = !S.ui.sound; saveUi(); render(); },
+  toggleCompare(el, e) {
+    if (e) e.stopPropagation();
+    const s = getSetup(el.dataset.id);
+    const r = s.renders.find(x => x.file === el.dataset.file);
+    S.compare = S.compare || [];
+    if (S.compare.some(x => x.file === r.file)) S.compare = S.compare.filter(x => x.file !== r.file);
+    else S.compare = [...S.compare, Object.assign({ name: s.name }, r)].slice(-2);
+    render();
+  },
+  clearCompare() { S.compare = []; render(); },
+  compare() {
+    if ((S.compare || []).length !== 2) return toast('Marca dos renders para compararlos.');
+    S.viewer = { items: [...S.compare].sort((a, b) => a.time - b.time), pos: 50 };
+    renderOverlay();
+  },
+  viewResult(el, e) {
+    if (e && e.target.closest('input')) return;
+    const s = getSetup(el.dataset.id);
+    const r = s.renders.find(x => x.file === el.dataset.file);
+    S.viewer = { items: [Object.assign({ name: s.name }, r)], pos: 50 };
+    renderOverlay();
   },
 
   // iluminacion
@@ -1217,13 +1492,13 @@ document.addEventListener('click', e => {
   }
   const pal = e.target.closest('[data-pal]');
   if (pal) { const it = S.palette.items[Number(pal.dataset.pal)]; closeOverlay(); run(it.run); return; }
-  if (e.target.closest('[data-close]') && !e.target.closest('.palette')) { closeOverlay(); return; }
+  if (e.target.closest('[data-close]') && !e.target.closest('.palette') && !e.target.closest('[data-stop]')) { closeOverlay(); return; }
 
   const nav = e.target.closest('[data-view]');
   if (nav) { S.view = nav.dataset.view; render(); return; }
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled || el.classList.contains('disabled') || !A[el.dataset.action]) return;
-  if (S.busy && !['goRender', 'palette', 'select'].includes(el.dataset.action)) {
+  if (S.busy && !['goRender', 'palette', 'select', 'stopBatch', 'viewResult', 'openFile', 'showInFolder'].includes(el.dataset.action)) {
     if (el.tagName === 'INPUT') e.preventDefault();
     toast('Espera a que termine el render.', 'warn');
     return;
@@ -1253,7 +1528,8 @@ document.addEventListener('change', e => {
 });
 
 document.addEventListener('input', e => {
-  if (e.target.type === 'range') { const out = e.target.parentNode.querySelector('output'); if (out) out.textContent = e.target.value + '%'; }
+  if (e.target.id === 'cmpRange') { S.viewer.pos = +e.target.value; const c = document.querySelector('.cmp'); if (c) c.style.setProperty('--p', e.target.value + '%'); return; }
+  if (e.target.type === 'range') { const out = e.target.parentNode.querySelector('output'); if (out) out.textContent = e.target.dataset.fmt === 'time' ? hhmm(+e.target.value) : e.target.value + '%'; }
   if (e.target.id === 'search') { S.search = e.target.value; renderList(); }
   if (e.target.id === 'palInput') { S.palette.q = e.target.value; S.palette.i = 0; renderOverlay(); }
 });
@@ -1317,7 +1593,7 @@ document.addEventListener('keydown', e => {
     if (e.key === 'Enter') { const it = S.palette.items[S.palette.i]; closeOverlay(); if (it) run(it.run); e.preventDefault(); }
     return;
   }
-  if (e.key === 'Escape') { if (S.menu) closeOverlay(); else if (typing) e.target.blur(); else { S.sel = []; render(); } return; }
+  if (e.key === 'Escape') { if (S.menu || S.viewer) closeOverlay(); else if (typing) e.target.blur(); else { S.sel = []; render(); } return; }
   if (ctrl && e.key.toLowerCase() === 'k') { e.preventDefault(); A.palette(); return; }
   if (ctrl && e.key.toLowerCase() === 'f') { e.preventDefault(); S.view = 'setups'; render(); $('#search').focus(); return; }
   if (typing) {

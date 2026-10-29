@@ -20,7 +20,7 @@ fn REASM_notify evt = (REASM_post (REASM_toJson (REASM_obj #(#("event", evt)))))
 fn REASM_dispatch cmd a =
 (
 	-- argumentos que faltan = texto vacio
-	local g = for i = 1 to (amax 3 a.count) collect (if i <= a.count then a[i] else "")
+	local g = for i = 1 to (amax 6 a.count) collect (if i <= a.count then a[i] else "")
 	case cmd of
 	(
 		"ping": REASM_VERSION
@@ -30,7 +30,7 @@ fn REASM_dispatch cmd a =
 		"apply": REASM_applyOps a
 		"batchBegin": REASM_batchBegin()
 		"batchEnd": REASM_batchEnd (g[1] == "1")
-		"render": REASM_render g[1] g[2] g[3]
+		"render": REASM_render g[1] g[2] g[3] g[4]
 		"setOutput": REASM_setOutput g[1] g[2] g[3]
 		"camCreate": REASM_camCreate g[1] g[2]
 		"cam": REASM_camCommand g[1] g[2] g[3]
@@ -45,6 +45,10 @@ fn REASM_dispatch cmd a =
 		"thumbViewport": REASM_thumbViewport g[1]
 		"clay": REASM_setClay (g[1] == "1")
 		"listPresets": REASM_listPresets g[1]
+		"listFiles": REASM_listFiles g[1] g[2]
+		"openFile": REASM_openFile g[1]
+		"showInFolder": REASM_showInFolder g[1]
+		"beep": REASM_beep()
 		"loadPreset": REASM_loadPreset g[1] (g[2] == "1")
 		"removePresets": REASM_removePresetLayers()
 		"thumbFromFile": REASM_thumbFromFile g[1] g[2]

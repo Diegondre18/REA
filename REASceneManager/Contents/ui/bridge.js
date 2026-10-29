@@ -56,6 +56,14 @@ const Mock = (() => {
     elementClasses: ['CESSENTIAL_Direct', 'CESSENTIAL_Reflect', 'CMasking_ID', 'CMasking_Mask', 'CShading_Albedo', 'CShading_LightMix', 'CShading_Reflect', 'CTexmap'],
     res: { w: 1920, h: 1080 },
     suns: [{ name: 'CoronaSun001', on: true }],
+    lights: [
+      { name: 'CoronaSun001', cls: 'CoronaSun', on: true, intensity: 1, color: null, isSun: true },
+      { name: 'Luz_Lampara_Pie', cls: 'CoronaLight', on: true, intensity: 12, color: '#ffd9a8', isSun: false },
+      { name: 'Luz_Techo_01', cls: 'CoronaLight', on: false, intensity: 30, color: '#fff4e6', isSun: false },
+      { name: 'Luz_Ventana_Portal', cls: 'CoronaLight', on: true, intensity: 4, color: '#dbe8ff', isSun: false },
+    ],
+    region: { type: 'view', x: 0, y: 0, w: 0, h: 0 },
+    tone: { exposure: 0.5, highlight: 2, contrast: 1, saturation: 0, whiteBalance: 6500, filmic: 0, lutEnable: false, lutFile: '', lutOpacity: 1, bloomEnable: false, bloomIntensity: 0.1, glareIntensity: 0.1 },
     envMaps: ['CoronaSky_Dia', 'HDRI_Atardecer.exr', 'HDRI_Noche.hdr'],
     activeEnv: 'CoronaSky_Dia',
     corona: { isCorona: true, passLimit: 0, noiseLimit: 3.0, timeLimit: 0, denoiseType: 1, denoiseAmount: 0.65, hasDenoise: true, hasOverride: true, clay: false },
@@ -101,7 +109,9 @@ const Mock = (() => {
         return wait(missing);
       }
       case 'batchBegin': case 'batchEnd': return wait(true);
-      case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + a[2], aborted: false }), 700));
+      case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + '\\' + a[2] + a[3], aborted: false }), 700));
+      case 'listFiles': return wait([]);
+      case 'openFile': case 'showInFolder': case 'beep': return wait(true);
       case 'setOutput': scene.outputFile = a[0] + '\\' + a[1] + a[2]; return wait(scene.outputFile);
       case 'clay': scene.corona.clay = a[0] === '1'; return wait(scene.corona.clay);
       case 'camCreate': { const n = a[0] || ((a[1] ? 'REA_Cam360_' : 'REA_Cam_') + String(scene.cameras.length + 1).padStart(3, '0')); scene.cameras.push({ name: n, locked: false, cls: 'CoronaCam', proj: a[1] ? +a[1] : 0 }); scene.activeCamera = n; return wait(n); }
