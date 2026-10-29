@@ -5,6 +5,8 @@ set "DEST=%APPDATA%\Autodesk\ApplicationPlugins\REASceneManager"
 if exist "%DEST%" rmdir /s /q "%DEST%"
 mkdir "%DEST%"
 xcopy /E /I /Y "%~dp0REASceneManager" "%DEST%" >nul
+rem Quitar la marca "descargado de internet" para que .NET pueda cargar las DLL
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -LiteralPath $env:DEST -Recurse | Unblock-File" >nul 2>&1
 echo.
 echo REA Scene Manager instalado en:
 echo %DEST%

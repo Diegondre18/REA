@@ -91,6 +91,18 @@ fn REASM_onClosed s e =
 	REASM_wv = undefined
 )
 
+-- Carga una DLL aunque Windows la tenga marcada como "descargada de internet".
+fn REASM_loadDll path =
+(
+	-- quitar la marca de descarga (Zone.Identifier) de la DLL y del loader nativo
+	try (deleteFile (path + ":Zone.Identifier")) catch ()
+	try (dotNet.loadAssembly path)
+	catch
+	(
+		(dotNetClass "System.Reflection.Assembly").UnsafeLoadFrom path
+	)
+)
+
 fn REASM_open =
 (
 	if REASM_form != undefined and not REASM_form.IsDisposed then
@@ -100,8 +112,9 @@ fn REASM_open =
 	)
 
 	local bin = REASM_fullPath (REASM_dir + "..\\bin")
-	dotNet.loadAssembly (bin + "\\Microsoft.Web.WebView2.Core.dll")
-	dotNet.loadAssembly (bin + "\\Microsoft.Web.WebView2.WinForms.dll")
+	REASM_loadDll (bin + "\\Microsoft.Web.WebView2.Core.dll")
+	REASM_loadDll (bin + "\\Microsoft.Web.WebView2.WinForms.dll")
+	try (deleteFile (bin + "\\WebView2Loader.dll:Zone.Identifier")) catch ()
 	local envCls = dotNetClass "Microsoft.Web.WebView2.Core.CoreWebView2Environment"
 	try (envCls.SetLoaderDllFolderPath bin) catch ()
 
