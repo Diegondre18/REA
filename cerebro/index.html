@@ -2,61 +2,67 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one light field (an HDRI-like sky) behind smoked/frosted glass panels; top bar + four views. */
+/* LAP · Manual de Marca (2022): blanco, negro, azul brillante #0057FF; complementarios slate, cool gray, navy, sage, crema;
+   rojo #EA0029 para personas y lo que se resalta (convención de planos). Whyte → sustituto web Hanken Grotesk (Light/Book/Medium).
+   Layout: campo de luz + retícula isométrica punteada detrás de paneles de vidrio; barra superior y cuatro vistas. */
 :root {
-  --bg: #e7ecef;
-  --fg: #121820;
-  --muted: #56636e;
-  --faint: #8794a0;
-  --ink: #121820;
-  --ink-fg: #f5f7f8;
-  --accent: #c46d12;
-  --glass: rgba(255, 255, 255, 0.5);
-  --glass-strong: rgba(250, 252, 253, 0.78);
-  --glass-hover: rgba(255, 255, 255, 0.7);
-  --rim: rgba(255, 255, 255, 0.85);
+  --bg: #e9e9e8;
+  --fg: #1f1f1f;
+  --muted: #5b6670;
+  --faint: #8d969e;
+  --blue: #0057ff;
+  --blue-text: #0050eb;
+  --on-blue: #ffffff;
+  --red: #ea0029;
+  --glass: rgba(255, 255, 255, 0.52);
+  --glass-strong: rgba(252, 252, 251, 0.82);
+  --glass-hover: rgba(255, 255, 255, 0.74);
+  --rim: rgba(255, 255, 255, 0.9);
   --hi: rgba(255, 255, 255, 0.95);
-  --lo: rgba(30, 50, 70, 0.06);
-  --line: rgba(18, 30, 42, 0.09);
-  --shadow: rgba(24, 40, 60, 0.18);
-  --weekend: rgba(18, 30, 42, 0.035);
-  --field-a: #f3c58c;
-  --field-b: #9cc8de;
-  --field-c: #c8c0ea;
-  --field-d: #bcd8c6;
-  --s-cola: #85909b;
-  --s-escena: #7466cc;
-  --s-render: #d4840f;
-  --s-post: #1f93ae;
-  --s-revision: #cc4f75;
-  --s-guardado: #2f9466;
-  --danger: #c23b3b;
-  --font-ui: "Instrument Sans", "Helvetica Neue", Arial, sans-serif;
+  --lo: rgba(23, 33, 59, 0.05);
+  --line: rgba(23, 33, 59, 0.1);
+  --line-strong: rgba(23, 33, 59, 0.22);
+  --shadow: rgba(23, 33, 59, 0.16);
+  --weekend: rgba(23, 33, 59, 0.03);
+  --grid: rgba(0, 87, 255, 0.07);
+  --field-a: #d4d9de;
+  --field-b: #bbc7c4;
+  --field-c: #d6d1c2;
+  --field-d: #9fb9ff;
+  --s-cola: #8d969e;
+  --s-escena: #4d5c78;
+  --s-render: #0057ff;
+  --s-post: #6f8c86;
+  --s-revision: #a39373;
+  --s-guardado: #1f1f1f;
+  --font-ui: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-  --r-lg: 22px;
-  --r-md: 14px;
-  --r-sm: 9px;
+  --r-lg: 16px;
+  --r-md: 10px;
+  --r-sm: 7px;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b0f13; --fg: #e9edf0; --muted: #98a4ae; --faint: #6c7883; --ink: #e9edf0; --ink-fg: #0e1318; --accent: #f2a645;
-    --glass: rgba(24, 31, 38, 0.5); --glass-strong: rgba(20, 26, 32, 0.82); --glass-hover: rgba(40, 50, 60, 0.6);
-    --rim: rgba(255, 255, 255, 0.11); --hi: rgba(255, 255, 255, 0.13); --lo: rgba(0, 0, 0, 0.3);
-    --line: rgba(255, 255, 255, 0.08); --shadow: rgba(0, 0, 0, 0.55); --weekend: rgba(255, 255, 255, 0.025);
-    --field-a: #6e3f14; --field-b: #0f3d4d; --field-c: #2a2756; --field-d: #173a2b;
-    --s-cola: #8b97a3; --s-escena: #a397f2; --s-render: #f2a645; --s-post: #58c3da; --s-revision: #ef7d9e; --s-guardado: #63c793; --danger: #f07070;
+    --bg: #0a0f1c; --fg: #eceeef; --muted: #a2acb7; --faint: #6f7a87; --blue: #0057ff; --blue-text: #6b9bff; --on-blue: #ffffff; --red: #ff3355;
+    --glass: rgba(23, 33, 59, 0.5); --glass-strong: rgba(17, 25, 45, 0.86); --glass-hover: rgba(35, 48, 80, 0.6);
+    --rim: rgba(255, 255, 255, 0.1); --hi: rgba(255, 255, 255, 0.12); --lo: rgba(0, 0, 0, 0.28);
+    --line: rgba(212, 217, 222, 0.1); --line-strong: rgba(212, 217, 222, 0.24); --shadow: rgba(0, 0, 0, 0.55); --weekend: rgba(255, 255, 255, 0.025);
+    --grid: rgba(107, 155, 255, 0.07);
+    --field-a: #17213b; --field-b: #22324f; --field-c: #2b3346; --field-d: #0b3aa6;
+    --s-cola: #7f8a96; --s-escena: #8d9cbc; --s-render: #4d8dff; --s-post: #9fb6b1; --s-revision: #d6d1c2; --s-guardado: #e9e9e8;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0b0f13; --fg: #e9edf0; --muted: #98a4ae; --faint: #6c7883; --ink: #e9edf0; --ink-fg: #0e1318; --accent: #f2a645;
-  --glass: rgba(24, 31, 38, 0.5); --glass-strong: rgba(20, 26, 32, 0.82); --glass-hover: rgba(40, 50, 60, 0.6);
-  --rim: rgba(255, 255, 255, 0.11); --hi: rgba(255, 255, 255, 0.13); --lo: rgba(0, 0, 0, 0.3);
-  --line: rgba(255, 255, 255, 0.08); --shadow: rgba(0, 0, 0, 0.55); --weekend: rgba(255, 255, 255, 0.025);
-  --field-a: #6e3f14; --field-b: #0f3d4d; --field-c: #2a2756; --field-d: #173a2b;
-  --s-cola: #8b97a3; --s-escena: #a397f2; --s-render: #f2a645; --s-post: #58c3da; --s-revision: #ef7d9e; --s-guardado: #63c793; --danger: #f07070;
+  --bg: #0a0f1c; --fg: #eceeef; --muted: #a2acb7; --faint: #6f7a87; --blue: #0057ff; --blue-text: #6b9bff; --on-blue: #ffffff; --red: #ff3355;
+  --glass: rgba(23, 33, 59, 0.5); --glass-strong: rgba(17, 25, 45, 0.86); --glass-hover: rgba(35, 48, 80, 0.6);
+  --rim: rgba(255, 255, 255, 0.1); --hi: rgba(255, 255, 255, 0.12); --lo: rgba(0, 0, 0, 0.28);
+  --line: rgba(212, 217, 222, 0.1); --line-strong: rgba(212, 217, 222, 0.24); --shadow: rgba(0, 0, 0, 0.55); --weekend: rgba(255, 255, 255, 0.025);
+  --grid: rgba(107, 155, 255, 0.07);
+  --field-a: #17213b; --field-b: #22324f; --field-c: #2b3346; --field-d: #0b3aa6;
+  --s-cola: #7f8a96; --s-escena: #8d9cbc; --s-render: #4d8dff; --s-post: #9fb6b1; --s-revision: #d6d1c2; --s-guardado: #e9e9e8;
   color-scheme: dark;
 }
 
@@ -66,48 +72,53 @@ body {
   color: var(--fg);
   font-family: var(--font-ui);
   font-size: 14px;
+  font-weight: 400;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
-body::before {
-  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg);
-}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
 button, input, select, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 1.5px solid var(--blue); outline-offset: 2px; }
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-/* Light field */
+/* Campo de luz + retícula isométrica */
 .field { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
-.field i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: 0.85; }
-.field i:nth-child(1) { width: 52vmax; height: 52vmax; left: -14vmax; top: -18vmax; background: var(--field-b); animation: drift1 38s ease-in-out infinite alternate; }
-.field i:nth-child(2) { width: 46vmax; height: 46vmax; right: -16vmax; top: -10vmax; background: var(--field-a); animation: drift2 44s ease-in-out infinite alternate; }
-.field i:nth-child(3) { width: 40vmax; height: 40vmax; left: 20vmax; bottom: -22vmax; background: var(--field-c); animation: drift1 50s ease-in-out infinite alternate-reverse; }
-.field i:nth-child(4) { width: 30vmax; height: 30vmax; right: 6vmax; bottom: -10vmax; background: var(--field-d); animation: drift2 36s ease-in-out infinite alternate-reverse; }
-.field::after {
-  content: ""; position: absolute; inset: 0; opacity: 0.18; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+.field i { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.9; }
+.field i:nth-child(1) { width: 54vmax; height: 54vmax; left: -16vmax; top: -20vmax; background: var(--field-a); animation: drift1 40s ease-in-out infinite alternate; }
+.field i:nth-child(2) { width: 40vmax; height: 40vmax; right: -12vmax; top: -12vmax; background: var(--field-d); opacity: 0.45; animation: drift2 46s ease-in-out infinite alternate; }
+.field i:nth-child(3) { width: 44vmax; height: 44vmax; left: 18vmax; bottom: -24vmax; background: var(--field-c); animation: drift1 52s ease-in-out infinite alternate-reverse; }
+.field i:nth-child(4) { width: 32vmax; height: 32vmax; right: 4vmax; bottom: -12vmax; background: var(--field-b); animation: drift2 38s ease-in-out infinite alternate-reverse; }
+.field::before {
+  content: ""; position: absolute; inset: 0;
+  background-image:
+    repeating-linear-gradient(30deg, var(--grid) 0 1px, transparent 1px 34px),
+    repeating-linear-gradient(150deg, var(--grid) 0 1px, transparent 1px 34px);
+  -webkit-mask-image: radial-gradient(ellipse at 70% 30%, #000 0%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 70% 30%, #000 0%, transparent 70%);
 }
+.field svg { position: absolute; right: -6vmax; bottom: -8vmax; width: 62vmax; height: auto; color: var(--blue); opacity: 0.045; }
 @keyframes drift1 { to { transform: translate(8vmax, 6vmax) scale(1.08); } }
 @keyframes drift2 { to { transform: translate(-7vmax, 9vmax) scale(0.94); } }
 
-/* Glass */
+/* Vidrio */
 .glass {
   position: relative;
   background: var(--glass);
-  -webkit-backdrop-filter: blur(26px) saturate(170%);
-  backdrop-filter: blur(26px) saturate(170%);
+  -webkit-backdrop-filter: blur(26px) saturate(160%);
+  backdrop-filter: blur(26px) saturate(160%);
   border: 1px solid var(--rim);
   border-radius: var(--r-lg);
-  box-shadow: inset 0 1px 0 var(--hi), inset 0 -1px 0 var(--lo), 0 24px 48px -28px var(--shadow);
+  box-shadow: inset 0 1px 0 var(--hi), inset 0 -1px 0 var(--lo), 0 24px 48px -30px var(--shadow);
 }
 .glass::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: linear-gradient(140deg, var(--hi) 0%, transparent 32%, transparent 70%, var(--lo) 100%);
-  opacity: 0.35;
+  background: linear-gradient(150deg, var(--hi) 0%, transparent 30%, transparent 72%, var(--lo) 100%);
+  opacity: 0.3;
 }
 
 .shell {
   position: relative; z-index: 1;
-  max-width: 1340px; margin: 0 auto;
+  max-width: 1360px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 16px 64px;
@@ -115,136 +126,189 @@ button, input, select, textarea { font: inherit; color: inherit; }
 }
 .shell > *, main > section { min-width: 0; }
 
-/* Top bar */
+/* Barra superior */
 .top {
   position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); z-index: 5;
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
-  padding: 10px 10px 10px 16px; border-radius: 20px;
+  padding: 10px 10px 10px 16px; border-radius: 14px;
 }
-.brand { display: flex; align-items: center; gap: 10px; margin-right: auto; min-width: 0; }
-.brand svg { flex: none; }
-.brand b { font-weight: 650; font-size: 16px; letter-spacing: -0.01em; }
-.brand span { color: var(--muted); font-size: 13px; }
-.nav { display: flex; gap: 2px; padding: 3px; border-radius: 13px; background: var(--lo); overflow-x: auto; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; min-width: 0; color: var(--fg); text-decoration: none; }
+.brand .sym { width: 34px; height: 30px; color: var(--blue); flex: none; }
+.brand .lap { font-weight: 500; letter-spacing: 0.42em; font-size: 13px; margin-right: -0.42em; }
+.brand .rule { width: 1px; height: 26px; background: var(--line-strong); }
+.brand .prod { display: grid; line-height: 1.15; }
+.brand .prod b { font-weight: 500; font-size: 14px; }
+.brand .prod span { font-size: 11px; color: var(--muted); letter-spacing: 0.14em; text-transform: uppercase; }
+.nav { display: flex; gap: 2px; padding: 3px; border-radius: 10px; background: var(--lo); overflow-x: auto; }
 .nav a {
-  padding: 7px 13px; border-radius: 10px; color: var(--muted); text-decoration: none; font-weight: 500; white-space: nowrap;
+  padding: 7px 13px; border-radius: 8px; color: var(--muted); text-decoration: none; font-weight: 500; white-space: nowrap;
   display: flex; align-items: center; gap: 7px;
 }
 .nav a:hover { color: var(--fg); }
 .nav a[aria-current="page"] { background: var(--glass-strong); color: var(--fg); box-shadow: inset 0 1px 0 var(--hi), 0 2px 8px -4px var(--shadow); }
-.nav .count { font-family: var(--font-mono); font-size: 11px; color: var(--faint); }
-.tools { display: flex; align-items: center; gap: 8px; }
+.nav .count { font-family: var(--font-mono); font-size: 11px; color: var(--blue-text); }
+.tools { display: flex; align-items: center; gap: 10px; }
 .search { position: relative; }
 .search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--faint); pointer-events: none; }
 .search input {
-  width: 210px; padding: 8px 12px 8px 32px; border-radius: 11px; border: 1px solid var(--line);
+  width: 220px; padding: 8px 12px 8px 32px; border-radius: 9px; border: 1px solid var(--line);
   background: var(--glass); outline: none;
 }
-.search input:focus { border-color: var(--accent); }
-.sync { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; padding-inline: 4px; }
+.search input:focus { border-color: var(--blue); }
+.online { display: flex; align-items: center; }
+.online .av { margin-left: -7px; box-shadow: 0 0 0 2px var(--glass-strong); }
+.online .av:first-child { margin-left: 0; }
+.online .more { font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-left: 6px; }
+.sync { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .sync i { width: 7px; height: 7px; border-radius: 50%; background: var(--s-cola); }
-.sync[data-mode="live"] i { background: var(--s-guardado); box-shadow: 0 0 0 3px color-mix(in srgb, var(--s-guardado) 25%, transparent); }
-.sync[data-mode="local"] i { background: var(--s-render); }
+.sync[data-mode="live"] i { background: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 22%, transparent); }
+.sync[data-mode="local"] i, .sync[data-mode="offline"] i { background: var(--red); }
 
 .btn {
   display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); cursor: pointer;
-  padding: 8px 14px; border-radius: 11px; background: var(--glass); font-weight: 500; white-space: nowrap;
+  padding: 8px 14px; border-radius: 8px; background: var(--glass); font-weight: 500; white-space: nowrap;
   box-shadow: inset 0 1px 0 var(--hi);
 }
 .btn:hover { background: var(--glass-hover); }
-.btn.primary { background: var(--ink); color: var(--ink-fg); border-color: transparent; box-shadow: 0 6px 18px -8px var(--shadow); }
-.btn.primary:hover { opacity: 0.9; }
+.btn.primary {
+  background: var(--blue); color: var(--on-blue); border-color: transparent; text-transform: uppercase; letter-spacing: 0.08em; font-size: 12.5px;
+  box-shadow: 0 8px 20px -10px color-mix(in srgb, var(--blue) 70%, transparent);
+}
+.btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; border-color: transparent; box-shadow: none; color: var(--muted); }
 .btn.ghost:hover { color: var(--fg); background: var(--lo); }
-.btn.danger { color: var(--danger); }
-.btn.sm { padding: 5px 10px; font-size: 13px; border-radius: 9px; }
+.btn.danger { color: var(--red); }
+.btn.on { border-color: var(--red); color: var(--fg); background: color-mix(in srgb, var(--red) 8%, var(--glass)); }
+.btn.sm { padding: 5px 10px; font-size: 13px; border-radius: 7px; }
 .btn.icon { padding: 7px; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.link { color: var(--blue-text); text-decoration: none; font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 500; }
+.link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
-/* Banner */
-.banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 16px; font-size: 13px; }
+.banner { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 16px; border-radius: 12px; font-size: 13px; }
 .banner p { margin: 0; flex: 1; min-width: 200px; color: var(--muted); }
-.banner strong { color: var(--fg); font-weight: 600; }
+.banner strong { color: var(--fg); font-weight: 500; }
 
-/* Type */
-.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
-h1 { font-size: clamp(26px, 3.4vw, 40px); line-height: 1.08; letter-spacing: -0.025em; font-weight: 600; margin: 6px 0 0; text-wrap: balance; max-width: 22ch; }
-h1 em { font-style: normal; color: var(--accent); }
-h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+/* Tipografía: títulos en Book, subtítulos en Medium, texto corrido en Light */
+.eyebrow { font-size: 11.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.sl { color: var(--blue); font-weight: 300; margin-right: 0.25em; }
+h1 { font-size: clamp(28px, 3.4vw, 44px); line-height: 1.06; letter-spacing: -0.02em; font-weight: 400; margin: 8px 0 0; text-wrap: balance; max-width: 22ch; }
+h1 em { font-style: normal; color: var(--blue-text); }
+h2 { font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; margin: 0; }
 .mono { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
 .muted { color: var(--muted); }
+.light { font-weight: 300; }
 
-/* Overview */
+/* Resumen */
 .hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; padding: 12px 4px 4px; }
-.metrics { display: grid; grid-template-columns: repeat(5, auto); padding: 6px; border-radius: 18px; }
+.metrics { display: grid; grid-template-columns: repeat(5, auto); padding: 6px; border-radius: 14px; }
 .metric { padding: 10px 18px; display: grid; gap: 2px; }
 .metric + .metric { border-left: 1px solid var(--line); }
-.metric b { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
-.metric span { font-size: 12px; color: var(--muted); white-space: nowrap; }
-.metric.alert b { color: var(--danger); }
+.metric b { font-size: 28px; font-weight: 400; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.1; color: var(--blue-text); }
+.metric span { font-size: 11px; color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.1em; }
+.metric.alert b { color: var(--red); }
+.metric.zero b { color: var(--faint); }
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 20px; }
-.panel { padding: 18px; display: grid; gap: 12px; align-content: start; min-width: 0; }
-.panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.panel { padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .span-7 { grid-column: span 7; } .span-5 { grid-column: span 5; } .span-12 { grid-column: span 12; }
+
+/* Equipo */
+.team { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+.person {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; align-items: center; padding: 10px; border-radius: 12px;
+  background: var(--glass-strong); border: 1px solid var(--rim); cursor: default; text-align: left;
+}
+.person[data-act] { cursor: pointer; }
+.person[data-act]:hover { border-color: var(--line-strong); }
+.person .who { font-weight: 500; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.person .who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person .what { font-size: 12.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.person .what b { color: var(--fg); font-weight: 500; }
+.person.idle { opacity: 0.7; }
+.av-wrap { position: relative; width: 34px; height: 34px; }
+.av-wrap .av { width: 34px; height: 34px; }
+.av-wrap .dot { position: absolute; right: -1px; bottom: -1px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px var(--glass-strong); }
+.tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); font-weight: 500; }
 
 .rows { display: grid; }
 .row {
-  display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 12px; align-items: center;
-  padding: 11px 6px; border-top: 1px solid var(--line); cursor: pointer; border-radius: 10px;
+  display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 12px; align-items: center;
+  padding: 11px 6px; border-top: 1px dashed var(--line); cursor: pointer; border-radius: 8px;
 }
 .row:first-child { border-top: 0; }
 .row:hover { background: var(--lo); }
-.row-title { font-weight: 550; overflow-wrap: anywhere; }
+.row-title { font-weight: 500; overflow-wrap: anywhere; }
 .row-meta { font-size: 12.5px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .row-side { display: grid; justify-items: end; gap: 6px; text-align: right; }
+.inline { display: flex; gap: 8px; align-items: center; }
 
-.glyph { width: 10px; height: 10px; border-radius: 50%; background: var(--sc, var(--s-cola)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sc, var(--s-cola)) 22%, transparent); }
-.glyph.live { animation: pulse 1.8s ease-in-out infinite; }
-@keyframes pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--sc) 10%, transparent); } }
+/* Estado: contornos de círculo (lenguaje complementario) */
+.glyph { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--sc, var(--s-cola)); flex: none; }
+.glyph.fill { background: var(--sc); }
+.glyph.live { background: var(--sc); animation: pulse 1.8s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--sc) 18%, transparent); } }
 [data-s="cola"] { --sc: var(--s-cola); } [data-s="escena"] { --sc: var(--s-escena); } [data-s="render"] { --sc: var(--s-render); }
 [data-s="post"] { --sc: var(--s-post); } [data-s="revision"] { --sc: var(--s-revision); } [data-s="guardado"] { --sc: var(--s-guardado); }
 
 .chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 500;
-  background: color-mix(in srgb, var(--sc, var(--s-cola)) 14%, transparent); color: var(--fg); white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 7px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  border: 1px solid color-mix(in srgb, var(--sc, var(--s-cola)) 45%, transparent); color: var(--fg); white-space: nowrap;
 }
 .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--sc, var(--s-cola)); }
+.chip.plain { padding-left: 9px; }
 .chip.plain::before { display: none; }
-.chip.sample { --sc: var(--faint); font-size: 11px; }
+.chip.sample { --sc: var(--faint); font-size: 11px; color: var(--muted); }
 .due { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
-.due.late { color: var(--danger); font-weight: 600; }
-.due.soon { color: var(--fg); font-weight: 600; }
+.due.late { color: var(--red); font-weight: 500; }
+.due.soon { color: var(--fg); font-weight: 500; }
 
-.bar-track { width: 120px; height: 5px; border-radius: 99px; background: var(--line); overflow: hidden; }
-.bar-track i { display: block; height: 100%; background: var(--sc, var(--accent)); border-radius: inherit; }
+.bar-track { width: 120px; height: 3px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.bar-track i { display: block; height: 100%; background: var(--sc, var(--blue)); border-radius: inherit; }
 
-.avatar {
-  width: 24px; height: 24px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10.5px; font-weight: 600;
+.av {
+  width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10px; font-weight: 600; object-fit: cover;
   background: var(--glass-strong); border: 1px solid var(--rim); color: var(--muted); flex: none;
 }
+.faces { display: inline-flex; align-items: center; }
+.faces .av { width: 20px; height: 20px; margin-left: -6px; box-shadow: 0 0 0 2px var(--red); }
+.faces .av:first-child { margin-left: 0; }
+.faces .av.viewing { box-shadow: 0 0 0 2px var(--line-strong); }
 .path {
   font-family: var(--font-mono); font-size: 12px; color: var(--fg); overflow-wrap: anywhere; word-break: break-all;
-  background: var(--lo); padding: 4px 8px; border-radius: 7px; user-select: all;
+  background: var(--lo); padding: 4px 8px; border-radius: 6px; user-select: all;
 }
 .path-wrap { display: flex; align-items: center; gap: 6px; min-width: 0; }
 
-.empty { padding: 40px 24px; text-align: center; display: grid; gap: 10px; justify-items: center; }
-.empty h2 { font-size: 20px; }
-.empty p { margin: 0; color: var(--muted); max-width: 46ch; }
-.empty .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
-.note { color: var(--muted); font-size: 13px; padding: 6px; margin: 0; }
+.feed { display: grid; }
+.ev { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 9px 4px; border-top: 1px dashed var(--line); font-size: 13px; }
+.ev:first-child { border-top: 0; }
+.ev p { margin: 0; overflow-wrap: anywhere; }
+.ev p b { font-weight: 500; }
+.ev q { quotes: "«" "»"; color: var(--fg); }
+.ev q[data-act] { cursor: pointer; }
+.ev q[data-act]:hover { color: var(--blue-text); }
+.ev time { font-size: 11.5px; color: var(--faint); white-space: nowrap; }
 
-/* Toolbar */
+.empty { padding: 40px 24px; text-align: center; display: grid; gap: 10px; justify-items: center; }
+.empty .sym { width: 64px; height: 56px; color: var(--blue); }
+.empty h2 { font-size: 15px; }
+.empty p { margin: 0; color: var(--muted); max-width: 48ch; font-weight: 300; font-size: 15px; }
+.empty .acts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+.note { color: var(--muted); font-size: 13px; padding: 6px; margin: 0; font-weight: 300; }
+
+/* Barra de herramientas */
 .toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .toolbar .spacer { flex: 1; }
-.seg { display: inline-flex; padding: 3px; border-radius: 11px; background: var(--lo); gap: 2px; }
-.seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 8px; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 500; }
+.seg { display: inline-flex; padding: 3px; border-radius: 9px; background: var(--lo); gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 7px; cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 500; }
 .seg button[aria-pressed="true"] { background: var(--glass-strong); color: var(--fg); box-shadow: inset 0 1px 0 var(--hi); }
 .legend { display: flex; gap: 6px; flex-wrap: wrap; }
-.view-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 8px 4px 0; }
-.view-title h1 { font-size: clamp(24px, 2.6vw, 32px); max-width: none; }
+.view-title { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 8px 4px 0; }
+.view-title h1 { font-size: clamp(26px, 2.8vw, 36px); max-width: none; }
 
-/* Gantt */
+/* Cronograma */
 .gantt-card { padding: 0; overflow: hidden; }
 .g-scroll { overflow-x: auto; border-radius: inherit; }
 .g-inner { position: relative; min-width: 100%; }
@@ -253,7 +317,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   position: sticky; left: 0; z-index: 2; padding: 8px 12px 8px 16px; display: grid; align-content: center;
   background: var(--glass-strong); border-right: 1px solid var(--line); border-top: 1px solid var(--line); min-width: 0;
 }
-.g-label b { font-weight: 550; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.g-label b { font-weight: 500; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-label small { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .g-lane {
   position: relative; border-top: 1px solid var(--line);
@@ -261,70 +325,74 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     repeating-linear-gradient(90deg, transparent 0 calc(var(--day) * 5), var(--weekend) calc(var(--day) * 5) calc(var(--day) * 7)),
     repeating-linear-gradient(90deg, var(--line) 0 1px, transparent 1px calc(var(--day) * 7));
 }
-.g-proj .g-label { background: color-mix(in srgb, var(--glass-strong) 80%, var(--lo)); }
-.g-proj .g-label b { font-size: 13.5px; font-weight: 650; }
+.g-proj .g-label { background: color-mix(in srgb, var(--glass-strong) 82%, var(--lo)); }
+.g-proj .g-label b { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; }
 .g-proj .g-lane { background-color: var(--lo); }
 .g-head .g-label, .g-head .g-lane { border-top: 0; }
-.g-head .g-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.g-head .g-label { font-size: 11px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; }
 .g-weeks { display: flex; height: 22px; }
 .g-weeks span { flex: none; width: calc(var(--day) * 7); padding: 4px 8px; font-size: 11.5px; color: var(--muted); border-left: 1px solid var(--line); white-space: nowrap; overflow: hidden; }
-.g-weeks span b { color: var(--fg); font-weight: 600; margin-right: 4px; }
+.g-weeks span b { color: var(--blue-text); font-weight: 500; margin-right: 4px; }
 .g-days { display: flex; height: 20px; }
 .g-days span { flex: none; width: var(--day); text-align: center; font-size: 10.5px; color: var(--faint); font-family: var(--font-mono); line-height: 20px; }
-.g-days span.t { color: var(--accent); font-weight: 600; }
+.g-days span.t { color: var(--blue-text); font-weight: 600; }
 .bar {
-  position: absolute; top: 7px; height: 26px; border-radius: 8px; border: 0; cursor: pointer; padding: 0 8px; text-align: left;
-  background: color-mix(in srgb, var(--sc) 26%, var(--glass-strong)); color: var(--fg);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc) 55%, transparent), inset 0 1px 0 var(--hi);
-  font-size: 12px; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px;
+  position: absolute; top: 7px; height: 26px; border-radius: 6px; border: 0; cursor: pointer; padding: 0 8px; text-align: left;
+  background: color-mix(in srgb, var(--sc) 14%, var(--glass-strong)); color: var(--fg);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sc) 60%, transparent);
+  font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; display: flex; align-items: center; gap: 6px;
 }
-.bar::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--p, 0%); background: color-mix(in srgb, var(--sc) 30%, transparent); }
+.bar::before { content: ""; position: absolute; inset: auto auto 0 0; height: 3px; width: var(--p, 0%); background: var(--sc); }
 .bar span { position: relative; overflow: hidden; text-overflow: ellipsis; }
+.bar .faces { position: relative; flex: none; }
 .bar:hover { box-shadow: inset 0 0 0 1.5px var(--sc), 0 6px 14px -8px var(--shadow); }
-.bar.late { box-shadow: inset 0 0 0 1.5px var(--danger); }
+.bar.late { box-shadow: inset 0 0 0 1.5px var(--red); }
 .ms { position: absolute; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px; border: 0; background: none; cursor: pointer; padding: 2px; color: var(--fg); }
-.ms i { width: 11px; height: 11px; transform: rotate(45deg); background: var(--accent); border-radius: 2px; flex: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-.ms span { font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-.today-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--accent); z-index: 1; pointer-events: none; opacity: 0.85; }
-.today-line::before { content: "Hoy"; position: absolute; top: 2px; left: 4px; font-size: 10.5px; font-weight: 700; color: var(--accent); }
+.ms i { width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--blue); background: var(--glass-strong); flex: none; position: relative; }
+.ms i::after { content: ""; position: absolute; inset: 2.5px; border-radius: 50%; background: var(--blue); }
+.ms span { font-size: 11.5px; font-weight: 500; white-space: nowrap; }
+.today-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1.5px dashed var(--blue); z-index: 1; pointer-events: none; }
+.today-line::before { content: "HOY"; position: absolute; top: 3px; left: 5px; font-size: 10px; font-weight: 600; letter-spacing: 0.12em; color: var(--blue-text); }
 
-/* Board */
+/* Tablero */
 .board { display: grid; grid-template-columns: repeat(5, minmax(220px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 6px; }
-.col { padding: 12px; display: grid; gap: 10px; align-content: start; min-height: 240px; border-radius: 20px; transition: background 0.15s; }
-.col.over { background: var(--glass-hover); }
-.col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 4px; }
-.col-head h2 { font-size: 14px; }
-.col-head .mono { color: var(--faint); margin-left: auto; }
+.col { padding: 12px; display: grid; gap: 10px; align-content: start; min-height: 240px; border-radius: 14px; transition: background 0.15s; }
+.col.over { background: var(--glass-hover); outline: 1.5px dashed var(--blue); outline-offset: -4px; }
+.col-head { display: flex; align-items: center; gap: 8px; padding: 2px 4px 8px; border-bottom: 1px solid var(--line); }
+.col-head h2 { font-size: 12px; }
+.col-head .mono { color: var(--blue-text); margin-left: auto; }
 .card {
-  padding: 12px; border-radius: 14px; display: grid; gap: 8px; cursor: grab; background: var(--glass-strong);
+  padding: 12px; border-radius: 10px; display: grid; gap: 8px; cursor: grab; background: var(--glass-strong);
   border: 1px solid var(--rim); box-shadow: inset 0 1px 0 var(--hi), 0 8px 20px -14px var(--shadow);
 }
-.card:hover { transform: translateY(-1px); }
+.card:hover { border-color: var(--line-strong); }
 .card.dragging { opacity: 0.4; }
-.card-title { font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.card.busy { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+.card-title { font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
 .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
 .card-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .card .bar-track { width: 100%; }
 
-/* Archive */
+/* Archivo */
 .filters { display: flex; gap: 6px; flex-wrap: wrap; }
 .filters button { border: 1px solid var(--line); background: var(--glass); padding: 5px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; color: var(--muted); }
-.filters button[aria-pressed="true"] { background: var(--ink); color: var(--ink-fg); border-color: transparent; }
+.filters button[aria-pressed="true"] { background: var(--blue); color: var(--on-blue); border-color: transparent; }
 .arch { padding: 6px; }
 .arch-row {
-  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.9fr) 92px minmax(0, 2fr); gap: 16px; align-items: center;
-  padding: 12px 12px; border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.7fr) minmax(0, 1fr) 84px minmax(0, 2fr); gap: 16px; align-items: center;
+  padding: 12px 12px; border-top: 1px dashed var(--line);
 }
-.arch-row:first-child { border-top: 0; }
-.arch-row.head { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; padding-block: 8px; }
-.arch-row:not(.head):hover { background: var(--lo); border-radius: 12px; }
-.arch-row .t { font-weight: 550; cursor: pointer; overflow-wrap: anywhere; }
-.arch-row .t:hover { text-decoration: underline; text-underline-offset: 3px; }
+.arch-row.head { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-weight: 500; padding-block: 8px; border-top: 0; }
+.arch-row:not(.head):hover { background: var(--lo); border-radius: 8px; }
+.arch-row .t { font-weight: 500; cursor: pointer; overflow-wrap: anywhere; }
+.arch-row .t:hover { color: var(--blue-text); }
 .arch-row small { display: block; color: var(--muted); font-size: 12px; font-weight: 400; }
-.arch-group { padding: 14px 12px 4px; display: flex; align-items: center; gap: 8px; }
-.arch-group b { font-size: 13.5px; }
+.arch-group { padding: 16px 12px 6px; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); }
+.arch-group:first-of-type { border-top: 0; }
+.arch-group b { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.12em; }
+.arch-group svg { color: var(--blue); }
 
-/* Sheet */
+/* Panel lateral */
 .scrim { position: fixed; inset: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 40%, transparent); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .sheet {
   position: fixed; z-index: 21; top: calc(env(safe-area-inset-top, 0px) + 12px); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
@@ -332,36 +400,43 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   animation: slide 0.22s ease-out;
 }
 @keyframes slide { from { transform: translateX(24px); opacity: 0; } }
-.sheet-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 8px 20px; }
-.sheet-head h2 { font-size: 18px; margin-right: auto; }
-.sheet-body { overflow-y: auto; padding: 8px 20px 20px; display: grid; gap: 14px; align-content: start; }
+.sheet-head { display: flex; align-items: center; gap: 10px; padding: 16px 16px 10px 20px; border-bottom: 1px solid var(--line); }
+.sheet-head h2 { font-size: 13px; margin-right: auto; }
+.sheet-body { overflow-y: auto; padding: 14px 20px 20px; display: grid; gap: 14px; align-content: start; }
 .sheet-foot { display: flex; gap: 8px; padding: 12px 16px 16px 20px; border-top: 1px solid var(--line); flex-wrap: wrap; align-items: center; }
 .sheet-foot .spacer { flex: 1; }
+.presence-note { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--red) 40%, transparent); background: color-mix(in srgb, var(--red) 6%, transparent); font-size: 13px; }
+.presence-note p { margin: 0; }
+.work-box { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: var(--lo); font-size: 13px; }
+.work-box p { margin: 0; flex: 1; min-width: 180px; color: var(--muted); }
+.work-box p b { color: var(--fg); font-weight: 500; }
 .fld { display: grid; gap: 6px; min-width: 0; }
-.fld label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.fld label, .fld .lbl { font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.12em; }
 .fld input, .fld select, .fld textarea {
-  width: 100%; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line); background: var(--glass); outline: none;
+  width: 100%; padding: 9px 11px; border-radius: 8px; border: 1px solid var(--line); background: var(--glass); outline: none;
 }
-.fld input:focus, .fld select:focus, .fld textarea:focus { border-color: var(--accent); }
-.fld textarea { min-height: 76px; resize: vertical; }
+.fld input:focus, .fld select:focus, .fld textarea:focus { border-color: var(--blue); }
+.fld textarea { min-height: 76px; resize: vertical; font-weight: 300; }
 .fld input.mono { font-family: var(--font-mono); font-size: 12.5px; }
 .fld .hint { font-size: 12px; color: var(--faint); }
-.fld .err { font-size: 12px; color: var(--danger); font-weight: 500; }
+.fld .err { font-size: 12px; color: var(--red); font-weight: 500; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .stages { display: flex; flex-wrap: wrap; gap: 6px; }
 .stages button { border: 1px solid var(--line); background: var(--glass); border-radius: 999px; padding: 5px 11px 5px 9px; cursor: pointer; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
-.stages button::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sc); }
-.stages button[aria-pressed="true"] { color: var(--fg); background: color-mix(in srgb, var(--sc) 18%, var(--glass-strong)); border-color: color-mix(in srgb, var(--sc) 60%, transparent); font-weight: 600; }
+.stages button::before { content: ""; width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--sc); }
+.stages button[aria-pressed="true"] { color: var(--fg); border-color: var(--sc); font-weight: 500; }
+.stages button[aria-pressed="true"]::before { background: var(--sc); }
 .range-row { display: flex; align-items: center; gap: 12px; }
-.range-row input[type="range"] { flex: 1; accent-color: var(--accent); padding: 0; border: 0; background: none; }
+.range-row input[type="range"] { flex: 1; accent-color: var(--blue); padding: 0; border: 0; background: none; }
+.meta-line { font-size: 12px; color: var(--faint); margin: 0; }
 
 .toast {
   position: fixed; z-index: 30; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); transform: translateX(-50%);
-  padding: 10px 16px; border-radius: 12px; background: var(--ink); color: var(--ink-fg); font-weight: 500; box-shadow: 0 12px 30px -12px var(--shadow);
+  padding: 10px 16px; border-radius: 10px; background: var(--fg); color: var(--bg); font-weight: 500; box-shadow: 0 12px 30px -12px var(--shadow);
   max-width: calc(100% - 32px);
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1100px) {
   .hero { grid-template-columns: 1fr; }
   .metrics { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .metric { padding: 8px 12px; }
@@ -373,36 +448,35 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   .tools { width: 100%; }
   .search { flex: 1; min-width: 0; }
   .search input { width: 100%; }
-  .row { grid-template-columns: 18px minmax(0, 1fr); }
-  .row-side { grid-column: 2; justify-items: start; text-align: left; }
-  .row-side > div { flex-wrap: wrap; }
-  .sync span { display: none; }
+  .sync span, .brand .rule, .brand .prod span { display: none; }
   .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .metric + .metric { border-left: 0; }
   .metric b { font-size: 22px; }
   .arch-row { grid-template-columns: 1fr; gap: 6px; }
   .arch-row.head { display: none; }
   .two { grid-template-columns: 1fr; }
-  .bar-track { width: 80px; }
+  .row { grid-template-columns: 16px minmax(0, 1fr); }
+  .row-side { grid-column: 2; justify-items: start; text-align: left; }
+  .row-side > div { flex-wrap: wrap; }
   .row-side .bar-track { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .field i, .glyph.live, .sheet { animation: none; }
-  .card:hover { transform: none; }
 }
 </style>
 
-<div class="field" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<svg class="sprite" aria-hidden="true"><symbol id="lap-sym" viewBox="795.55 404.77 88.89 76.26"><path fill="currentColor" d="M 871.976562 420.164062 L 882.9375 414.066406 L 882.9375 424.476562 Z M 847.296875 444.886719 L 835.632812 440.378906 L 870.277344 421.105469 L 881.933594 425.691406 Z M 864.363281 464.203125 L 835.628906 453.132812 L 847.414062 446.539062 L 876.214844 457.5625 Z M 860.242188 468.226562 L 864.480469 465.855469 L 876.191406 470.367188 L 860.242188 479.019531 Z M 809.96875 449.359375 L 858.742188 468.300781 L 858.742188 479.191406 L 798.066406 455.980469 Z M 797.050781 454.828125 L 797.050781 444.339844 L 808.152344 448.652344 Z M 863.894531 417.644531 L 809.855469 447.707031 L 798.066406 443.128906 L 863.894531 406.789062 Z M 870.167969 419.453125 L 865.394531 417.578125 L 865.394531 406.605469 L 881.917969 412.917969 Z M 834.621094 441.597656 L 845.59375 445.835938 L 834.621094 451.980469 Z M 811.671875 448.414062 L 864.699219 418.914062 L 868.472656 420.394531 L 833.507812 439.847656 C 833.292969 439.964844 833.179688 440.1875 833.152344 440.425781 C 833.144531 440.453125 833.121094 440.472656 833.121094 440.5 L 833.121094 453.496094 C 833.121094 453.664062 833.222656 453.8125 833.378906 453.871094 L 862.664062 465.152344 L 859.4375 466.960938 Z M 877.226562 469.15625 L 866.179688 464.898438 L 877.226562 458.714844 Z M 883.953125 412.089844 L 864.910156 404.816406 C 864.703125 404.742188 864.476562 404.753906 864.28125 404.859375 L 795.9375 442.589844 C 795.722656 442.707031 795.605469 442.933594 795.578125 443.175781 C 795.574219 443.203125 795.550781 443.21875 795.550781 443.246094 L 795.550781 456.105469 C 795.550781 456.371094 795.691406 456.617188 795.914062 456.75 C 795.941406 456.761719 795.972656 456.761719 795.996094 456.769531 C 796.011719 456.777344 796.015625 456.800781 796.03125 456.804688 L 859.222656 480.980469 C 859.308594 481.015625 859.398438 481.03125 859.492188 481.03125 C 859.546875 481.03125 859.59375 480.992188 859.648438 480.980469 C 859.652344 480.980469 859.65625 480.988281 859.660156 480.988281 C 859.722656 480.988281 859.789062 480.972656 859.851562 480.9375 L 878.339844 470.90625 C 878.578125 470.773438 878.726562 470.523438 878.726562 470.25 L 878.726562 457.4375 C 878.726562 457.167969 878.585938 456.921875 878.355469 456.789062 C 878.332031 456.773438 878.304688 456.777344 878.28125 456.765625 C 878.265625 456.757812 878.261719 456.742188 878.246094 456.734375 L 849.125 445.585938 L 884.054688 426.230469 C 884.289062 426.097656 884.4375 425.84375 884.4375 425.574219 L 884.4375 412.789062 C 884.4375 412.476562 884.242188 412.195312 883.953125 412.089844"/></symbol></svg>
+
+<div class="field" aria-hidden="true"><i></i><i></i><i></i><i></i><svg viewBox="0 0 88.89 76.26"><use href="#lap-sym"/></svg></div>
 
 <div class="shell">
   <header class="top glass">
-    <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
-        <path d="M2 8V2h6M18 2h6v6M24 18v6h-6M8 24H2v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-        <circle cx="13" cy="13" r="4.2" fill="var(--accent)"/>
-      </svg>
-      <div><b>Cerebro</b> <span>Visualización</span></div>
-    </div>
+    <a class="brand" href="#resumen" aria-label="LAP, Cerebro de Visualización">
+      <svg class="sym" viewBox="0 0 88.89 76.26" aria-hidden="true"><use href="#lap-sym"/></svg>
+      <span class="lap">LAP</span>
+      <span class="rule" aria-hidden="true"></span>
+      <span class="prod"><b>Cerebro</b><span>Visualización 3D</span></span>
+    </a>
     <nav class="nav" aria-label="Secciones">
       <a href="#resumen" data-view="resumen">Resumen</a>
       <a href="#cronograma" data-view="cronograma">Cronograma</a>
@@ -411,12 +485,13 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     </nav>
     <div class="tools">
       <label class="search">
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.6"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><path d="m11 11 3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
         <input id="q" type="search" placeholder="Buscar render, proyecto, ruta" aria-label="Buscar">
       </label>
-      <div class="sync" id="sync" data-mode="connecting" title=""><i></i><span>Conectando</span></div>
+      <div class="online" id="online" aria-label="Conectados ahora"></div>
+      <div class="sync" id="sync" data-mode="connecting"><i></i><span>Conectando</span></div>
       <button class="btn primary" data-act="new-render" id="btn-new">
-        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
         Nuevo render
       </button>
     </div>
@@ -454,13 +529,17 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   const ENGINES = ["V-Ray", "Corona", "D5 Render", "Lumion", "Enscape", "Twinmotion", "Unreal Engine", "Blender Cycles"];
   const RESOLUTIONS = ["1920×1080", "3840×2160", "5000×2813", "6000×4000", "7680×4320"];
   const LS_KEY = "cerebro-viz-v1";
+  const FEED_DAYS = 30;
 
   const state = {
-    renders: [], entregas: [], view: "resumen", q: "", archProj: "", weeks: 8, shift: 0,
-    mode: "connecting", ready: false, canWrite: true, sheet: null, confirmDelete: false,
+    renders: [], entregas: [], equipo: [], actividad: [], peers: [], people: {},
+    view: "resumen", q: "", archProj: "", weeks: 8, shift: 0,
+    mode: "connecting", ready: false, canWrite: true, me: null, team: false,
+    sheet: null, confirmDelete: false,
   };
+  const cap = { db: null, user: null, room: null };
 
-  /* ---------- helpers ---------- */
+  /* ---------- utilidades ---------- */
   const $ = (s, r = document) => r.querySelector(s);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const DAY = 864e5;
@@ -497,6 +576,15 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     if (n < 7) return `En ${n} días`;
     return fmtShort(d);
   };
+  const relTime = (stamp) => {
+    const t = Date.parse(stamp); if (!t) return "";
+    const s = Math.max(0, (Date.now() - t) / 1000);
+    if (s < 60) return "hace un momento";
+    if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+    if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
+    const d = new Date(t);
+    return diff(new Date(d.getFullYear(), d.getMonth(), d.getDate()), today()) === 1 ? "ayer" : fmtShort(d);
+  };
   const dueClass = (r) => {
     const d = parse(r.due); if (!d || r.status === "guardado") return "";
     const n = diff(today(), d);
@@ -507,6 +595,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   const newId = (p) => `${p}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
   const byDue = (a, b) => (a.due || "9999").localeCompare(b.due || "9999");
   const stripId = ({ id, ...rest }) => rest;
+  const nowIso = () => new Date().toISOString();
 
   function filtered() {
     const q = state.q.trim().toLowerCase();
@@ -516,72 +605,189 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
         .some((v) => String(v || "").toLowerCase().includes(q)));
   }
 
-  /* ---------- store: shared db when available, this browser otherwise ---------- */
+  /* ---------- personas ---------- */
+  const personName = (id) => {
+    if (!id) return "Tú";
+    const p = state.people[id];
+    const n = (p && p.name) || "";
+    if (id === state.me) return n ? `${n} (tú)` : "Tú";
+    return n || "Alguien del equipo";
+  };
+  const firstName = (id) => {
+    if (!id || id === state.me) return "Tú";
+    const n = (state.people[id] && state.people[id].name) || "";
+    return n.split(/\s+/)[0] || "Alguien";
+  };
+  const avatar = (id, cls = "") => {
+    const p = id && state.people[id];
+    const title = esc(personName(id));
+    return p && p.avatarUrl
+      ? `<img class="av ${cls}" src="${esc(p.avatarUrl)}" alt="" title="${title}">`
+      : `<span class="av ${cls}" title="${title}">${esc(initials((p && p.name) || personName(id)))}</span>`;
+  };
+
+  // Equipo = quien dejó registro en "equipo" + quien está conectado ahora.
+  function roster() {
+    const map = new Map();
+    for (const e of state.equipo) map.set(e.id, { id: e.id, renderId: e.renderId || null, since: e.since, lastSeen: e.lastSeen, online: false, viewing: null });
+    for (const p of state.peers) {
+      const id = p.by || (p.presence && typeof p.presence.uid === "string" ? p.presence.uid : null);
+      if (!id) continue;
+      const m = map.get(id) || { id, renderId: null, online: false, viewing: null };
+      m.online = true;
+      if (p.presence && typeof p.presence.renderId === "string") m.viewing = p.presence.renderId;
+      map.set(id, m);
+    }
+    return [...map.values()].sort((a, b) =>
+      (b.online - a.online) || ((b.renderId ? 1 : 0) - (a.renderId ? 1 : 0)) || personName(a.id).localeCompare(personName(b.id), "es"));
+  }
+  const workingOn = (rid) => state.equipo.filter((e) => e.renderId === rid).map((e) => e.id);
+  const viewingNow = (rid) => [...new Set(state.peers.filter((p) => !p.isMe && p.presence && p.presence.renderId === rid)
+    .map((p) => p.by || p.presence.uid).filter(Boolean))];
+  function faces(rid) {
+    const w = workingOn(rid);
+    const v = viewingNow(rid).filter((id) => !w.includes(id));
+    if (!w.length && !v.length) return "";
+    return `<span class="faces">${w.slice(0, 3).map((id) => avatar(id)).join("")}${v.slice(0, 2).map((id) => avatar(id, "viewing")).join("")}</span>`;
+  }
+
+  let peopleSig = "";
+  async function resolvePeople() {
+    if (!cap.user) return;
+    const ids = new Set();
+    if (state.me) ids.add(state.me);
+    state.equipo.forEach((e) => ids.add(e.id));
+    state.peers.forEach((p) => { const id = p.by || (p.presence && p.presence.uid); if (typeof id === "string") ids.add(id); });
+    state.actividad.forEach((a) => a.by && ids.add(a.by));
+    state.renders.forEach((r) => r.updatedBy && ids.add(r.updatedBy));
+    if (!ids.size) return;
+    try {
+      const ps = await cap.user.profiles([...ids]);
+      const sig = Object.values(ps).map((p) => `${p.id}:${p.name}:${p.avatarUrl.length}`).sort().join("|");
+      state.people = { ...state.people, ...ps };
+      if (sig !== peopleSig) { peopleSig = sig; schedule(); }
+    } catch (e) { /* nombres no disponibles */ }
+  }
+
+  function sendPresence() {
+    if (!cap.room) return;
+    const renderId = state.sheet && state.sheet.kind === "render" ? state.sheet.id : null;
+    cap.room.presence({ uid: state.me, view: state.view, renderId }).catch(() => {});
+  }
+
+  /* ---------- datos: base compartida cuando existe, este navegador si no ---------- */
   const store = {
     db: null,
     async init() {
-      let db = null, user = null;
+      let db = null, user = null, room = null;
       try {
         if (window.claude && typeof window.claude.use === "function") {
-          [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+          [db, user, room] = await Promise.all([window.claude.use("db"), window.claude.use("user"), window.claude.use("room")]);
         }
       } catch (e) { db = null; }
+      cap.user = user; cap.room = room;
       if (db) {
-        this.db = db;
+        this.db = db; cap.db = db;
         state.mode = "live";
-        try { if (user && (await user.can("data.write")) === false) state.canWrite = false; } catch (e) { /* keep inputs */ }
+        try { state.me = user ? await user.id() : null; } catch (e) { state.me = null; }
+        state.team = !!state.me;
+        try { if (user && (await user.can("data.write")) === false) state.canWrite = false; } catch (e) { /* conserva controles */ }
         const onErr = (e) => {
           state.mode = "offline";
           toast(e && e.code === "revoked" ? "Ya no tienes acceso a estos datos." : "Se perdió la conexión con los datos del equipo. Recarga la página.");
-          renderAll();
+          schedule();
         };
-        let got = 0;
-        const done = () => { if (++got >= 2) { state.ready = true; } };
-        let firstR = true, firstE = true;
+        let pending = 2;
+        const first = () => { if (--pending === 0) state.ready = true; };
+        let fr = true, fe = true;
         db.collection("renders").onSnapshot((s) => {
           state.renders = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-          if (firstR) { firstR = false; done(); }
-          renderAll();
+          if (fr) { fr = false; first(); }
+          schedule(); refreshSheetPresence();
         }, onErr);
         db.collection("entregas").onSnapshot((s) => {
           state.entregas = s.docs.map((d) => ({ ...d.data(), id: d.id }));
-          if (firstE) { firstE = false; done(); }
-          renderAll();
+          if (fe) { fe = false; first(); }
+          schedule();
         }, onErr);
+        db.collection("equipo").onSnapshot((s) => {
+          state.equipo = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+          schedule(); refreshSheetPresence();
+        }, onErr);
+        db.collection("actividad").orderBy("t", "desc").limit(40).onSnapshot((s) => {
+          state.actividad = s.docs.map((d) => ({ ...d.data(), id: d.id }));
+          schedule();
+        }, onErr);
+        if (room) {
+          room.onPeers((ch) => { state.peers = ch.peers.filter((p) => p.kind === "viewer"); schedule(); refreshSheetPresence(); }, () => {});
+          sendPresence();
+        }
+        this.checkIn();
+        this.prune();
       } else {
         state.mode = "local";
         try {
           const j = JSON.parse(localStorage.getItem(LS_KEY) || "{}");
           state.renders = Array.isArray(j.renders) ? j.renders : [];
           state.entregas = Array.isArray(j.entregas) ? j.entregas : [];
-        } catch (e) { /* storage blocked */ }
+          state.actividad = Array.isArray(j.actividad) ? j.actividad : [];
+        } catch (e) { /* almacenamiento bloqueado */ }
         state.ready = true;
       }
-      renderAll();
+      schedule();
+    },
+    // Registra a la persona en el equipo, como mucho una vez cada 6 horas.
+    async checkIn() {
+      if (!this.db || !state.me || !state.canWrite) return;
+      try {
+        const ref = this.db.doc(`equipo/${state.me}`);
+        const snap = await ref.get();
+        const prev = snap.exists ? snap.data() : null;
+        if (prev && Date.now() - Date.parse(prev.lastSeen || 0) < 6 * 3600e3) return;
+        await ref.set({ ...(prev || { renderId: null }), lastSeen: nowIso() });
+      } catch (e) { /* sin permiso de escritura */ }
+    },
+    async prune() {
+      if (!this.db || !state.canWrite) return;
+      try {
+        const cutoff = new Date(Date.now() - FEED_DAYS * DAY).toISOString();
+        const old = await this.db.collection("actividad").where("t", "<", cutoff).limit(25).get();
+        for (const d of old.docs) await this.db.collection("actividad").doc(d.id).delete();
+      } catch (e) { /* se intenta en la próxima visita */ }
     },
     saveLocal() {
-      try { localStorage.setItem(LS_KEY, JSON.stringify({ renders: state.renders, entregas: state.entregas })); } catch (e) { /* storage blocked */ }
+      try { localStorage.setItem(LS_KEY, JSON.stringify({ renders: state.renders, entregas: state.entregas, actividad: state.actividad.slice(0, 50) })); } catch (e) { /* bloqueado */ }
     },
     async put(col, id, data) {
-      if (this.db) {
-        await this.db.collection(col).doc(id).set(data);
-      } else {
-        const arr = state[col];
-        const i = arr.findIndex((x) => x.id === id);
-        const row = { ...data, id };
-        if (i >= 0) arr[i] = row; else arr.push(row);
-        this.saveLocal();
-        renderAll();
-      }
+      if (this.db) return this.db.collection(col).doc(id).set(data);
+      const arr = state[col];
+      const i = arr.findIndex((x) => x.id === id);
+      const row = { ...data, id };
+      if (i >= 0) arr[i] = row; else arr.push(row);
+      this.saveLocal(); schedule();
+    },
+    async patch(col, id, data) {
+      if (this.db) return this.db.collection(col).doc(id).update(data);
+      const row = state[col].find((x) => x.id === id);
+      if (row) Object.assign(row, data);
+      this.saveLocal(); schedule();
     },
     async del(col, id) {
-      if (this.db) {
-        await this.db.collection(col).doc(id).delete();
-      } else {
-        state[col] = state[col].filter((x) => x.id !== id);
-        this.saveLocal();
-        renderAll();
-      }
+      if (this.db) return this.db.collection(col).doc(id).delete();
+      state[col] = state[col].filter((x) => x.id !== id);
+      this.saveLocal(); schedule();
+    },
+    async log(kind, r, extra = {}) {
+      const ev = { t: nowIso(), by: state.me, kind, renderId: r.id || null, title: r.title || "", project: r.project || "", ...extra };
+      try {
+        if (this.db) await this.db.collection("actividad").add(ev);
+        else { state.actividad.unshift({ ...ev, id: newId("a") }); this.saveLocal(); schedule(); }
+      } catch (e) { /* la actividad es secundaria */ }
+    },
+    async setWorking(renderId) {
+      if (!this.db || !state.me) return;
+      const now = nowIso();
+      await this.db.doc(`equipo/${state.me}`).set({ renderId, since: renderId ? now : null, lastSeen: now });
     },
   };
 
@@ -590,7 +796,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     if (code === "invalid_argument" && store.db) {
       state.canWrite = false;
       toast("Tu acceso es de solo lectura. Pide acceso de colaborador para editar.");
-      renderAll();
+      schedule();
     } else if (code === "quota_exceeded") {
       toast("El espacio de datos está lleno. Elimina renders antiguos para seguir.");
     } else {
@@ -598,7 +804,6 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     }
   }
 
-  /* ---------- toast ---------- */
   let toastTimer = 0;
   function toast(msg) {
     const t = $("#toast");
@@ -620,11 +825,13 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     } catch (e) { fallback(); }
   }
 
-  /* ---------- shared fragments ---------- */
-  const ICON_COPY = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M10.5 3.5V3A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5" stroke="currentColor" stroke-width="1.5"/></svg>`;
-  const ICON_FOLDER = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.5 4.5A1.5 1.5 0 0 1 3 3h3l1.5 1.5H13A1.5 1.5 0 0 1 14.5 6v5.5A1.5 1.5 0 0 1 13 13H3a1.5 1.5 0 0 1-1.5-1.5v-7Z" stroke="currentColor" stroke-width="1.4"/></svg>`;
+  /* ---------- fragmentos ---------- */
+  const SYM = (cls = "sym") => `<svg class="${cls}" viewBox="0 0 88.89 76.26" aria-hidden="true"><use href="#lap-sym"/></svg>`;
+  const ICON_COPY = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="5" y="5" width="8.5" height="8.5" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M10.5 3.5V3A1.5 1.5 0 0 0 9 1.5H3A1.5 1.5 0 0 0 1.5 3v6A1.5 1.5 0 0 0 3 10.5h.5" stroke="currentColor" stroke-width="1.3"/></svg>`;
+  const ICON_FOLDER = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M1.5 4.5A1.5 1.5 0 0 1 3 3h3l1.5 1.5H13A1.5 1.5 0 0 1 14.5 6v5.5A1.5 1.5 0 0 1 13 13H3a1.5 1.5 0 0 1-1.5-1.5v-7Z" stroke="currentColor" stroke-width="1.2"/></svg>`;
   const chip = (s) => `<span class="chip" data-s="${esc(s)}">${esc(STAGE[s]?.label || s)}</span>`;
   const sampleChip = (r) => (r.sample ? `<span class="chip sample plain">Ejemplo</span>` : "");
+  const glyph = (s) => `<span class="glyph ${s === "render" ? "live" : s === "guardado" ? "fill" : ""}" data-s="${esc(s)}"></span>`;
   const progress = (r) => {
     const p = Math.max(0, Math.min(100, Number(r.progress) || 0));
     return `<span class="bar-track" data-s="${esc(r.status)}" title="${p}%"><i style="width:${p}%"></i></span>`;
@@ -632,25 +839,81 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   const pathBlock = (r) => r.path
     ? `<div class="path-wrap"><span class="path">${esc(r.path)}</span><button class="btn icon ghost sm" data-act="copy" data-id="${esc(r.id)}" aria-label="Copiar ruta" title="Copiar ruta">${ICON_COPY}</button></div>`
     : `<span class="muted">Sin ruta</span>`;
+  const panelHead = (title, link) => `<div class="panel-head"><h2><span class="sl">/</span>${title}</h2>${link || ""}</div>`;
 
   function emptyState() {
     if (!state.ready) {
-      return `<div class="glass empty"><h2>Cargando el tablero del equipo</h2><p>En un momento aparecen los renders, el cronograma y el archivo.</p></div>`;
+      return `<div class="glass empty">${SYM()}<h2>Cargando el tablero del equipo</h2><p>En un momento aparecen los renders, el cronograma y el archivo.</p></div>`;
     }
     const acts = state.canWrite
       ? `<div class="acts"><button class="btn primary" data-act="new-render">Registrar el primer render</button><button class="btn" data-act="load-sample">Ver con datos de ejemplo</button></div>`
       : "";
-    return `<div class="glass empty">
-      <div class="eyebrow">Área de visualización</div>
+    return `<div class="glass empty">${SYM()}
+      <div class="eyebrow">Visualización 3D</div>
       <h2>Todavía no hay renders registrados</h2>
       <p>Cada render pasa por cola, escena, render, post y revisión. Al guardarlo queda en el archivo con la ruta de su carpeta.</p>${acts}
     </div>`;
   }
 
-  /* ---------- views ---------- */
+  /* ---------- vistas ---------- */
+  function renderTeam() {
+    if (!state.team) return "";
+    const people = roster();
+    const online = people.filter((p) => p.online).length;
+    const cards = people.map((p) => {
+      const r = p.renderId && state.renders.find((x) => x.id === p.renderId);
+      const what = r
+        ? `Trabajando en <b>${esc(r.title)}</b>${r.project ? ` · ${esc(r.project)}` : ""}`
+        : p.online ? "Conectado, sin render asignado" : `Visto ${esc(relTime(p.lastSeen) || "antes")}`;
+      return `<div class="person ${!p.online && !r ? "idle" : ""}" ${r ? `data-act="edit" data-id="${esc(r.id)}" role="button" tabindex="0"` : ""}>
+        <span class="av-wrap">${avatar(p.id)}${p.online ? `<span class="dot" title="Conectado ahora"></span>` : ""}</span>
+        <span style="min-width:0;display:grid;gap:1px">
+          <span class="who"><span>${esc(personName(p.id))}</span></span>
+          <span class="what">${what}</span>
+          ${r && p.since ? `<span class="tag">Desde ${esc(relTime(p.since))}</span>` : ""}
+        </span>
+      </div>`;
+    }).join("");
+    return `<article class="glass panel span-12">
+      ${panelHead("Equipo ahora", `<span class="tag">${online ? `${plural(online, "persona conectada", "personas conectadas")}` : "Nadie más conectado"}</span>`)}
+      ${people.length ? `<div class="team">${cards}</div>` : `<p class="note">Aquí aparece quién está conectado y en qué render trabaja cada persona.</p>`}
+    </article>`;
+  }
+
+  function eventText(a) {
+    const who = `<b>${esc(firstName(a.by))}</b>`;
+    const exists = a.renderId && state.renders.some((r) => r.id === a.renderId);
+    const t = `<q ${exists ? `data-act="edit" data-id="${esc(a.renderId)}"` : ""}>${esc(a.title)}</q>`;
+    switch (a.kind) {
+      case "create": return `${who} registró ${t}`;
+      case "stage": return `${who} movió ${t} a ${esc(STAGE[a.to]?.label || a.to)}`;
+      case "saved": return `${who} guardó ${t} en el archivo`;
+      case "edit": return `${who} actualizó ${t}`;
+      case "delete": return `${who} eliminó ${t}`;
+      case "working": return `${who} empezó a trabajar en ${t}`;
+      case "entrega": return `${who} programó la entrega ${t}`;
+      default: return `${who} cambió ${t}`;
+    }
+  }
+
+  function renderFeed() {
+    const items = state.actividad.slice(0, 12);
+    return `<article class="glass panel span-5">
+      ${panelHead("Actividad")}
+      <div class="feed">${items.length ? items.map((a) => `
+        <div class="ev">${avatar(a.by)}<p>${eventText(a)}</p><time datetime="${esc(a.t)}">${esc(relTime(a.t))}</time></div>`).join("")
+        : `<p class="note">Cada cambio de etapa, guardado o render nuevo queda registrado aquí.</p>`}
+      </div>
+    </article>`;
+  }
+
   function renderResumen() {
     const el = $("#v-resumen");
-    if (!state.renders.length && !state.entregas.length) { el.innerHTML = emptyState(); return; }
+    if (!state.renders.length && !state.entregas.length) {
+      const team = state.ready ? renderTeam() : "";
+      el.innerHTML = (team ? `<div class="grid" style="margin-bottom:20px">${team}</div>` : "") + emptyState();
+      return;
+    }
     const R = filtered();
     const t = today();
     const weekEnd = addDays(monday(t), 6);
@@ -670,60 +933,61 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
       .sort((a, b) => a.date.localeCompare(b.date)).slice(0, 8);
 
     const dayName = DIAS[t.getDay()];
+    const metric = (n, label, alert) => `<div class="metric ${alert && n ? "alert" : ""} ${!n ? "zero" : ""}" role="listitem"><b>${n}</b><span>${label}</span></div>`;
     el.innerHTML = `
       <div class="hero">
         <div>
           <div class="eyebrow">${dayName[0].toUpperCase() + dayName.slice(1)} ${t.getDate()} de ${MES_L[t.getMonth()]} · Semana ${isoWeek(t)}</div>
-          <h1>${rendering.length ? `<em>${plural(rendering.length, "render", "renders")}</em> en máquina` : "Ningún render en máquina"}${weekEntregas.length ? ` y ${plural(weekEntregas.length, "entrega", "entregas")} esta semana` : ""}.</h1>
+          <h1><span class="sl">//</span>${rendering.length ? `<em>${plural(rendering.length, "render", "renders")}</em> en máquina` : "Ningún render en máquina"}${weekEntregas.length ? ` y ${plural(weekEntregas.length, "entrega", "entregas")} esta semana` : ""}.</h1>
         </div>
         <div class="metrics glass" role="list">
-          <div class="metric" role="listitem"><b>${active.length}</b><span>En producción</span></div>
-          <div class="metric" role="listitem"><b>${rendering.length}</b><span>Renderizando</span></div>
-          <div class="metric" role="listitem"><b>${review.length}</b><span>En revisión</span></div>
-          <div class="metric ${late.length ? "alert" : ""}" role="listitem"><b>${late.length}</b><span>Atrasados</span></div>
-          <div class="metric" role="listitem"><b>${saved30.length}</b><span>Guardados, 30 días</span></div>
+          ${metric(active.length, "En producción")}${metric(rendering.length, "Renderizando")}${metric(review.length, "En revisión")}${metric(late.length, "Atrasados", true)}${metric(saved30.length, "Guardados 30 d")}
         </div>
       </div>
       <div class="grid" style="margin-top:20px">
+        ${renderTeam()}
         <article class="glass panel span-7">
-          <div class="panel-head"><h2>Trabajándose ahora</h2><a class="btn ghost sm" href="#en-curso">Ver tablero</a></div>
+          ${panelHead("Trabajándose ahora", `<a class="link" href="#en-curso">Tablero</a>`)}
           <div class="rows">${working.length ? working.map((r) => `
             <div class="row" data-act="edit" data-id="${esc(r.id)}" tabindex="0">
-              <span class="glyph ${r.status === "render" ? "live" : ""}" data-s="${esc(r.status)}"></span>
+              ${glyph(r.status)}
               <div style="min-width:0">
                 <div class="row-title">${esc(r.title)}</div>
-                <div class="row-meta"><span>${esc(r.project || "Sin proyecto")}</span>${r.type ? `<span>· ${esc(r.type)}</span>` : ""}${r.engine ? `<span class="mono">${esc(r.engine)}</span>` : ""}${sampleChip(r)}</div>
+                <div class="row-meta"><span>${esc(r.project || "Sin proyecto")}</span>${r.type ? `<span>+ ${esc(r.type)}</span>` : ""}${r.engine ? `<span class="mono">${esc(r.engine)}</span>` : ""}${sampleChip(r)}</div>
               </div>
               <div class="row-side">
-                <div style="display:flex;gap:8px;align-items:center">${chip(r.status)}${r.artist ? `<span class="avatar" title="${esc(r.artist)}">${esc(initials(r.artist))}</span>` : ""}</div>
-                <div style="display:flex;gap:10px;align-items:center">${r.status === "render" || Number(r.progress) > 0 ? progress(r) : ""}<span class="due ${dueClass(r)}">${esc(relDay(r.due))}</span></div>
+                <div class="inline">${faces(r.id)}${chip(r.status)}</div>
+                <div class="inline">${r.status === "render" || Number(r.progress) > 0 ? progress(r) : ""}<span class="due ${dueClass(r)}">${esc(relDay(r.due))}</span></div>
               </div>
             </div>`).join("") : `<p class="note">Nada en escena, render ni post en este momento.</p>`}
           </div>
         </article>
         <article class="glass panel span-5">
-          <div class="panel-head"><h2>Próximos 14 días</h2><a class="btn ghost sm" href="#cronograma">Cronograma</a></div>
+          ${panelHead("Próximos 14 días", `<a class="link" href="#cronograma">Cronograma</a>`)}
           <div class="rows">${upcoming.length ? upcoming.map((u) => {
             const d = parse(u.date); const n = diff(t, d);
             return `<div class="row" data-act="${u.kind === "entrega" ? "edit-entrega" : "edit"}" data-id="${esc(u.id)}" tabindex="0">
-              ${u.kind === "entrega" ? `<span class="ms" style="position:static;transform:none;padding:0"><i></i></span>` : `<span class="glyph" data-s="${esc(u.status)}"></span>`}
+              ${u.kind === "entrega" ? `<span class="ms" style="position:static;transform:none;padding:0"><i></i></span>` : glyph(u.status)}
               <div style="min-width:0"><div class="row-title">${esc(u.title)}</div><div class="row-meta"><span>${u.kind === "entrega" ? "Entrega" : "Fecha de render"} · ${esc(u.project || "Sin proyecto")}</span></div></div>
               <div class="row-side"><span class="due ${n < 0 ? "late" : n <= 2 ? "soon" : ""}">${esc(relDay(u.date))}</span><span class="mono muted">${fmtShort(d)}</span></div>
             </div>`;
           }).join("") : `<p class="note">Sin entregas ni fechas en las próximas dos semanas.</p>`}
           </div>
         </article>
-        <article class="glass panel span-12">
-          <div class="panel-head"><h2>Recién guardados</h2><a class="btn ghost sm" href="#archivo">Abrir archivo</a></div>
+        <article class="glass panel span-7">
+          ${panelHead("Recién guardados", `<a class="link" href="#archivo">Archivo</a>`)}
           <div class="rows">${saved.length ? saved.slice(0, 5).map((r) => `
-            <div class="row" style="grid-template-columns:18px minmax(0,1fr) minmax(0,1.3fr);cursor:default">
-              <span class="glyph" data-s="guardado"></span>
-              <div style="min-width:0"><div class="row-title" data-act="edit" data-id="${esc(r.id)}" style="cursor:pointer">${esc(r.title)}</div>
+            <div class="row" style="grid-template-columns:16px minmax(0,1fr);cursor:default">
+              ${glyph("guardado")}
+              <div style="min-width:0;display:grid;gap:6px">
+                <div><div class="row-title" data-act="edit" data-id="${esc(r.id)}" style="cursor:pointer">${esc(r.title)}</div>
                 <div class="row-meta"><span>${esc(r.project || "Sin proyecto")}</span>${r.version ? `<span class="mono">${esc(r.version)}</span>` : ""}<span>· ${esc(relDay(r.savedAt))}</span>${sampleChip(r)}</div></div>
-              ${pathBlock(r)}
+                ${pathBlock(r)}
+              </div>
             </div>`).join("") : `<p class="note">Cuando un render se marca como guardado aparece aquí con la ruta de su carpeta.</p>`}
           </div>
         </article>
+        ${renderFeed()}
       </div>`;
   }
 
@@ -737,10 +1001,11 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     const undated = filtered().filter((r) => !r.start && !r.due && r.status !== "guardado").length;
 
     const projects = new Map();
-    for (const r of R) { const k = r.project || "Sin proyecto"; if (!projects.has(k)) projects.set(k, { renders: [], entregas: [] }); projects.get(k).renders.push(r); }
-    for (const e of state.entregas) { const k = e.project || "Sin proyecto"; if (!projects.has(k)) projects.set(k, { renders: [], entregas: [] }); projects.get(k).entregas.push(e); }
+    const group = (k) => { if (!projects.has(k)) projects.set(k, { renders: [], entregas: [] }); return projects.get(k); };
+    for (const r of R) group(r.project || "Sin proyecto").renders.push(r);
+    for (const e of state.entregas) group(e.project || "Sin proyecto").entregas.push(e);
 
-    const wrapW = Math.max(300, Math.floor(document.querySelector(".top").getBoundingClientRect().width) - 2);
+    const wrapW = Math.max(300, Math.floor($(".top").getBoundingClientRect().width) - 2);
     const labelW = wrapW < 640 ? 140 : 230;
     const dayW = Math.max(state.weeks > 8 ? 16 : 22, Math.floor((wrapW - labelW) / days));
     const pos = (d) => diff(start, d);
@@ -755,8 +1020,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     }).join("") : "";
 
     let body = "";
-    const sortedProjects = [...projects.entries()].sort((a, b) => a[0].localeCompare(b[0], "es"));
-    for (const [name, g] of sortedProjects) {
+    for (const [name, g] of [...projects.entries()].sort((a, b) => a[0].localeCompare(b[0], "es"))) {
       const ms = g.entregas.map((e) => {
         const d = parse(e.date); if (!d || d < start || d > end) return "";
         return `<button class="ms" style="left:${pos(d) * dayW + dayW / 2}px" data-act="edit-entrega" data-id="${esc(e.id)}" title="${esc(e.title)} · ${fmtShort(d)}"><i></i><span>${esc(e.title)}</span></button>`;
@@ -771,7 +1035,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
           const a = Math.max(0, pos(s)), b = Math.min(days - 1, pos(e));
           const left = a * dayW + 2, width = Math.max(dayW - 4, (b - a + 1) * dayW - 4);
           const p = r.status === "guardado" ? 100 : Math.max(0, Math.min(100, Number(r.progress) || 0));
-          bar = `<button class="bar ${dueClass(r) === "late" ? "late" : ""}" data-s="${esc(r.status)}" style="left:${left}px;width:${width}px;--p:${p}%" data-act="edit" data-id="${esc(r.id)}" title="${esc(r.title)} · ${esc(STAGE[r.status]?.label || "")} · ${fmtShort(s)} a ${fmtShort(e)}"><span>${esc(r.title)}</span></button>`;
+          bar = `<button class="bar ${dueClass(r) === "late" ? "late" : ""}" data-s="${esc(r.status)}" style="left:${left}px;width:${width}px;--p:${p}%" data-act="edit" data-id="${esc(r.id)}" title="${esc(r.title)} · ${esc(STAGE[r.status]?.label || "")} · ${fmtShort(s)} a ${fmtShort(e)}">${faces(r.id)}<span>${esc(r.title)}</span></button>`;
         }
         body += `<div class="g-row"><div class="g-label"><b>${esc(r.title)}</b><small>${esc([STAGE[r.status]?.label, r.artist].filter(Boolean).join(" · "))}</small></div><div class="g-lane">${bar}</div></div>`;
       }
@@ -780,7 +1044,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     const todayLine = todayPos >= 0 && todayPos < days ? `<div class="today-line" style="left:${labelW + todayPos * dayW + dayW / 2}px"></div>` : "";
 
     el.innerHTML = `
-      <div class="view-title"><h1>Cronograma</h1><span class="muted">${fmtShort(start)} a ${fmtShort(end)} ${end.getFullYear()}</span></div>
+      <div class="view-title"><h1><span class="sl">//</span>Cronograma</h1><span class="muted light">${fmtShort(start)} a ${fmtShort(end)} ${end.getFullYear()}</span></div>
       <div class="toolbar" style="margin:14px 0">
         <div class="seg" role="group" aria-label="Rango">
           ${[4, 8, 12].map((w) => `<button data-act="weeks" data-w="${w}" aria-pressed="${state.weeks === w}">${w} semanas</button>`).join("")}
@@ -807,19 +1071,22 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     const cols = BOARD.map((s) => {
       const items = R.filter((r) => r.status === s).sort(byDue);
       return `<div class="glass col" data-col="${s}">
-        <div class="col-head"><span class="glyph ${s === "render" ? "live" : ""}" data-s="${s}"></span><h2>${esc(STAGE[s].label)}</h2><span class="mono">${items.length}</span></div>
-        ${items.map((r) => `
-          <div class="card" draggable="${state.canWrite}" data-id="${esc(r.id)}" data-act="edit" tabindex="0">
+        <div class="col-head">${glyph(s)}<h2>${esc(STAGE[s].label)}</h2><span class="mono">${items.length}</span></div>
+        ${items.map((r) => {
+          const busy = workingOn(r.id).length > 0;
+          return `
+          <div class="card ${busy ? "busy" : ""}" draggable="${state.canWrite}" data-id="${esc(r.id)}" data-act="edit" tabindex="0">
             <div class="card-title">${esc(r.title)}</div>
-            <div class="card-meta"><span>${esc(r.project || "Sin proyecto")}</span>${r.type ? `<span>· ${esc(r.type)}</span>` : ""}${sampleChip(r)}</div>
+            <div class="card-meta"><span>${esc(r.project || "Sin proyecto")}</span>${r.type ? `<span>+ ${esc(r.type)}</span>` : ""}${sampleChip(r)}</div>
             ${r.engine || r.resolution ? `<div class="card-meta mono">${esc([r.engine, r.resolution].filter(Boolean).join(" · "))}</div>` : ""}
             ${s === "render" || s === "post" || Number(r.progress) > 0 ? progress(r) : ""}
-            <div class="card-foot"><span class="due ${dueClass(r)}">${esc(r.due ? relDay(r.due) : "Sin fecha")}</span>${r.artist ? `<span class="avatar" title="${esc(r.artist)}">${esc(initials(r.artist))}</span>` : ""}</div>
-          </div>`).join("")}
+            <div class="card-foot"><span class="due ${dueClass(r)}">${esc(r.due ? relDay(r.due) : "Sin fecha")}</span>${faces(r.id) || (r.artist ? `<span class="av" title="${esc(r.artist)}">${esc(initials(r.artist))}</span>` : "")}</div>
+          </div>`;
+        }).join("")}
       </div>`;
     }).join("");
     el.innerHTML = `
-      <div class="view-title"><h1>En curso</h1><span class="muted">${state.canWrite ? "Arrastra una tarjeta para cambiar su etapa. Para guardarla en el archivo, ábrela y agrega la ruta." : "Solo lectura"}</span></div>
+      <div class="view-title"><h1><span class="sl">//</span>En curso</h1><span class="muted light">${state.canWrite ? "Arrastra una tarjeta para cambiar su etapa. Para guardarla en el archivo, ábrela y agrega la ruta." : "Solo lectura"}</span></div>
       <div style="margin-top:14px">${state.renders.length ? `<div class="board">${cols}</div>` : emptyState()}</div>`;
   }
 
@@ -844,14 +1111,14 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
       </div>`;
     }
     el.innerHTML = `
-      <div class="view-title"><h1>Archivo</h1><span class="muted">${plural(all.length, "render guardado", "renders guardados")}</span></div>
+      <div class="view-title"><h1><span class="sl">//</span>Archivo</h1><span class="muted light">${plural(all.length, "render guardado", "renders guardados")}</span></div>
       ${projs.length > 1 ? `<div class="filters" style="margin:14px 0"><button data-act="arch-proj" data-p="" aria-pressed="${!state.archProj}">Todos</button>${projs.map((p) => `<button data-act="arch-proj" data-p="${esc(p)}" aria-pressed="${state.archProj === p}">${esc(p)}</button>`).join("")}</div>` : `<div style="height:14px"></div>`}
       ${list.length ? `<div class="glass arch">
         <div class="arch-row head"><div>Render</div><div>Versión</div><div>Formato</div><div>Guardado</div><div>Carpeta</div></div>
-        ${rows}</div>` : state.renders.length ? `<div class="glass empty"><h2>Nada guardado todavía</h2><p>Abre un render, agrega la ruta de su carpeta y márcalo como guardado.</p></div>` : emptyState()}`;
+        ${rows}</div>` : state.renders.length ? `<div class="glass empty">${SYM()}<h2>Nada guardado todavía</h2><p>Abre un render, agrega la ruta de su carpeta y márcalo como guardado.</p></div>` : emptyState()}`;
   }
 
-  /* ---------- sheet (editor) ---------- */
+  /* ---------- panel lateral ---------- */
   function datalist(id, values) {
     return `<datalist id="${id}">${[...new Set(values.filter(Boolean))].sort().map((v) => `<option value="${esc(v)}"></option>`).join("")}</datalist>`;
   }
@@ -862,16 +1129,39 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     const t = today();
     state.sheet = { kind: "render", id: r ? r.id : null, draft: r ? { ...r } : { status: "cola", progress: 0, start: iso(t), due: iso(addDays(t, 5)), type: "Exterior" } };
     state.confirmDelete = false;
-    renderSheet();
+    renderSheet(); sendPresence();
   }
   function openEntrega(id) {
     const e = id ? state.entregas.find((x) => x.id === id) : null;
     if (id && !e) return;
     state.sheet = { kind: "entrega", id: e ? e.id : null, draft: e ? { ...e } : { date: iso(addDays(today(), 7)) } };
     state.confirmDelete = false;
-    renderSheet();
+    renderSheet(); sendPresence();
   }
-  function closeSheet() { state.sheet = null; renderSheet(); }
+  function closeSheet() { state.sheet = null; renderSheet(); sendPresence(); }
+
+  // Quién más tiene abierto este render y quién lo está trabajando.
+  function presenceHtml() {
+    const sh = state.sheet;
+    if (!sh || sh.kind !== "render" || !sh.id || !state.team) return "";
+    const others = viewingNow(sh.id).filter((id) => id !== state.me);
+    const workers = workingOn(sh.id);
+    const mine = workers.includes(state.me);
+    const otherWorkers = workers.filter((id) => id !== state.me);
+    let html = "";
+    if (others.length) {
+      html += `<div class="presence-note"><span class="faces">${others.map((id) => avatar(id)).join("")}</span><p>${esc(others.map(firstName).join(", "))} ${others.length === 1 ? "también tiene" : "también tienen"} abierto este render. Si varios guardan, queda el último cambio.</p></div>`;
+    }
+    const label = otherWorkers.length
+      ? `<b>${esc(otherWorkers.map(firstName).join(", "))}</b> ${otherWorkers.length === 1 ? "está trabajando" : "están trabajando"} en este render${mine ? ", y tú también" : ""}.`
+      : mine ? `<b>Tú</b> estás trabajando en este render.` : "Nadie lo tiene marcado como su trabajo actual.";
+    html += `<div class="work-box"><p>${label}</p>${state.canWrite ? `<button type="button" class="btn sm ${mine ? "on" : ""}" data-act="toggle-working">${mine ? "Dejar de trabajar en esto" : "Estoy trabajando en esto"}</button>` : ""}</div>`;
+    return html;
+  }
+  function refreshSheetPresence() {
+    const box = $("#sheet-presence");
+    if (box) box.innerHTML = presenceHtml();
+  }
 
   function renderSheet() {
     const root = $("#sheet-root");
@@ -880,16 +1170,19 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     const d = sh.draft;
     const ro = state.canWrite ? "" : "disabled";
     const projects = [...state.renders.map((r) => r.project), ...state.entregas.map((e) => e.project)];
+    const teamNames = state.equipo.map((e) => state.people[e.id] && state.people[e.id].name).filter(Boolean);
     let body = "", title = "";
     if (sh.kind === "render") {
       title = sh.id ? "Editar render" : "Nuevo render";
+      const editedBy = sh.id && d.updatedAt ? `<p class="meta-line">Última edición ${d.updatedBy || state.mode === "local" ? `de ${esc(personName(d.updatedBy))} ` : ""}${esc(relTime(d.updatedAt))}</p>` : "";
       body = `
+        <div id="sheet-presence" style="display:grid;gap:10px">${presenceHtml()}</div>
         <div class="fld"><label for="f-title">Vista o nombre del render</label><input id="f-title" value="${esc(d.title)}" placeholder="Fachada principal al atardecer" ${ro} required></div>
         <div class="two">
           <div class="fld"><label for="f-project">Proyecto</label><input id="f-project" list="dl-proj" value="${esc(d.project)}" placeholder="Nombre del proyecto" ${ro}></div>
           <div class="fld"><label for="f-type">Tipo</label><select id="f-type" ${ro}>${TYPES.map((x) => `<option ${d.type === x ? "selected" : ""}>${x}</option>`).join("")}</select></div>
         </div>
-        <div class="fld"><label>Etapa</label><div class="stages" role="group" aria-label="Etapa">${STAGES.map((s) => `<button type="button" data-act="stage" data-st="${s.id}" data-s="${s.id}" aria-pressed="${d.status === s.id}" ${ro}>${s.label}</button>`).join("")}</div></div>
+        <div class="fld"><span class="lbl">Etapa</span><div class="stages" role="group" aria-label="Etapa">${STAGES.map((s) => `<button type="button" data-act="stage" data-st="${s.id}" data-s="${s.id}" aria-pressed="${d.status === s.id}" ${ro}>${s.label}</button>`).join("")}</div></div>
         <div class="fld"><label for="f-progress">Avance del render</label><div class="range-row"><input id="f-progress" type="range" min="0" max="100" step="5" value="${Number(d.progress) || 0}" ${ro}><span class="mono" id="f-progress-v" style="width:40px;text-align:right">${Number(d.progress) || 0}%</span></div></div>
         <div class="two">
           <div class="fld"><label for="f-start">Inicio</label><input id="f-start" type="date" value="${esc(d.start)}" ${ro}></div>
@@ -906,8 +1199,9 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
         <div class="fld"><label for="f-path">Ruta de la carpeta</label><input id="f-path" class="mono" value="${esc(d.path)}" placeholder="\\\\NAS\\Proyectos\\2026\\Proyecto\\03_Renders\\Final\\" ${ro}>
           <span class="hint">Dónde quedó el archivo final. Se necesita para marcarlo como guardado.</span><span class="err" id="f-path-err" hidden></span></div>
         <div class="fld"><label for="f-notes">Notas</label><textarea id="f-notes" placeholder="Comentarios del cliente, cámara, HDRI, ajustes de post" ${ro}>${esc(d.notes)}</textarea></div>
+        ${editedBy}
         ${d.sample ? `<p class="note" style="padding:0">Este render es un ejemplo. Bórralo cuando cargues tus datos.</p>` : ""}
-        ${datalist("dl-proj", projects)}${datalist("dl-artist", state.renders.map((r) => r.artist))}
+        ${datalist("dl-proj", projects)}${datalist("dl-artist", [...teamNames, ...state.renders.map((r) => r.artist)])}
         ${datalist("dl-engine", [...ENGINES, ...state.renders.map((r) => r.engine)])}${datalist("dl-res", [...RESOLUTIONS, ...state.renders.map((r) => r.resolution)])}`;
     } else {
       title = sh.id ? "Editar entrega" : "Nueva entrega";
@@ -928,11 +1222,11 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     root.innerHTML = `
       <div class="scrim" data-act="close"></div>
       <form class="sheet glass" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title" novalidate>
-        <div class="sheet-head"><h2 id="sheet-title">${title}</h2><button type="button" class="btn icon ghost" data-act="close" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button></div>
+        <div class="sheet-head"><h2 id="sheet-title"><span class="sl">/</span>${title}</h2><button type="button" class="btn icon ghost" data-act="close" aria-label="Cerrar"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="m4 4 8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div>
         <div class="sheet-body">${body}</div>
         <div class="sheet-foot">${del}<span class="spacer"></span>
           <button type="button" class="btn ghost" data-act="close">${state.canWrite ? "Cancelar" : "Cerrar"}</button>
-          ${state.canWrite ? `<button type="submit" class="btn primary">${sh.id ? "Guardar cambios" : "Crear"}</button>` : ""}
+          ${state.canWrite ? `<button type="submit" class="btn primary">${sh.id ? "Guardar" : "Crear"}</button>` : ""}
         </div>
       </form>`;
     const first = $("#f-title");
@@ -956,10 +1250,12 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   async function submitSheet() {
     const sh = state.sheet; if (!sh || !state.canWrite) return;
     const d = readDraft();
-    if (!d.title) { const el = $("#f-title"); el.focus(); toast("Escribe un nombre antes de guardar."); return; }
+    if (!d.title) { $("#f-title").focus(); toast("Escribe un nombre antes de guardar."); return; }
     const col = sh.kind === "render" ? "renders" : "entregas";
     const id = sh.id || newId(sh.kind === "render" ? "r" : "e");
-    const now = new Date().toISOString();
+    const now = nowIso();
+    let kind = sh.id ? "edit" : sh.kind === "render" ? "create" : "entrega";
+    let to = null;
     if (sh.kind === "render") {
       if (d.status === "guardado" && !d.path) {
         const err = $("#f-path-err"); err.textContent = "Agrega la ruta de la carpeta para guardarlo en el archivo."; err.hidden = false; $("#f-path").focus(); return;
@@ -968,11 +1264,15 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
       if (d.status === "guardado" && (!prev || prev.status !== "guardado" || !d.savedAt)) { d.savedAt = iso(today()); d.progress = 100; }
       if (d.status !== "guardado") delete d.savedAt;
       if (d.start && d.due && d.due < d.start) [d.start, d.due] = [d.due, d.start];
+      if (prev && prev.status !== d.status) { kind = d.status === "guardado" ? "saved" : "stage"; to = d.status; }
+      if (!prev && d.status === "guardado") kind = "saved";
     }
-    const data = stripId({ ...d, updatedAt: now, ...(sh.id ? {} : { createdAt: now }) });
+    const data = stripId({ ...d, updatedAt: now, ...(state.me ? { updatedBy: state.me } : {}), ...(sh.id ? {} : { createdAt: now }) });
     for (const k of Object.keys(data)) if (data[k] === undefined || data[k] === "") delete data[k];
     try {
       await store.put(col, id, data);
+      store.log(kind, { ...data, id }, to ? { to } : {});
+      if (kind === "saved" && workingOn(id).includes(state.me)) store.setWorking(null).catch(() => {});
       toast(sh.id ? "Cambios guardados" : (sh.kind === "render" ? "Render creado" : "Entrega creada"));
       closeSheet();
     } catch (e) { writeError(e); }
@@ -980,19 +1280,35 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
 
   async function deleteCurrent() {
     const sh = state.sheet; if (!sh || !sh.id) return;
+    const col = sh.kind === "render" ? "renders" : "entregas";
+    const row = state[col].find((x) => x.id === sh.id) || {};
     try {
-      await store.del(sh.kind === "render" ? "renders" : "entregas", sh.id);
+      await store.del(col, sh.id);
+      if (sh.kind === "render") store.log("delete", { ...row, id: null });
       toast("Eliminado");
       closeSheet();
     } catch (e) { writeError(e); }
   }
 
-  /* ---------- examples (only on request, marked as examples) ---------- */
+  async function toggleWorking() {
+    const sh = state.sheet; if (!sh || !sh.id) return;
+    const mine = workingOn(sh.id).includes(state.me);
+    try {
+      await store.setWorking(mine ? null : sh.id);
+      if (!mine) {
+        const r = state.renders.find((x) => x.id === sh.id);
+        if (r) store.log("working", r);
+        toast("Listo. El equipo ve que estás en este render.");
+      } else toast("Ya no apareces trabajando en este render.");
+    } catch (e) { writeError(e); }
+  }
+
+  /* ---------- ejemplos (solo a pedido y marcados) ---------- */
   async function loadSample() {
     if (!state.canWrite) return;
     const t = today();
     const D = (n) => iso(addDays(t, n));
-    const nas = (p, rest) => `\\\\NAS-VIZ\\Proyectos\\${t.getFullYear()}\\${p}\\03_Renders\\${rest}\\`;
+    const nas = (p, rest) => `\\\\NAS-LAP\\Proyectos\\${t.getFullYear()}\\${p}\\03_Renders\\${rest}\\`;
     const R = [
       ["Fachada principal al atardecer", "Torre Alameda", "Exterior", "render", 64, -3, 2, "Diego", "V-Ray", "5000×2813", "v02"],
       ["Lobby de doble altura", "Torre Alameda", "Interior", "post", 85, -6, 1, "Mariana", "Corona", "3840×2160", "v03"],
@@ -1018,7 +1334,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
       ["Presentación a inversionistas", "Corporativo Lomas", 5],
       ["Paquete para marketing", "Hotel Marea", 14],
     ].map(([title, project, n]) => ({ title, project, date: D(n) }));
-    const now = new Date().toISOString();
+    const now = nowIso();
     toast("Cargando ejemplo…");
     try {
       for (const r of [...R, ...S]) await store.put("renders", newId("r"), { ...r, sample: true, createdAt: now, updatedAt: now });
@@ -1030,18 +1346,19 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   async function clearSample() {
     if (!state.canWrite) return;
     try {
-      for (const r of state.renders.filter((x) => x.sample)) await store.del("renders", r.id);
+      const ids = new Set(state.renders.filter((x) => x.sample).map((x) => x.id));
+      for (const id of ids) await store.del("renders", id);
       for (const e of state.entregas.filter((x) => x.sample)) await store.del("entregas", e.id);
+      if (state.me && state.equipo.some((e) => e.id === state.me && ids.has(e.renderId))) await store.setWorking(null);
       toast("Ejemplos borrados");
     } catch (e) { writeError(e); }
   }
 
-  /* ---------- chrome ---------- */
+  /* ---------- marco ---------- */
   function renderChrome() {
     const sync = $("#sync");
     sync.dataset.mode = state.mode;
-    const label = { connecting: "Conectando", live: "En vivo", local: "Solo este navegador", offline: "Sin conexión" }[state.mode];
-    sync.querySelector("span").textContent = label;
+    sync.querySelector("span").textContent = { connecting: "Conectando", live: "En vivo", local: "Solo este navegador", offline: "Sin conexión" }[state.mode];
     sync.title = state.mode === "live" ? "Los cambios se comparten con todo el equipo al instante." : state.mode === "local" ? "Los datos se guardan solo en este navegador." : "";
     $("#btn-new").hidden = !state.canWrite;
     const active = state.renders.filter((r) => BOARD.includes(r.status)).length;
@@ -1050,6 +1367,12 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     $("#c-archivo").textContent = saved || "";
     document.querySelectorAll(".nav a").forEach((a) => { if (a.dataset.view === state.view) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     document.querySelectorAll("[data-section]").forEach((s) => { s.hidden = s.dataset.section !== state.view; });
+
+    const on = roster().filter((p) => p.online);
+    $("#online").innerHTML = state.team && on.length
+      ? on.slice(0, 5).map((p) => avatar(p.id)).join("") + (on.length > 5 ? `<span class="more">+${on.length - 5}</span>` : "")
+      : "";
+    $("#online").title = on.length ? `Conectados: ${on.map((p) => personName(p.id)).join(", ")}` : "";
 
     const banner = $("#banner");
     const samples = state.renders.some((r) => r.sample) || state.entregas.some((e) => e.sample);
@@ -1072,18 +1395,25 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     else if (state.view === "cronograma") renderCronograma();
     else if (state.view === "en-curso") renderBoard();
     else renderArchivo();
+    resolvePeople();
   }
+  let frame = 0;
+  function schedule() {
+    if (frame) return;
+    frame = requestAnimationFrame(() => { frame = 0; if (!dragId) renderAll(); else pendingRender = true; });
+  }
+  let pendingRender = false;
 
-  /* ---------- routing ---------- */
+  /* ---------- rutas ---------- */
   const VIEWS = ["resumen", "cronograma", "en-curso", "archivo"];
   function route() {
     const h = location.hash.replace("#", "");
     state.view = VIEWS.includes(h) ? h : "resumen";
-    renderAll();
+    renderAll(); sendPresence();
   }
   window.addEventListener("hashchange", route);
 
-  /* ---------- events ---------- */
+  /* ---------- eventos ---------- */
   document.addEventListener("click", (ev) => {
     const el = ev.target.closest("[data-act]");
     if (!el) return;
@@ -1092,7 +1422,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     switch (act) {
       case "new-render": openRender(null); break;
       case "new-entrega": openEntrega(null); break;
-      case "edit": openRender(id); break;
+      case "edit": ev.stopPropagation(); openRender(id); break;
       case "edit-entrega": openEntrega(id); break;
       case "close": closeSheet(); break;
       case "copy": {
@@ -1109,6 +1439,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
         renderSheet();
         break;
       }
+      case "toggle-working": toggleWorking(); break;
       case "delete": state.sheet.draft = readDraft(); state.confirmDelete = true; renderSheet(); break;
       case "delete-cancel": state.sheet.draft = readDraft(); state.confirmDelete = false; renderSheet(); break;
       case "delete-confirm": deleteCurrent(); break;
@@ -1121,7 +1452,7 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
   });
   document.addEventListener("keydown", (ev) => {
     if (ev.key === "Escape" && state.sheet) closeSheet();
-    if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches(".row[data-act], .card[data-act]")) { ev.preventDefault(); ev.target.click(); }
+    if ((ev.key === "Enter" || ev.key === " ") && ev.target.matches(".row[data-act], .card[data-act], .person[data-act]")) { ev.preventDefault(); ev.target.click(); }
   });
   document.addEventListener("submit", (ev) => { if (ev.target.id === "sheet") { ev.preventDefault(); submitSheet(); } });
   document.addEventListener("input", (ev) => {
@@ -1130,18 +1461,19 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     if (ev.target.id === "f-path") { const e = $("#f-path-err"); if (e) e.hidden = true; }
   });
 
-  // Drag and drop between board columns
+  // Arrastrar entre columnas del tablero
   let dragId = null;
   document.addEventListener("dragstart", (ev) => {
     const c = ev.target.closest && ev.target.closest(".card");
     if (!c || !state.canWrite) return;
     dragId = c.dataset.id; c.classList.add("dragging");
-    try { ev.dataTransfer.setData("text/plain", dragId); ev.dataTransfer.effectAllowed = "move"; } catch (e) { /* ignore */ }
+    try { ev.dataTransfer.setData("text/plain", dragId); ev.dataTransfer.effectAllowed = "move"; } catch (e) { /* ignorar */ }
   });
   document.addEventListener("dragend", (ev) => {
     const c = ev.target.closest && ev.target.closest(".card"); if (c) c.classList.remove("dragging");
     document.querySelectorAll(".col.over").forEach((x) => x.classList.remove("over"));
     dragId = null;
+    if (pendingRender) { pendingRender = false; schedule(); }
   });
   document.addEventListener("dragover", (ev) => {
     const col = ev.target.closest && ev.target.closest(".col");
@@ -1160,7 +1492,8 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     dragId = null;
     if (!r || r.status === to) return;
     try {
-      await store.put("renders", r.id, { ...stripId(r), status: to, updatedAt: new Date().toISOString() });
+      await store.patch("renders", r.id, { status: to, updatedAt: nowIso(), ...(state.me ? { updatedBy: state.me } : {}) });
+      store.log("stage", r, { to });
       toast(`Movido a ${STAGE[to].label}`);
     } catch (e) { writeError(e); }
   });
@@ -1170,6 +1503,8 @@ h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => { if (state.view === "cronograma") renderCronograma(); }, 150);
   });
+  // Los tiempos relativos ("hace 5 min") se refrescan solos.
+  setInterval(() => { if (!state.sheet) schedule(); }, 60000);
 
   route();
   store.init();
