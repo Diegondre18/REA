@@ -5,8 +5,6 @@
 global REASM_dir = getFilenamePath (getSourceFileName())
 global REASM_form
 global REASM_wv
-global REASM_timer
-global REASM_queue = #()
 global REASM_ready = false
 
 fn REASM_fullPath p = ((dotNetClass "System.IO.Path").GetFullPath p)
@@ -61,26 +59,11 @@ fn REASM_handle raw =
 	REASM_post (REASM_toJson (REASM_obj #(#("id", id), #("ok", err == undefined), #("result", result), #("error", err))))
 )
 
--- Los mensajes se procesan fuera del evento de WebView2 (con un timer), asi un render largo no lo bloquea.
-fn REASM_onTick s e =
-(
-	REASM_timer.Enabled = false
-	while REASM_queue.count > 0 do
-	(
-		local raw = REASM_queue[1]
-		deleteItem REASM_queue 1
-		REASM_handle raw
-	)
-)
-
+-- Cada mensaje se procesa en cuanto llega y se responde con su id.
 fn REASM_onMessage s e =
 (
 	local raw = try (e.TryGetWebMessageAsString()) catch (undefined)
-	if raw != undefined do
-	(
-		append REASM_queue raw
-		REASM_timer.Enabled = true
-	)
+	if raw != undefined do REASM_handle raw
 )
 
 fn REASM_onInit s e =
@@ -104,8 +87,6 @@ fn REASM_onInit s e =
 fn REASM_onClosed s e =
 (
 	REASM_ready = false
-	try (REASM_timer.Enabled = false) catch ()
-	REASM_queue = #()
 	REASM_form = undefined
 	REASM_wv = undefined
 )
@@ -155,16 +136,11 @@ fn REASM_open =
 	REASM_wv.CreationProperties = cp
 	REASM_form.Controls.Add REASM_wv
 
-	REASM_timer = dotNetObject "System.Windows.Forms.Timer"
-	REASM_timer.Interval = 10
-	REASM_queue = #()
 	REASM_ready = false
 
-	dotNet.addEventHandler REASM_timer "Tick" REASM_onTick
 	dotNet.addEventHandler REASM_wv "CoreWebView2InitializationCompleted" REASM_onInit
 	dotNet.addEventHandler REASM_wv "WebMessageReceived" REASM_onMessage
 	dotNet.addEventHandler REASM_form "FormClosed" REASM_onClosed
-	dotNet.setLifetimeControl REASM_timer #dotnet
 	dotNet.setLifetimeControl REASM_wv #dotnet
 	dotNet.setLifetimeControl REASM_form #dotnet
 
