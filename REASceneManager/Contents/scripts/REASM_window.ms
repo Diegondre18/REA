@@ -44,6 +44,9 @@ fn REASM_dispatch cmd a =
 		"openRenderSetup": (renderSceneDialog.open(); true)
 		"thumbViewport": REASM_thumbViewport g[1]
 		"clay": REASM_setClay (g[1] == "1")
+		"listPresets": REASM_listPresets g[1]
+		"loadPreset": REASM_loadPreset g[1] (g[2] == "1")
+		"removePresets": REASM_removePresetLayers()
 		"thumbFromFile": REASM_thumbFromFile g[1] g[2]
 		default: throw ("Comando desconocido: " + cmd)
 	)

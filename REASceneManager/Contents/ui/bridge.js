@@ -124,6 +124,16 @@ const Mock = (() => {
       case 'browseFolder': return wait(scene.defaultFolder);
       case 'selection': return wait(scene.selection.slice());
       case 'openRenderSetup': return wait(true);
+      case 'listPresets': return wait(['Dia_Soleado', 'Atardecer_Calido', 'Nublado', 'Noche_Interior', 'Estudio_Producto'].map((n, i) =>
+        ({ name: n, file: a[0] + '\\' + n + '.max', type: 'max', thumb: mockThumb(n + 'light') })).concat([{ name: 'Corona_Final_HQ', file: a[0] + '\\Corona_Final_HQ.rps', type: 'rps', thumb: '' }]));
+      case 'loadPreset': {
+        const n = a[0].split('\\').pop().replace(/\.(max|rps)$/i, '');
+        if (/\.rps$/i.test(a[0])) return wait({ type: 'rps', layer: '', count: 0 });
+        if (a[1] === '1') scene.layers = scene.layers.filter(l => !l.name.startsWith('REA_Luz_'));
+        scene.layers.push({ name: 'REA_Luz_' + n, on: true });
+        return wait({ type: 'max', layer: 'REA_Luz_' + n, count: 7 });
+      }
+      case 'removePresets': scene.layers = scene.layers.filter(l => !l.name.startsWith('REA_Luz_')); return wait(true);
       case 'thumbViewport': return wait(mockThumb(scene.activeCamera));
       case 'thumbFromFile': return wait(mockThumb(a[0] + 'render'));
     }

@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '0.5.1';
+const VERSION = '0.6.0';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -13,7 +13,6 @@ const PROPS = [
   { key: 'objects', title: 'Objetos', icon: 'cube', color: '#8E8E93' },
   { key: 'elements', title: 'Render elements', icon: 'layers2', color: '#BF5AF2' },
   { key: 'corona', title: 'Corona', icon: 'zap', color: '#FF453A' },
-  { key: 'clay', title: 'Clay', icon: 'sphere', color: '#AC8E68' },
 ];
 // Valores de Corona (se confirman en 3ds Max; si no coinciden, solo hay que cambiar estas listas)
 const PROJECTIONS = [['0', 'Perspectiva'], ['1', 'Cilíndrica'], ['2', 'Esférica 360°'], ['3', 'Esférica 360° VR'], ['4', 'Cubemap']];
@@ -35,6 +34,7 @@ const S = {
   busy: false,
   progress: null,   // { i, n, name }
   batchLog: [],
+  presets: null,    // presets de iluminacion de la carpeta elegida
   undo: [],
   redo: [],
   search: '',
@@ -53,7 +53,7 @@ const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 // ---------------------------------------------------------------- preferencias de la interfaz (por PC)
 
 function loadUi() {
-  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {}, theme: 'dark' };
+  const def = { layout: 'list', accent: ACCENTS[0], thumbs: true, groupsClosed: {}, theme: 'dark', presetFolder: '', presetReplace: true };
   try { return Object.assign(def, JSON.parse(localStorage.getItem('reasm-ui2') || '{}')); } catch (e) { return def; }
 }
 function saveUi() {
@@ -239,7 +239,6 @@ function diffs(s) {
     if (c.sun.name ? (on.length !== 1 || on[0] !== c.sun.name) : on.length) out.push('sol');
   }
   if (c.env.on && (sc.activeEnv || '') !== (c.env.name || '')) out.push('entorno');
-  if (c.clay.on && sc.corona.hasOverride && !!sc.corona.clay !== !!c.clay.value) out.push('clay');
   if (c.elements.on) {
     const map = new Map(sc.elements.map(e => [e.name, e.enabled]));
     if (c.elements.items.some(e => map.has(e.name) && map.get(e.name) !== e.on)) out.push('render elements');
@@ -269,7 +268,6 @@ function opsFor(s) {
       if (c.corona[k] !== '' && c.corona[k] !== null && c.corona[k] !== undefined) ops.push(['corona', k, c.corona[k]]);
     });
   }
-  if (c.clay.on) ops.push(['clay', c.clay.value ? 1 : 0]);
   return ops.map(o => o.join(RS));
 }
 
@@ -478,7 +476,7 @@ function propBody(s, key) {
         ...c.items.map((l, i) => ({ name: l.name, i, on: l.on, missing: !sceneNames.includes(l.name) })),
         ...S.scene.layers.filter(l => !inSetup.has(l.name)).map(l => ({ name: l.name, i: -1, on: l.on, fresh: true })),
       ];
-      return `<div class="items">${rows.map(r => r.fresh
+      return `<div class="items" data-scroll="layers">${rows.map(r => r.fresh
           ? `<div class="item fresh">
               ${ib('trackLayer', 'plus', 'Nueva capa: añadir a este setup', { name: r.name }, 'dim')}
               <span class="name off">${esc(r.name)}</span><span class="tag">Nueva</span>
@@ -492,7 +490,7 @@ function propBody(s, key) {
         <div class="line end">${btn('setAll', 'Todas', '', { list: 'layers', val: 1 }, 'ghost')}${btn('setAll', 'Ninguna', '', { list: 'layers', val: 0 }, 'ghost')}${btn('captureLayers', 'Capturar', 'target', {}, 'ghost')}</div>`;
     }
     case 'objects':
-      return `<div class="items">${c.items.map((o, i) => `<div class="item">
+      return `<div class="items" data-scroll="objects">${c.items.map((o, i) => `<div class="item">
             ${ib('toggleItem', o.hidden ? 'eyeOff' : 'eye', o.hidden ? 'Oculto' : 'Visible', { list: 'objects', index: i }, o.hidden ? 'dim' : 'accent')}
             <span class="name ${o.hidden ? 'off' : ''}">${esc(o.name)}</span>
             ${ib('removeItem', 'x', 'Quitar', { list: 'objects', index: i }, 'hover')}
@@ -511,7 +509,7 @@ function propBody(s, key) {
       return selectHtml('comp.env.name', c.name, opts);
     }
     case 'elements':
-      return `<div class="items">${c.items.map((e, i) => `<div class="item">
+      return `<div class="items" data-scroll="elements">${c.items.map((e, i) => `<div class="item">
             ${toggle(e.on, 'toggleItem', { list: 'elements', index: i }, e.on ? 'Activo' : 'Inactivo')}
             <span class="name ${e.on ? '' : 'off'}">${esc(e.name)}</span>
             ${ib('removeItem', 'x', 'Quitar', { list: 'elements', index: i }, 'hover')}
@@ -716,6 +714,61 @@ function viewRender() {
   </div>`;
 }
 
+// ---------------------------------------------------------------- vista: iluminacion
+
+function presetSrc(p) {
+  if (!p.thumb) return '';
+  return p.thumb.startsWith('data:') ? p.thumb : 'file:///' + p.thumb.replace(/\\/g, '/');
+}
+
+function viewLights() {
+  const folder = S.ui.presetFolder;
+  if (folder && S.presets === null) { loadPresets(); }
+  const loaded = S.scene.layers.filter(l => l.name.startsWith('REA_Luz_'));
+  const list = S.presets || [];
+  const cards = list.map(p => {
+    const layer = 'REA_Luz_' + p.name;
+    const isLoaded = loaded.some(l => l.name === layer);
+    const src = presetSrc(p);
+    return `<div class="preset">
+      <div class="thumb">${src ? `<img src="${esc(src)}" alt="" draggable="false">` : `<span class="thumb-ph">${icon(p.type === 'rps' ? 'settings' : 'sun')}</span>`}
+        ${isLoaded ? '<span class="live-pill on-media"><i></i>En escena</span>' : ''}
+        <button class="play" data-action="loadPreset" data-file="${esc(p.file)}" data-name="${esc(p.name)}" data-type="${p.type}" title="Cargar">${icon('play')}</button>
+      </div>
+      <div class="tile-info"><div class="row-main"><span class="name">${esc(p.name)}</span>
+        <span class="meta">${p.type === 'rps' ? 'Preset de render (.rps)' : 'Iluminación (.max)'}</span></div>
+        ${btn('loadPreset', 'Cargar', '', { file: p.file, name: p.name, type: p.type }, 'small')}</div>
+    </div>`;
+  }).join('');
+  const body = !folder
+    ? empty('Elige tu carpeta de presets', 'Guarda tus rigs de luces como archivos .max (y presets de render .rps) en una carpeta. Si añades una imagen con el mismo nombre (.jpg o .png), se usa como miniatura.',
+        btn('pickPresetFolder', 'Elegir carpeta', 'folder', {}, 'primary'))
+    : S.presets === null ? empty('Leyendo la carpeta…')
+    : !list.length ? empty('No hay presets en esta carpeta', 'Añade archivos .max o .rps y pulsa Actualizar.')
+    : `<div class="tiles presets">${cards}</div>`;
+  return `<div class="page wide">
+    <div class="toolbar"><h1>Iluminación</h1>${list.length ? `<span class="count">${list.length}</span>` : ''}
+      <span class="spacer"></span>
+      ${folder ? `<div class="capsule">
+        <span class="capsule-label" title="${esc(folder)}">${icon('folder')}<span>${esc(folder.split('\\').pop() || folder)}</span></span>
+        ${ib('pickPresetFolder', 'edit', 'Cambiar carpeta')}${ib('reloadPresets', 'refresh', 'Actualizar')}
+      </div>` : ''}
+    </div>
+    ${folder ? `<section class="panel pad lights-opts">
+      <div class="form-row"><div><strong>Reemplazar la iluminación anterior</strong><p class="hint">Al cargar un preset .max se borran los presets REA cargados antes (capas REA_Luz_…).</p></div>${toggle(S.ui.presetReplace, 'togglePresetReplace')}</div>
+      ${loaded.length ? `<div class="form-row"><div><strong>En la escena</strong><p class="hint">${loaded.map(l => esc(l.name.replace('REA_Luz_', ''))).join('  ·  ')}</p></div>${btn('removePresets', 'Quitar todos', 'trash')}</div>` : ''}
+    </section>` : ''}
+    ${body}
+    <p class="hint center">Cada preset .max se carga en su propia capa, así puedes elegir la iluminación de cada setup desde la tarjeta Capas.</p>
+  </div>`;
+}
+
+async function loadPresets() {
+  try { S.presets = await Bridge.call('listPresets', S.ui.presetFolder); }
+  catch (err) { S.presets = []; toast('No se pudo leer la carpeta: ' + err.message, 'error'); }
+  if (S.view === 'lights') render();
+}
+
 // ---------------------------------------------------------------- vista: ajustes
 
 function viewSettings() {
@@ -754,7 +807,7 @@ function viewSettings() {
 
 // ---------------------------------------------------------------- render general
 
-const VIEWS = { setups: viewSetups, cameras: viewCameras, render: viewRender, settings: viewSettings };
+const VIEWS = { setups: viewSetups, cameras: viewCameras, lights: viewLights, render: viewRender, settings: viewSettings };
 
 function renderStatus() {
   const p = S.progress;
@@ -783,11 +836,14 @@ function render() {
   const top = page ? page.scrollTop : 0;
   const listTop = list ? list.scrollTop : 0;
   const focused = document.activeElement && document.activeElement.id === 'search';
+  const inner = {};
+  main.querySelectorAll('[data-scroll]').forEach(el => { inner[el.dataset.scroll] = el.scrollTop; });
   main.innerHTML = VIEWS[S.view]();
   const page2 = main.querySelector('.page');
   if (page2) page2.scrollTop = top;
   const list2 = main.querySelector('#setupList');
   if (list2) list2.scrollTop = listTop;
+  main.querySelectorAll('[data-scroll]').forEach(el => { if (inner[el.dataset.scroll] != null) el.scrollTop = inner[el.dataset.scroll]; });
   if (focused) { const s = $('#search'); if (s) { s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }
   renderStatus();
   renderOverlay();
@@ -823,6 +879,7 @@ function paletteItems() {
     ['Ir a la galería', 'grid', () => { S.view = 'setups'; render(); }],
     ['Ir a cámaras', 'camera', () => { S.view = 'cameras'; render(); }],
     ['Ir a render', 'render', () => { S.view = 'render'; render(); }],
+    ['Ir a iluminación', 'sun', () => { S.view = 'lights'; render(); }],
     ['Renderizar setups marcados', 'render', () => A.startBatch()],
     ['Crear cámara desde la vista', 'camera', () => { S.view = 'cameras'; render(); A.camCreate(); }],
     ['Cambiar galería / lista', 'grid', () => A.toggleLayout()],
@@ -1078,6 +1135,25 @@ const A = {
     await refreshScene();
     if (!S.scene.corona.isCorona) return toast('El motor actual no es Corona.', 'warn');
     mutate(() => { const c = comp('corona'); ['passLimit', 'noiseLimit', 'timeLimit'].forEach(k => { c[k] = S.scene.corona[k] ?? ''; }); });
+  },
+
+  // iluminacion
+  async pickPresetFolder() {
+    const f = await Bridge.call('browseFolder', S.ui.presetFolder || S.scene.filePath || '');
+    if (f) { S.ui.presetFolder = f; saveUi(); S.presets = null; render(); }
+  },
+  reloadPresets() { S.presets = null; render(); },
+  togglePresetReplace() { S.ui.presetReplace = !S.ui.presetReplace; saveUi(); render(); },
+  async loadPreset(el) {
+    const r = await Bridge.call('loadPreset', el.dataset.file, el.dataset.type === 'max' && S.ui.presetReplace ? '1' : '0');
+    await refreshScene(); render();
+    toast(r.type === 'rps' ? `Preset de render ${el.dataset.name} cargado` : `${el.dataset.name} cargado (${plural(r.count, 'objeto', 'objetos')})`, 'ok');
+  },
+  async removePresets() {
+    if (!confirm('¿Quitar de la escena toda la iluminación cargada con REA (capas REA_Luz_…)?')) return;
+    await Bridge.call('removePresets');
+    await refreshScene(); render();
+    toast('Iluminación REA quitada');
   },
 
   // camaras

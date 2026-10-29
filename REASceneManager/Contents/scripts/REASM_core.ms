@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "0.5.1"
+global REASM_VERSION = "0.6.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -703,5 +703,78 @@ fn REASM_thumbFromFile id file =
 		local f = REASM_saveThumb src id
 		close src
 		f
+	)
+)
+
+-- ==================================================================== presets de iluminacion
+-- Una carpeta con archivos .max (rigs de luces) y/o .rps (presets de render).
+-- Un .max se fusiona en la escena dentro de la capa "REA_Luz_<nombre>".
+
+fn REASM_presetThumb folder nm =
+(
+	local res = ""
+	for ext in #(".jpg", ".jpeg", ".png") while res == "" do
+		if doesFileExist (folder + "\\" + nm + ext) do res = folder + "\\" + nm + ext
+	res
+)
+
+fn REASM_listPresets folder =
+(
+	if folder == "" or not (doesFileExist folder) then #()
+	else
+	(
+		local res = #()
+		for ext in #("max", "rps") do
+			for f in (getFiles (folder + "\\*." + ext)) do
+			(
+				local nm = getFilenameFile f
+				append res (REASM_obj #(#("name", nm), #("file", f), #("type", ext), #("thumb", REASM_presetThumb folder nm)))
+			)
+		res
+	)
+)
+
+fn REASM_presetLayers = (for i = 0 to (LayerManager.count - 1) where matchPattern (LayerManager.getLayer i).name pattern:"REA_Luz_*" collect (LayerManager.getLayer i).name)
+
+fn REASM_removePresetLayers =
+(
+	for nm in REASM_presetLayers() do
+	(
+		local l = LayerManager.getLayerFromName nm
+		if l != undefined do
+		(
+			local nds = #()
+			l.nodes &nds
+			if nds.count > 0 do delete nds
+			LayerManager.deleteLayerByName nm
+		)
+	)
+	true
+)
+
+fn REASM_loadPreset file replaceOld =
+(
+	if not (doesFileExist file) do throw ("No existe el archivo: " + file)
+	local ext = toLower (getFilenameType file)
+	if ext == ".rps" then
+	(
+		if renderSceneDialog.isOpen() do renderSceneDialog.close()
+		renderPresets.LoadAll 0 file
+		REASM_obj #(#("type", "rps"), #("layer", ""), #("count", 0))
+	)
+	else
+	(
+		if replaceOld do REASM_removePresetLayers()
+		local layerName = "REA_Luz_" + (getFilenameFile file)
+		clearSelection()
+		mergeMAXFile file #select #mergeDups #renameMtlDups #noRedraw quiet:true
+		local merged = selection as array
+		local l = LayerManager.getLayerFromName layerName
+		if l == undefined do l = LayerManager.newLayerFromName layerName
+		for o in merged do l.addNode o
+		l.on = true
+		clearSelection()
+		redrawViews()
+		REASM_obj #(#("type", "max"), #("layer", layerName), #("count", merged.count))
 	)
 )
