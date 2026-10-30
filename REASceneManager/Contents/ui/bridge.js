@@ -109,7 +109,8 @@ const Mock = (() => {
         return wait(missing);
       }
       case 'batchBegin': case 'batchEnd': return wait(true);
-      case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + '\\' + a[2] + a[3], aborted: false }), 700));
+      case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + '\\' + a[2] + a[3], lightmix: a[4] === '1' ? a[0] + '\\' + a[1] + '\\' + a[2] + '_LightMix' + a[3] : '', aborted: false }), 2500 + Math.random() * 2500));
+      case 'coronaDiag': return wait('REA Scene Manager (demostración)\n-- Render elements\nLightMix_Sol  (CShading_LightSelect)  enabled:true');
       case 'listFiles': return wait([]);
       case 'openFile': case 'showInFolder': case 'beep': return wait(true);
       case 'setOutput': scene.outputFile = a[0] + '\\' + a[1] + a[2]; return wait(scene.outputFile);

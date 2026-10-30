@@ -30,7 +30,7 @@ fn REASM_dispatch cmd a =
 		"apply": REASM_applyOps a
 		"batchBegin": REASM_batchBegin()
 		"batchEnd": REASM_batchEnd (g[1] == "1")
-		"render": REASM_render g[1] g[2] g[3] g[4]
+		"render": REASM_render g[1] g[2] g[3] g[4] lm:g[5]
 		"setOutput": REASM_setOutput g[1] g[2] g[3]
 		"camCreate": REASM_camCreate g[1] g[2]
 		"cam": REASM_camCommand g[1] g[2] g[3]
@@ -53,6 +53,7 @@ fn REASM_dispatch cmd a =
 		"openFile": REASM_openFile g[1]
 		"showInFolder": REASM_showInFolder g[1]
 		"beep": REASM_beep()
+		"coronaDiag": REASM_coronaDiag()
 		"loadPreset": REASM_loadPreset g[1] (g[2] == "1")
 		"removePresets": REASM_removePresetLayers()
 		"thumbFromFile": REASM_thumbFromFile g[1] g[2]

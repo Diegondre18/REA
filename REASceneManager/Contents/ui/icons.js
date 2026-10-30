@@ -44,6 +44,7 @@ const ICONS = {
   aspect: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10v4M17 10v4"/>',
   swap: '<path d="M7 4L3 8l4 4"/><path d="M3 8h14"/><path d="M17 20l4-4-4-4"/><path d="M21 16H7"/>',
   tag: '<path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  activity: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
   zap: '<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>',
   folder: '<path d="M3 6a1 1 0 011-1h5l2 2h9a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1z"/>',
   check: '<path d="M5 12l5 5 9-10"/>',

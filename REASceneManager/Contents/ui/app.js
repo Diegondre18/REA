@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '0.8.0';
+const VERSION = '0.9.0';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -46,6 +46,7 @@ const S = {
   busy: false,
   progress: null,   // { i, n, name }
   batchLog: [],
+  run: null,        // lote en curso o el ultimo: { t0, end, folder, last }
   presets: null,    // presets de iluminacion de la carpeta elegida
   undo: [],
   redo: [],
@@ -80,7 +81,7 @@ function applyAccent() {
 // ---------------------------------------------------------------- datos
 
 function defaultData() {
-  return { version: 2, setups: [], batch: { folder: '', fmt: '.exr', restore: true, pattern: '{setup}_v{v}' }, output: { dir: '', name: '', fmt: '.exr' } };
+  return { version: 2, setups: [], batch: { folder: '', fmt: '.exr', restore: true, pattern: '{setup}_v{v}', lightmix: true }, output: { dir: '', name: '', fmt: '.exr' } };
 }
 
 function defaultComp() {
@@ -357,10 +358,10 @@ function fileUrl(p, v) {
 
 function thumbSrc(s) { return fileUrl(s.thumb, s.thumbV || 0); }
 
-function setLog(s, state, text) {
+function setLog(s, state, text, extra = {}) {
   const item = S.batchLog.find(l => l.id === s.id);
-  if (item) Object.assign(item, { state, text });
-  else S.batchLog.push({ id: s.id, name: s.name, color: s.color, state, text });
+  if (item) Object.assign(item, { state, text }, extra);
+  else S.batchLog.push(Object.assign({ id: s.id, name: s.name, color: s.color, state, text }, extra));
 }
 
 const safeName = n => (String(n).replace(/[\\/:*?"<>|]/g, '_') || 'sin_nombre');
@@ -404,19 +405,31 @@ function chime() {
   } catch (e) { /* sin audio */ }
 }
 
+// Tiempo esperado de una imagen: su ultimo render, o la media de este lote, o la media de todos los renders guardados.
+function estimateFor(s, times) {
+  if (s.renders && s.renders[0] && s.renders[0].dur) return s.renders[0].dur;
+  if (times.length) return times.reduce((a, b) => a + b, 0) / times.length;
+  const all = S.data.setups.flatMap(x => (x.renders || []).map(r => r.dur)).filter(Boolean);
+  return all.length ? all.reduce((a, b) => a + b, 0) / all.length : 0;
+}
+
 async function runBatch(ids) {
   if (S.busy) return;
   const sets = S.data.setups.filter(s => ids.includes(s.id));
   if (!sets.length) return toast('No hay setups para renderizar.', 'warn');
   const folder = (S.data.batch.folder || '').trim() || S.scene.defaultFolder;
   const ext = S.data.batch.fmt;
+  const lm = S.data.batch.lightmix !== false;
   S.busy = true;
   S.stop = false;
   S.batchLog = [];
-  sets.forEach(s => setLog(s, 'wait', 'En cola'));
   const times = [];
+  sets.forEach(s => setLog(s, 'wait', 'En cola', { est: estimateFor(s, times), cam: s.comp.camera.name, res: `${s.comp.res.w} × ${s.comp.res.h}` }));
   const t0 = Date.now();
+  S.run = { t0, end: 0, folder, last: null };
+  S.view = 'production';
   render();
+  startTicker();
   let done = 0;
   try {
     await Bridge.call('batchBegin');
@@ -426,38 +439,68 @@ async function runBatch(ids) {
       const avg = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
       S.progress = { i: i + 1, n: sets.length, name: s.name, eta: avg ? fmtDur(avg * (sets.length - i)) : '' };
       if (!s.comp.camera.on || !s.comp.camera.name) { setLog(s, 'skip', 'Sin cámara'); render(); continue; }
-      setLog(s, 'run', 'Renderizando');
+      setLog(s, 'run', 'Preparando la escena', { start: Date.now(), est: estimateFor(s, times) });
       render();
       await nextFrame();
       const missing = await Bridge.call('apply', ...opsFor(s));
       if ((missing || []).some(m => m.startsWith('Camara:'))) { setLog(s, 'skip', `No existe la cámara ${s.comp.camera.name}`); render(); continue; }
       const v = await nextVersion(s, folder, ext);
+      setLog(s, 'run', 'Renderizando', { start: Date.now() });
+      renderStatus(); if (S.view === 'production') render();
+      await nextFrame();
       const start = Date.now();
-      const r = await Bridge.call('render', folder, s.name, fileBase(s, v), ext);
+      const r = await Bridge.call('render', folder, s.name, fileBase(s, v), ext, lm ? '1' : '0');
       const dur = Date.now() - start;
       times.push(dur);
+      // con LightMix, la imagen principal del resultado es la del LightMix (la que se esta trabajando)
+      const file = (lm && r.lightmix) || r.file;
       let thumb = '';
-      if (S.ui.thumbs) thumb = await Bridge.call('thumbFromFile', `${s.id}_v${v}`, r.file).catch(() => '');
+      if (S.ui.thumbs) thumb = await Bridge.call('thumbFromFile', `${s.id}_v${v}`, file).catch(() => '');
       s.v = v;
-      s.renders = [{ file: r.file, v, time: Date.now(), dur, thumb }, ...(s.renders || [])].slice(0, 40);
+      s.renders = [{ file, beauty: r.file, lightmix: !!r.lightmix, v, time: Date.now(), dur, thumb }, ...(s.renders || [])].slice(0, 40);
       if (thumb) { s.thumb = thumb; s.thumbV = Date.now(); }
       save();
-      setLog(s, 'ok', `${fmtDur(dur)}  ·  ${r.file}`);
+      setLog(s, 'ok', r.lightmix ? 'LightMix guardado' : 'Guardado', { dur, file, thumb, v });
+      S.run.last = { id: s.id, name: s.name, file, thumb, v, dur, lightmix: !!r.lightmix };
       done++;
       render();
       if (r.aborted) { sets.slice(i + 1).forEach(x => setLog(x, 'skip', 'Detenido con ESC')); break; }
     }
   } catch (err) {
+    const cur = S.batchLog.find(l => l.state === 'run');
+    if (cur) Object.assign(cur, { state: 'skip', text: 'Error: ' + err.message });
     toast('Error durante el render: ' + err.message, 'error');
   } finally {
     try { await Bridge.call('batchEnd', S.data.batch.restore ? '1' : '0'); } catch (e) { /* nada */ }
     S.busy = false;
     S.progress = null;
+    S.run.end = Date.now();
+    stopTicker();
     await refreshScene().catch(() => {});
     render();
     if (S.ui.sound) { chime(); Bridge.call('beep').catch(() => {}); }
     toast(`Render terminado: ${done} de ${sets.length} en ${fmtDur(Date.now() - t0)}`, done ? 'ok' : 'warn');
   }
+}
+
+// Reloj de la vista Producción: actualiza tiempos y barras cada segundo sin redibujar la pantalla.
+let ticker = 0;
+function startTicker() { stopTicker(); ticker = setInterval(tick, 1000); }
+function stopTicker() { clearInterval(ticker); ticker = 0; }
+function tick() {
+  if (S.view !== 'production' || !S.run) return;
+  const m = prodMetrics();
+  document.querySelectorAll('[data-tick]').forEach(el => {
+    const k = el.dataset.tick;
+    if (k === 'elapsed') el.textContent = clock(m.elapsed);
+    else if (k === 'left') el.textContent = m.left ? '~' + fmtDur(m.left) : '—';
+    else if (k === 'finish') el.textContent = m.left ? hhmmOf(Date.now() + m.left) : '—';
+    else if (k === 'pct') el.textContent = Math.round(m.pct * 100) + '%';
+    else if (k === 'bar') el.style.width = (m.pct * 100).toFixed(1) + '%';
+    else if (k === 'curElapsed') el.textContent = m.cur ? clock(Date.now() - m.cur.start) : '';
+    else if (k === 'curBar') el.style.width = m.cur && m.cur.est ? (Math.min(0.97, (Date.now() - m.cur.start) / m.cur.est) * 100).toFixed(1) + '%' : '0%';
+    else if (k === 'curLeft') el.textContent = m.cur && m.cur.est ? curLeftText(m.cur) : 'Primera imagen: calculando…';
+  });
 }
 
 // ---------------------------------------------------------------- piezas de interfaz
@@ -871,6 +914,7 @@ function viewRender() {
       <div class="chips tokens">${['{setup}', '{proyecto}', '{grupo}', '{camara}', '{fecha}', '{hora}', 'v{v}'].map(t => `<button class="chip" data-action="addToken" data-v="${t}">${t}</button>`).join('')}</div>
       <div class="form-row"><span>Formato</span>${selectHtml('batch.fmt', b.fmt, FORMATS.map(f => [f, f.slice(1).toUpperCase()]), 'data-scope="data" class="short"')}</div>
       <div class="form-row"><span>Restaurar la escena al terminar</span>${toggle(b.restore, 'toggleRestore')}</div>
+      <div class="form-row"><div><span>Guardar el LightMix como imagen final</span><p class="hint">Si la escena tiene LightSelect, guarda también la imagen «_LightMix» y la usa en Resultados y en la hoja de contactos. La mezcla del VFB se conserva durante todo el lote.</p></div>${toggle(b.lightmix !== false, 'toggleLightmix')}</div>
       <p class="hint mono">${esc(folder)}\\&lt;setup&gt;\\${esc(sets[0] ? safeName(fileBase(sets[0], (sets[0].v || 0) + 1)) : 'Salon_v01')}${esc(b.fmt)}</p>
       <p class="hint">Con {v} cada render es una versión nueva (v01, v02…) y no se sobrescribe nada.</p>
     </section>
@@ -886,6 +930,114 @@ function viewRender() {
     <div class="cta">
       <button class="btn primary big" data-action="startBatch" ${S.busy || !marked.length ? 'disabled' : ''}>${icon('render')}<span>${S.busy ? 'Renderizando…' : `Renderizar ${plural(marked.length, 'setup', 'setups')}`}</span></button>
     </div>
+  </div>`;
+}
+
+// ---------------------------------------------------------------- vista: produccion
+
+const clock = ms => { const t = Math.max(0, Math.floor(ms / 1000)); const h = Math.floor(t / 3600); return `${h ? h + ':' : ''}${pad2(Math.floor(t / 60) % 60)}:${pad2(t % 60)}`; };
+const hhmmOf = t => { const d = new Date(t); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+
+function curLeftText(c) {
+  const left = c.est - (Date.now() - c.start);
+  return left > 0 ? `Quedan ~${fmtDur(left)} de ${fmtDur(c.est)} estimados` : 'Tardando más que la última vez…';
+}
+
+// Progreso del lote ponderado por el tiempo esperado de cada imagen.
+function prodMetrics() {
+  const jobs = S.batchLog;
+  const run = S.run || { t0: Date.now(), end: 0 };
+  const now = run.end || Date.now();
+  const durs = jobs.filter(j => j.state === 'ok').map(j => j.dur);
+  const avg = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : 0;
+  const cur = jobs.find(j => j.state === 'run' && j.start) || null;
+  let doneT = 0, totalT = 0, left = 0, known = true;
+  for (const j of jobs) {
+    if (j.state === 'ok') { doneT += j.dur; totalT += j.dur; }
+    else if (j.state === 'run' && j.start) {
+      const el = now - j.start; const est = j.est || avg;
+      if (!est) known = false;
+      doneT += el; totalT += Math.max(est, el); left += Math.max(0, est - el);
+    } else if (j.state === 'wait' || j.state === 'run') {
+      const est = j.est || avg;
+      if (!est) known = false;
+      totalT += est; left += est;
+    }
+  }
+  const n = jobs.filter(j => j.state !== 'skip').length || 1;
+  const nOk = jobs.filter(j => j.state === 'ok').length;
+  let pct = known && totalT ? doneT / totalT : nOk / n;
+  if (!S.busy) pct = jobs.length ? 1 : 0;
+  return { jobs, cur, elapsed: now - run.t0, left: S.busy && known ? left : 0, pct: Math.min(1, pct), nOk, n };
+}
+
+function viewProduction() {
+  const run = S.run;
+  if (!run || !S.batchLog.length) {
+    const marked = S.data.setups.filter(s => s.batch).length;
+    return `<div class="page">
+      <div class="toolbar"><h1>Producción</h1></div>
+      ${empty('No hay ningún render en marcha', 'Al lanzar un lote verás aquí el avance: la imagen que se está renderizando, el tiempo que queda, la hora a la que termina y cada render según sale.',
+        marked ? btn('startBatch', `Renderizar ${plural(marked, 'setup', 'setups')}`, 'render', {}, 'primary') : btn('goRender', 'Ir a Render', 'render', {}, 'primary'))}
+    </div>`;
+  }
+  const m = prodMetrics();
+  const live = S.busy;
+  const status = live ? (S.stop ? 'Se detiene al terminar esta imagen' : 'En curso') : 'Terminado';
+  const cur = m.cur;
+  const curSet = cur && S.data.setups.find(s => s.id === cur.id);
+  const last = run.last;
+  const lastSrc = last ? fileUrl(/\.(png|jpe?g)$/i.test(last.file) ? last.file : last.thumb) : '';
+  const stateTxt = { wait: 'En cola', run: 'Renderizando', ok: 'Hecho', skip: 'Omitido' };
+  const rows = m.jobs.map((j, i) => {
+    const right = j.state === 'ok' ? fmtDur(j.dur) : j.state === 'run' ? `<span data-tick="curElapsed">${cur && cur.id === j.id ? clock(Date.now() - j.start) : ''}</span>` : j.state === 'wait' && j.est ? '~' + fmtDur(j.est) : '';
+    return `<div class="prow ${j.state}">
+      <span class="pnum">${pad2(i + 1)}</span>
+      <span class="stripe" style="background:${esc(j.color)}"></span>
+      ${j.thumb ? `<img class="pthumb" src="${esc(fileUrl(j.thumb))}" alt="" draggable="false">` : `<span class="pthumb ph">${icon(j.state === 'run' ? 'render' : 'image')}</span>`}
+      <div class="row-main"><span class="name">${esc(j.name)}</span><span class="meta" title="${esc(j.file || j.text)}">${esc([j.cam, j.res].filter(Boolean).join('  ·  '))}${j.state === 'skip' || j.state === 'ok' ? '  ·  ' + esc(j.text) : ''}</span></div>
+      <span class="ptime">${right}</span>
+      <span class="state ${j.state}">${j.state === 'run' ? '<i class="pulse"></i>' : ''}${stateTxt[j.state]}</span>
+      ${j.file ? `<span class="lrow-tools">${ib('openFile', 'image', 'Abrir imagen', { file: j.file })}${ib('showInFolder', 'folder', 'Mostrar en la carpeta', { file: j.file })}</span>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="page">
+    <div class="toolbar"><h1>Producción</h1><span class="live-pill ${live ? 'on' : ''}"><i></i>${esc(status)}</span>
+      <span class="spacer"></span>
+      <span class="prod-tools">${btn('showInFolder', 'Carpeta', 'folder', { file: run.folder + '\\' })}
+      ${live ? `<button class="btn stop" data-action="stopBatch" ${S.stop ? 'disabled' : ''}>${S.stop ? 'Deteniendo…' : 'Detener'}</button>` : btn('startBatch', 'Repetir lote', 'refresh')}</span>
+    </div>
+
+    <section class="panel pad prod-hero">
+      <div class="prod-big"><span class="prod-pct" data-tick="pct">${Math.round(m.pct * 100)}%</span>
+        <span class="prod-sub">${m.nOk} de ${m.n} ${m.n === 1 ? 'imagen' : 'imágenes'}</span></div>
+      <div class="prod-stats">
+        <div><span class="k">Transcurrido</span><span class="v" data-tick="elapsed">${clock(m.elapsed)}</span></div>
+        <div><span class="k">Queda</span><span class="v" data-tick="left">${live && m.left ? '~' + fmtDur(m.left) : '—'}</span></div>
+        <div><span class="k">${live ? 'Termina' : 'Terminó'}</span><span class="v" data-tick="finish">${live && m.left ? hhmmOf(Date.now() + m.left) : run.end ? hhmmOf(run.end) : '—'}</span></div>
+      </div>
+      <div class="prog-bar big"><span data-tick="bar" style="width:${(m.pct * 100).toFixed(1)}%"></span></div>
+    </section>
+
+    <div class="prod-grid">
+      ${cur ? `<section class="panel prod-card">
+        <div class="prod-card-h"><span class="eyebrow">Ahora</span><span class="spacer"></span><span class="mono" data-tick="curElapsed">${clock(Date.now() - cur.start)}</span></div>
+        <div class="prod-media">${curSet && curSet.thumb ? `<img src="${esc(thumbSrc(curSet))}" alt="" draggable="false">` : `<span class="thumb-ph">${icon('render')}</span>`}<span class="scan"></span></div>
+        <div class="prod-card-b"><div class="row-main"><span class="name">${esc(cur.name)}</span><span class="meta">${esc(cur.text)}  ·  ${esc([cur.cam, cur.res].filter(Boolean).join('  ·  '))}</span></div>
+          <div class="prog-bar ${cur.est ? '' : 'indet'}"><span data-tick="curBar" style="width:${cur.est ? (Math.min(0.97, (Date.now() - cur.start) / cur.est) * 100).toFixed(1) : 0}%"></span></div>
+          <p class="hint" data-tick="curLeft">${cur.est ? curLeftText(cur) : 'Primera imagen: calculando…'}</p></div>
+      </section>` : ''}
+      ${last ? `<section class="panel prod-card">
+        <div class="prod-card-h"><span class="eyebrow">Último terminado</span><span class="spacer"></span><span class="mono">${fmtDur(last.dur)}</span></div>
+        <div class="prod-media" data-action="viewResult" data-id="${last.id}" data-file="${esc(last.file)}">${lastSrc ? `<img src="${esc(lastSrc)}" alt="" draggable="false">` : `<span class="thumb-ph">${icon('image')}</span>`}
+          ${last.lightmix ? '<span class="live-pill on-media"><i></i>LightMix</span>' : ''}</div>
+        <div class="prod-card-b"><div class="row-main"><span class="name">${esc(last.name)}  ·  v${pad2(last.v)}</span><span class="meta mono" title="${esc(last.file)}">${esc(last.file.split('\\').pop())}</span></div></div>
+      </section>` : ''}
+    </div>
+
+    <h2>Cola</h2>
+    <section class="panel">${rows}</section>
+    <p class="hint">${live ? 'El tiempo de cada imagen se estima con su render anterior. Mientras Corona renderiza, 3ds Max no responde: la barra avanza con esa estimación y se corrige al terminar cada imagen.' : `Lote terminado a las ${hhmmOf(run.end)} en ${fmtDur(run.end - run.t0)}.`}</p>
   </div>`;
 }
 
@@ -1019,6 +1171,10 @@ function viewSettings() {
           <button class="seg-btn wide ${S.ui.layout === 'grid' ? 'on' : ''}" data-action="setLayout" data-v="grid">${icon('grid')}<span>Galería</span></button>
         </div></div>
     </section>
+    <h2>Soporte</h2>
+    <section class="panel pad">
+      <div class="form-row"><div><strong>Diagnóstico de Corona</strong><p class="hint">Copia al portapapeles los render elements, las opciones de LightMix y las funciones de Corona de esta versión, para revisar problemas.</p></div>${btn('coronaDiag', 'Copiar', 'copy')}</div>
+    </section>
     <h2>Atajos de teclado</h2>
     <section class="panel pad keys">${keys.map(([k, d]) => `<div class="key-row"><span>${esc(d)}</span><kbd>${esc(k)}</kbd></div>`).join('')}</section>
     <h2>Acerca de</h2>
@@ -1032,16 +1188,17 @@ function viewSettings() {
 
 // ---------------------------------------------------------------- render general
 
-const VIEWS = { setups: viewSetups, cameras: viewCameras, lights: viewLights, render: viewRender, results: viewResults, sheet: () => viewSheet(), settings: viewSettings };
+const VIEWS = { setups: viewSetups, cameras: viewCameras, lights: viewLights, render: viewRender, production: viewProduction, results: viewResults, sheet: () => viewSheet(), settings: viewSettings };
 
 function renderStatus() {
   const p = S.progress;
+  document.body.classList.toggle('busy', !!S.busy);
   const host = Bridge.isHost;
   $('#navCount').textContent = S.data && S.data.setups.length ? S.data.setups.length : '';
   const marked = S.data ? S.data.setups.filter(s => s.batch).length : 0;
   $('#navRender').textContent = marked || '';
   $('#sideFoot').innerHTML = `
-    ${p ? `<div class="side-prog"><div class="side-prog-t">Renderizando ${p.i} de ${p.n}</div><div class="side-prog-n">${esc(p.name)}</div>
+    ${p ? `<div class="side-prog" data-view="production" title="Ver producción"><div class="side-prog-t">Renderizando ${p.i} de ${p.n}</div><div class="side-prog-n">${esc(p.name)}</div>
       <div class="prog-bar"><span style="width:${Math.round((p.i - 1) / p.n * 100)}%"></span></div>
       <div class="side-prog-n">${p.eta ? `Quedan ~${esc(p.eta)}` : 'Calculando tiempo…'}</div>
       <button class="btn small stop" data-action="stopBatch">${S.stop ? 'Se detendrá al terminar esta imagen' : 'Detener'}</button></div>` : ''}
@@ -1398,6 +1555,12 @@ const A = {
   addToken(el) { mutate(() => { S.data.batch.pattern = (S.data.batch.pattern || '') + (S.data.batch.pattern ? '_' : '') + el.dataset.v; }); },
   openFile(el) { return Bridge.call('openFile', el.dataset.file); },
   showInFolder(el) { return Bridge.call('showInFolder', el.dataset.file); },
+  toggleLightmix() { mutate(() => { S.data.batch.lightmix = S.data.batch.lightmix === false; }); },
+  async coronaDiag() {
+    const txt = await Bridge.call('coronaDiag');
+    toast('Diagnóstico copiado al portapapeles y escrito en el Listener (F11).', 'ok');
+    return txt;
+  },
   toggleSound() { S.ui.sound = !S.ui.sound; saveUi(); render(); },
   toggleCompare(el, e) {
     if (e) e.stopPropagation();
@@ -1514,7 +1677,7 @@ document.addEventListener('click', e => {
   if (nav) { S.view = nav.dataset.view; render(); return; }
   const el = e.target.closest('[data-action]');
   if (!el || el.disabled || el.classList.contains('disabled') || !A[el.dataset.action]) return;
-  if (S.busy && !['goRender', 'palette', 'select', 'stopBatch', 'viewResult', 'openFile', 'showInFolder'].includes(el.dataset.action)) {
+  if (S.busy && !['goRender', 'palette', 'select', 'stopBatch', 'viewResult', 'openFile', 'showInFolder', 'coronaDiag'].includes(el.dataset.action)) {
     if (el.tagName === 'INPUT') e.preventDefault();
     toast('Espera a que termine el render.', 'warn');
     return;

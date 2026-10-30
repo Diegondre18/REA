@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "0.8.0"
+global REASM_VERSION = "0.9.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -596,6 +596,109 @@ fn REASM_setOutput folder nm ext =
 	rendOutputFilename
 )
 
+-- ==================================================================== LightMix de Corona
+-- Los valores del LightMix interactivo viven en propiedades del renderer (colorMap_lightmix...).
+-- Se copian al empezar el lote y se vuelven a poner antes de cada imagen y al terminar,
+-- asi nada de lo que haga un setup (resolucion, elements, luces) borra la mezcla del usuario.
+
+global REASM_lmSnap = undefined
+
+fn REASM_lmProps =
+(
+	if not (REASM_isCorona()) then #()
+	else for p in (getPropNames renderers.current) where matchPattern (p as string) pattern:"*lightmix*" collect p
+)
+
+fn REASM_lmGet =
+(
+	local r = renderers.current
+	for p in REASM_lmProps() collect
+	(
+		local v = try (getProperty r p) catch (undefined)
+		#(p, (try (copy v) catch (v)))
+	)
+)
+
+fn REASM_lmSet snap =
+(
+	if snap != undefined do
+	(
+		local r = renderers.current
+		for p in snap where p[2] != undefined do try (setProperty r p[1] p[2]) catch ()
+	)
+	true
+)
+
+fn REASM_hasLightMix =
+(
+	local re = maxOps.GetCurRenderElementMgr()
+	local found = false
+	for i = 0 to (re.NumRenderElements() - 1) while not found do
+	(
+		local e = re.GetRenderElement i
+		if e.enabled and (matchPattern ((classOf e) as string) pattern:"*LightSelect*" or matchPattern ((classOf e) as string) pattern:"*LightMix*") do found = true
+	)
+	found
+)
+
+-- Guarda el resultado del LightMix (no el beauty) como <base>_LightMix<ext>. Devuelve la ruta o "".
+fn REASM_saveLightMix dir base ext =
+(
+	local dest = dir + "\\" + base + "_LightMix" + ext
+	-- 1) Max ya lo guardo como render element
+	local found = getFiles (dir + "\\" + base + "_*LightMix*" + ext)
+	if found.count > 0 do return found[1]
+	-- 2) Corona guarda todas las capas de su VFB (incluida la LightMix) en una carpeta temporal
+	local fp = try (CoronaRenderer.CoronaFp) catch (undefined)
+	if fp == undefined do return ""
+	local tmp = dir + "\\_rea_vfb\\"
+	makeDir tmp all:true
+	local ok = false
+	try (fp.saveAllElements (tmp + base + ext); ok = true) catch ()
+	if not ok do try (fp.saveAllElements (tmp + base + ext) true; ok = true) catch ()
+	local res = ""
+	if ok do
+	(
+		local cand = getFiles (tmp + "*LightMix*")
+		if cand.count > 0 do
+		(
+			local outExt = getFilenameType cand[1]
+			dest = dir + "\\" + base + "_LightMix" + outExt
+			deleteFile dest
+			if copyFile cand[1] dest do res = dest
+		)
+	)
+	try ((dotNetClass "System.IO.Directory").Delete tmp true) catch ()
+	res
+)
+
+-- Informacion para depurar: propiedades LightMix del renderer y funciones de CoronaFp.
+-- Se imprime en el Listener y se copia al portapapeles.
+fn REASM_coronaDiag =
+(
+	local ss = stringStream ""
+	format "REA Scene Manager % / 3ds Max % / %\n" REASM_VERSION ((maxVersion())[1]) (renderers.current as string) to:ss
+	format "\n-- Render elements\n" to:ss
+	local re = maxOps.GetCurRenderElementMgr()
+	for i = 0 to (re.NumRenderElements() - 1) do
+	(
+		local e = re.GetRenderElement i
+		format "%  (%)  enabled:%\n" e.elementName (classOf e) e.enabled to:ss
+	)
+	if REASM_isCorona() do
+	(
+		format "\n-- Propiedades del renderer (lightmix / vfb / save)\n" to:ss
+		for p in (getPropNames renderers.current) where (matchPattern (p as string) pattern:"*lightmix*" or matchPattern (p as string) pattern:"*vfb*" or matchPattern (p as string) pattern:"*save*") do
+			format "% = %\n" p (try (getProperty renderers.current p) catch ("?")) to:ss
+		format "\n-- CoronaRenderer.CoronaFp\n" to:ss
+		try (showInterface CoronaRenderer.CoronaFp to:ss) catch (format "(no disponible)\n" to:ss)
+	)
+	local txt = ss as string
+	format "%\n" txt
+	try (setClipboardText txt) catch ()
+	txt
+)
+
 -- Guarda todo lo que un setup puede cambiar, para restaurarlo al terminar un lote.
 fn REASM_batchBegin =
 (
@@ -619,6 +722,7 @@ fn REASM_batchBegin =
 			(if (REASM_lightColProp l) != undefined then getProperty l (REASM_lightColProp l) else undefined), l.transform)), \
 		(try (getRenderType()) catch (#view)), \
 		(if REASM_isCorona() then (for k in REASM_TONE_KEYS collect #(k, REASM_getCorona k)) else #()))
+	REASM_lmSnap = REASM_lmGet()
 	true
 )
 
@@ -668,6 +772,9 @@ fn REASM_batchEnd restore =
 		)
 		if b[1] != undefined and isValidNode b[1] do viewport.setCamera b[1]
 	)
+	-- el LightMix se devuelve siempre, se restaure o no la escena
+	REASM_lmSet REASM_lmSnap
+	REASM_lmSnap = undefined
 	if wasOpen do renderSceneDialog.open()
 	REASM_batchBackup = undefined
 	redrawViews()
@@ -675,7 +782,8 @@ fn REASM_batchEnd restore =
 )
 
 -- Renderiza la vista activa (la camara del setup ya aplicada) en <carpeta>\<subcarpeta>\<nombre>.<ext>.
-fn REASM_render folder sub nm ext =
+-- lm = "1": ademas guarda el resultado del LightMix (si la escena tiene LightSelect).
+fn REASM_render folder sub nm ext lm:"1" =
 (
 	local base = REASM_safeName nm
 	local dir = folder + "\\" + (REASM_safeName sub)
@@ -685,8 +793,15 @@ fn REASM_render folder sub nm ext =
 	rendOutputFilename = dir + "\\" + base + ext
 	rendSaveFile = true
 	REASM_setElementFilenames dir base ext
+	REASM_lmSet REASM_lmSnap
+	local t0 = timeStamp()
 	max quick render
-	REASM_obj #(#("file", rendOutputFilename), #("aborted", keyboard.escPressed))
+	local dur = timeStamp() - t0
+	local aborted = keyboard.escPressed
+	local lmFile = ""
+	if lm == "1" and not aborted and REASM_isCorona() and REASM_hasLightMix() do
+		lmFile = try (REASM_saveLightMix dir base ext) catch ("")
+	REASM_obj #(#("file", rendOutputFilename), #("lightmix", lmFile), #("aborted", aborted), #("ms", dur))
 )
 
 -- ==================================================================== camaras y render elements
