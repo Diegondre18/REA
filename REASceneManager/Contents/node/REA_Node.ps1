@@ -94,7 +94,7 @@ $versions = Get-Versions
 $hw = @{ cpu = ''; cores = 0; gpu = ''; ram = 0 }
 try { $hw.cpu = ([string](Get-CimInstance Win32_Processor | Select-Object -First 1).Name -replace '\s+', ' ').Trim() } catch { }
 try { $hw.cores = [int](Get-CimInstance Win32_Processor | Measure-Object NumberOfLogicalProcessors -Sum).Sum } catch { }
-try { $hw.gpu = ((Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }) -join ', ') } catch { }
+try { $hw.gpu = ((Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name } | Where-Object { $_ -notmatch 'Virtual|Parsec|Remote|Basic Display|Meta |Mirage|DisplayLink|Indirect' }) -join ', ') } catch { }
 try { $hw.ram = [math]::Round([double](Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB) } catch { }
 
 # ---------------------------------------------------------------- estado
