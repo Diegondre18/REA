@@ -294,6 +294,20 @@ foreach ($k in $modes.Keys) {
 }
 [void]$menu.Items.Add($miMode)
 $miFolder = $menu.Items.Add('Abrir la carpeta de la granja'); $miFolder.add_Click({ Start-Process explorer.exe $root })
+$miRoot = $menu.Items.Add('Cambiar la carpeta de la granja…')
+$miRoot.add_Click({
+  if ($script:job) { [Windows.Forms.MessageBox]::Show('Espera a que termine el render actual.', 'REA Node') | Out-Null; return }
+  $new = [Microsoft.VisualBasic.Interaction]::InputBox("Carpeta compartida de la granja (la misma que en Ajustes del Scene Manager, en todos los PCs):", 'REA Node', $root)
+  if (-not $new -or $new.TrimEnd('\') -eq $root) { return }
+  try { New-Item -ItemType Directory -Force -Path $new | Out-Null } catch { [Windows.Forms.MessageBox]::Show("No se puede abrir esa carpeta:`n$new", 'REA Node') | Out-Null; return }
+  WriteJson $cfgFile @{ root = $new.TrimEnd('\') }
+  # el nodo se reinicia con la carpeta nueva
+  $script:state = 'off'; Heartbeat
+  $timer.Stop(); $tray.Visible = $false
+  $mutex.ReleaseMutex()
+  Start-Process powershell.exe -ArgumentList "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$PSCommandPath`""
+  [Windows.Forms.Application]::Exit()
+})
 $miLog = $menu.Items.Add('Ver registro'); $miLog.add_Click({ if (Test-Path -LiteralPath $script:logFile) { Start-Process notepad.exe $script:logFile } })
 $startup = Join-Path ([Environment]::GetFolderPath('Startup')) 'REA Node.cmd'
 $miStart = New-Object Windows.Forms.ToolStripMenuItem 'Iniciar con Windows'
