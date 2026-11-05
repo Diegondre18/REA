@@ -20,12 +20,14 @@ function Size($b) { if ($b -ge 1GB) { '{0:N1} GB' -f ($b / 1GB) } elseif ($b -ge
 function ListFiles($root) {
   $base = (Get-Item -LiteralPath $root).FullName.TrimEnd('\')
   $out = New-Object System.Collections.Generic.List[object]
+  $errs = @()
   Get-ChildItem -LiteralPath $root -Recurse -File -Force -ErrorAction SilentlyContinue -ErrorVariable +errs | ForEach-Object {
     $rel = $_.FullName.Substring($base.Length + 1)
     if ($rel -match $skipRx) { return }
     if ($_.Name -eq 'Thumbs.db' -or $_.Name -eq 'desktop.ini' -or $_.Name -like '~$*' -or $_.Extension -eq '.tmp') { return }
     $out.Add([pscustomobject]@{ Rel = $rel; Name = $_.Name; Size = $_.Length; Key = ($_.Name.ToLowerInvariant() + '|' + $_.Length) })
   }
+  $script:listErrors += @($errs)
   return $out
 }
 
