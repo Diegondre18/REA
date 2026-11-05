@@ -79,7 +79,12 @@ fn REASM_farmFile root op rel txt =
 		"delete": if doesFileExist f do deleteFile f
 		"flag": REASM_writeText f (localTime as string)
 		"unflag": if doesFileExist f do deleteFile f
-		"rmdir": try ((dotNetClass "System.IO.Directory").Delete f true) catch (throw "No se pudo borrar la carpeta (quizas esta en uso)")
+		"rmdir":
+		(
+			local ok = true
+			try ((dotNetClass "System.IO.Directory").Delete f true) catch (ok = false)
+			if not ok do throw "No se pudo borrar la carpeta (quizas esta en uso)"
+		)
 		default: throw ("Operacion desconocida: " + op)
 	)
 	true
