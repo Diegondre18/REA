@@ -49,4 +49,5 @@ echo.
 findstr /C:"REASM_VERSION =" "%DEST%\Contents\scripts\REASM_core.ms"
 echo.
 echo Abre 3ds Max.
+echo Para que este PC renderice trabajos de la red, abre iniciar_nodo.bat.
 pause

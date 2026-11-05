@@ -4,6 +4,7 @@
 (
 	local dir = getFilenamePath (getSourceFileName())
 	fileIn (dir + "REASM_core.ms")
+	fileIn (dir + "REASM_farm.ms")
 	fileIn (dir + "REASM_window.ms")
 )
 

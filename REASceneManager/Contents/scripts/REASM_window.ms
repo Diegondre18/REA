@@ -54,6 +54,12 @@ fn REASM_dispatch cmd a =
 		"showInFolder": REASM_showInFolder g[1]
 		"beep": REASM_beep()
 		"coronaDiag": REASM_coronaDiag()
+		"farmSubmit": REASM_farmSubmit a[1] a[2] a[3] (for i = 4 to a.count collect a[i])
+		"farmState": REASM_farmState g[1]
+		"farmFile": REASM_farmFile g[1] g[2] g[3] g[4]
+		"farmSetRoot": REASM_farmSetRoot g[1]
+		"versions": REASM_versions()
+		"pcName": sysInfo.computername
 		"loadPreset": REASM_loadPreset g[1] (g[2] == "1")
 		"removePresets": REASM_removePresetLayers()
 		"thumbFromFile": REASM_thumbFromFile g[1] g[2]

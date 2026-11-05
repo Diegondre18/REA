@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "0.9.0"
+global REASM_VERSION = "1.0.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -565,8 +565,9 @@ fn REASM_applyOps ops =
 		)
 	)
 	if wasOpen do renderSceneDialog.open()
-	if camToSet != undefined do viewport.setCamera camToSet
-	redrawViews()
+	-- en un nodo (3dsmaxbatch) no hay visores: la camara la pone el script del nodo
+	if camToSet != undefined do try (viewport.setCamera camToSet) catch ()
+	try (redrawViews()) catch ()
 	missing
 )
 

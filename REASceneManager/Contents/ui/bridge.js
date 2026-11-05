@@ -72,6 +72,48 @@ const Mock = (() => {
     defaultFolder: 'D:\\Proyectos\\CasaPlaya\\render',
   };
   // miniatura de ejemplo: un degradado distinto por camara
+  // granja simulada: dos PCs que van tomando imagenes de la cola
+  const farm = {
+    jobs: {}, settings: {},
+    nodes: {
+      'LAP-DIEGO': { hw: { cpu: 'AMD Ryzen 9 7950X', ram: 128, gpu: 'NVIDIA RTX 4090' }, versions: { max: '2021', corona: '11.0.1', forest: '9.4.0', railclone: '7.3.0', tyflow: '' }, idle: false },
+      'LAP-RENDER2': { hw: { cpu: 'Intel Core i9-14900K', ram: 64, gpu: 'NVIDIA RTX 4070' }, versions: { max: '2021', corona: '10.0', forest: '9.4.0', railclone: '7.3.0', tyflow: '' }, idle: true },
+    },
+  };
+  const TASK_MS = 9000;
+  function farmTick() {
+    const now = Date.now();
+    const busy = {};
+    Object.values(farm.jobs).forEach(j => j.job.tasks.forEach(t => {
+      const st = j.st[t.id];
+      if (st && st.state === 'run') {
+        if (j.cancelled) { j.st[t.id] = Object.assign(st, { state: 'cancelled', end: now }); return; }
+        if (now - st.start >= TASK_MS) j.st[t.id] = Object.assign(st, { state: 'ok', end: now, ms: now - st.start, file: j.job.folder + '\\' + t.name + '\\' + t.base + j.job.ext, thumb: mockThumb(t.name + 'farm') });
+        else busy[st.node] = { id: j.job.id, name: j.job.name, task: t.id, taskName: t.name, start: st.start, est: t.est };
+      }
+    }));
+    Object.entries(farm.nodes).forEach(([name, n]) => {
+      const set = Object.assign({ mode: name === 'LAP-DIEGO' ? 'idle' : 'always', idleMin: 10, nightFrom: '19:00', nightTo: '07:00', paused: false }, farm.settings[name]);
+      const avail = !set.paused && (set.mode === 'always' || (set.mode === 'idle' && n.idle));
+      if (avail && !busy[name]) {
+        const jobs = Object.values(farm.jobs).filter(j => !j.paused && !j.cancelled && (!j.job.pc || j.job.pc === name)).sort((a, b) => b.job.priority - a.job.priority || a.job.created - b.job.created);
+        for (const j of jobs) {
+          const t = j.job.tasks.find(x => !j.claims[x.id]);
+          if (t) { j.claims[t.id] = name; j.st[t.id] = { id: t.id, state: 'run', node: name, start: now, est: t.est || TASK_MS }; busy[name] = { id: j.job.id, name: j.job.name, task: t.id, taskName: t.name, start: now, est: t.est || TASK_MS }; break; }
+        }
+      }
+      n.beat = { name, state: busy[name] ? 'busy' : set.paused ? 'paused' : avail ? 'idle' : 'waiting', lastSeen: now, settings: set, cpuLoad: busy[name] ? 92 + Math.round(Math.random() * 6) : 4 + Math.round(Math.random() * 8),
+        ramUsed: busy[name] ? 41.5 : 12.2, ramTotal: n.hw.ram, hw: n.hw, versions: n.versions, job: busy[name] || null };
+    });
+    return {
+      ok: true, pc: 'LAP-DIEGO', now: String(now),
+      nodes: Object.values(farm.nodes).map(n => ({ file: n.beat.name + '.json', text: JSON.stringify(n.beat) })),
+      settings: [],
+      jobs: Object.values(farm.jobs).map(j => ({ dir: 'X:\\jobs\\' + j.job.id + '\\', text: JSON.stringify(j.job), paused: j.paused, cancelled: j.cancelled,
+        claims: Object.keys(j.claims), tasks: Object.entries(j.st).map(([id, st]) => ({ file: id + '.json', text: JSON.stringify(st) })) })),
+    };
+  }
+
   function mockThumb(seed) {
     let h = 0;
     for (const ch of String(seed)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
@@ -110,6 +152,32 @@ const Mock = (() => {
       }
       case 'batchBegin': case 'batchEnd': return wait(true);
       case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + '\\' + a[2] + a[3], lightmix: a[4] === '1' ? a[0] + '\\' + a[1] + '\\' + a[2] + '_LightMix' + a[3] : '', aborted: false }), 2500 + Math.random() * 2500));
+      case 'pcName': return wait('LAP-DIEGO');
+      case 'versions': return wait({ max: '2021', corona: '11.0.1', forest: '9.4.0', railclone: '7.3.0', tyflow: '' });
+      case 'farmSetRoot': return wait(true);
+      case 'farmSubmit': {
+        const job = JSON.parse(a[2]);
+        farm.jobs[job.id] = { job, st: {}, claims: {}, paused: false, cancelled: false };
+        return new Promise(r => setTimeout(() => r('ok'), 900));
+      }
+      case 'farmFile': {
+        const [, op, rel, txt] = a;
+        const p = rel.split('\\');
+        if (p[0] === 'nodes') { farm.settings[p[1].replace('.settings.json', '')] = JSON.parse(txt); return wait(true); }
+        const j = farm.jobs[p[1]];
+        if (!j) return wait(true);
+        if (op === 'rmdir') delete farm.jobs[p[1]];
+        else if (p[2] === 'pause.flag') j.paused = op === 'flag';
+        else if (p[2] === 'cancel.flag') j.cancelled = op === 'flag';
+        else if (p[2] === 'job.json') j.job = JSON.parse(txt);
+        else if (p[2] === 'tasks') {
+          const tid = p[3].split('.')[0];
+          if (op === 'delete') { delete j.st[tid]; delete j.claims[tid]; }
+          if (op === 'flag' && p[3].endsWith('.stop')) j.st[tid] = { id: tid, state: 'cancelled', node: j.claims[tid], error: 'Detenido' };
+        }
+        return wait(true);
+      }
+      case 'farmState': return wait(farmTick());
       case 'coronaDiag': return wait('REA Scene Manager (demostración)\n-- Render elements\nLightMix_Sol  (CShading_LightSelect)  enabled:true');
       case 'listFiles': return wait([]);
       case 'openFile': case 'showInFolder': case 'beep': return wait(true);

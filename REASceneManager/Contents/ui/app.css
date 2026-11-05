@@ -423,7 +423,7 @@ input[type=range] { flex: 1; accent-color: var(--solid); height: 4px; }
 .state.run { color: var(--warn); }
 .state.ok { color: var(--ok); }
 .state.skip { color: var(--error); }
-.cta { position: sticky; bottom: 18px; display: flex; justify-content: flex-end; margin-top: 22px; }
+.cta { position: sticky; bottom: 18px; display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 .cta .btn.big { box-shadow: var(--shadow); }
 .keys { gap: 0 !important; padding-top: 4px !important; padding-bottom: 4px !important; }
 .key-row { display: flex; justify-content: space-between; align-items: center; height: 40px; color: var(--text-2); }
@@ -617,4 +617,57 @@ body.busy .nav-live { background: var(--ok); box-shadow: 0 0 0 0 var(--ok); anim
   .prow .pnum, .prow .ptime { display: none; }
   .prod-grid { grid-template-columns: 1fr; }
   .prod-tools .btn span { display: none; }
+}
+
+/* ---------------------------------------------------------------- granja (red) */
+h2 .count { font-weight: 400; color: var(--muted); margin-left: 6px; }
+.state.info { color: var(--accent); }
+.nodes { display: grid; gap: 12px; }
+.node { border-radius: 16px; background: var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 14px 16px; display: grid; gap: 12px; }
+.node.offline { opacity: .6; }
+.node-h { display: flex; align-items: center; gap: 12px; }
+.node-ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--surface-2); color: var(--text-2); flex: none; }
+.node-ic svg { width: 17px; height: 17px; }
+.node-h .row-main { flex: 1; min-width: 0; }
+.node-b { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 18px; align-items: center; }
+.node-m { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; font-size: 12px; }
+.node-m .k { color: var(--muted); font-weight: 600; letter-spacing: .05em; font-size: 11px; }
+.node-m .v { color: var(--text-2); font-variant-numeric: tabular-nums; }
+.node-job { display: grid; min-width: 0; }
+.node-job .name { font-weight: 500; }
+.node-job .meta { color: var(--text-2); font-size: 12.5px; }
+.node-job .meta, .node-job .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.node-f { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.vchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.vchip { font-size: 11.5px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--text-2); }
+.vchip b { font-weight: 500; color: var(--text); }
+.vchip.bad { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+.vchip.bad b { color: var(--warn); }
+.node-warn, .check { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: 12.5px; color: var(--text-2); }
+.node-warn svg, .check svg { width: 15px; height: 15px; flex: none; margin-top: 1px; color: var(--warn); }
+.check.bad svg { color: var(--error); }
+.checks { display: grid; gap: 10px; }
+.seg.small .seg-btn { height: 26px; padding: 0 10px; font-size: 12px; }
+.mbar { height: 5px; border-radius: 3px; background: var(--line-2); overflow: hidden; }
+.mbar span { display: block; height: 100%; background: var(--ok); border-radius: 3px; transition: width 4s linear; }
+.mbar.hot span { background: var(--warn); }
+.prow .row-main .mbar { margin-top: 6px; max-width: 260px; }
+.prow.stale .state { color: var(--error); }
+.job { overflow: hidden; margin-bottom: 12px; }
+.job-h { display: flex; align-items: center; gap: 12px; padding: 14px 16px 10px; }
+.job-h .row-main { flex: 1; min-width: 0; }
+.job-h .name { font-weight: 600; font-size: 15px; }
+.mbar.job-bar { margin: 0 16px; height: 4px; }
+.mbar.job-bar span { background: var(--text); }
+.job-tools { display: flex; align-items: center; gap: 8px; padding: 10px 16px 12px; }
+.pri { display: inline-flex; align-items: center; gap: 2px; font-size: 12.5px; color: var(--text-2); }
+.pri b { min-width: 28px; text-align: center; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.job-tasks { border-top: 1px solid var(--line); }
+.job.done .job-tasks, .job.cancelled .job-tasks { display: none; }
+.job.done:hover .job-tasks { display: block; }
+.line.range { display: flex; align-items: center; gap: 10px; }
+.line.range output { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+.path { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-size: 12px; }
+@media (max-width: 760px) {
+  .node-b { grid-template-columns: 1fr; gap: 8px; }
 }

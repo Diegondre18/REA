@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '0.9.0';
+const VERSION = '1.0.0';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -928,6 +928,7 @@ function viewRender() {
     </section>
     <p class="hint">Desactiva el candado de vista en Render Setup. Mantén ESC pulsado para detener el lote.</p>
     <div class="cta">
+      <button class="btn big" data-action="goSubmit" ${S.busy || !marked.length ? 'disabled' : ''} title="Renderizar en los PCs de la granja">${icon('activity')}<span>Enviar a la red</span></button>
       <button class="btn primary big" data-action="startBatch" ${S.busy || !marked.length ? 'disabled' : ''}>${icon('render')}<span>${S.busy ? 'Renderizando…' : `Renderizar ${plural(marked.length, 'setup', 'setups')}`}</span></button>
     </div>
   </div>`;
@@ -972,11 +973,12 @@ function prodMetrics() {
 }
 
 function viewProduction() {
+  if (S.ui.prodTab === 'net') return viewFarm();
   const run = S.run;
   if (!run || !S.batchLog.length) {
     const marked = S.data.setups.filter(s => s.batch).length;
     return `<div class="page">
-      <div class="toolbar"><h1>Producción</h1></div>
+      <div class="toolbar"><h1>Producción</h1>${prodTabs()}</div>
       ${empty('No hay ningún render en marcha', 'Al lanzar un lote verás aquí el avance: la imagen que se está renderizando, el tiempo que queda, la hora a la que termina y cada render según sale.',
         marked ? btn('startBatch', `Renderizar ${plural(marked, 'setup', 'setups')}`, 'render', {}, 'primary') : btn('goRender', 'Ir a Render', 'render', {}, 'primary'))}
     </div>`;
@@ -1002,7 +1004,7 @@ function viewProduction() {
     </div>`;
   }).join('');
   return `<div class="page">
-    <div class="toolbar"><h1>Producción</h1><span class="live-pill ${live ? 'on' : ''}"><i></i>${esc(status)}</span>
+    <div class="toolbar"><h1>Producción</h1>${prodTabs()}<span class="live-pill ${live ? 'on' : ''}"><i></i>${esc(status)}</span>
       <span class="spacer"></span>
       <span class="prod-tools">${btn('showInFolder', 'Carpeta', 'folder', { file: run.folder + '\\' })}
       ${live ? `<button class="btn stop" data-action="stopBatch" ${S.stop ? 'disabled' : ''}>${S.stop ? 'Deteniendo…' : 'Detener'}</button>` : btn('startBatch', 'Repetir lote', 'refresh')}</span>
@@ -1171,6 +1173,12 @@ function viewSettings() {
           <button class="seg-btn wide ${S.ui.layout === 'grid' ? 'on' : ''}" data-action="setLayout" data-v="grid">${icon('grid')}<span>Galería</span></button>
         </div></div>
     </section>
+    <h2>Granja de render</h2>
+    <section class="panel pad">
+      <div class="form-row"><div><strong>Carpeta de la granja</strong><p class="hint">Carpeta compartida en el NAS, la misma en todos los PCs. Ahí se guardan los trabajos y el estado de cada nodo.</p></div>
+        <div class="line"><span class="mono path" title="${esc(S.ui.farmRoot)}">${esc(S.ui.farmRoot || 'Sin elegir')}</span>${ib('farmPickRoot', 'folder', 'Elegir carpeta', {}, 'boxed')}</div></div>
+      <div class="form-row"><div><strong>Nodo en este PC</strong><p class="hint">Para que este PC renderice trabajos de la red, abre <b>iniciar_nodo.bat</b> (en el zip del plugin). Queda un punto junto al reloj: clic para pausar, elegir cuándo renderiza o iniciarlo con Windows.</p></div></div>
+    </section>
     <h2>Soporte</h2>
     <section class="panel pad">
       <div class="form-row"><div><strong>Diagnóstico de Corona</strong><p class="hint">Copia al portapapeles los render elements, las opciones de LightMix y las funciones de Corona de esta versión, para revisar problemas.</p></div>${btn('coronaDiag', 'Copiar', 'copy')}</div>
@@ -1212,7 +1220,7 @@ function renderList() {
 }
 
 function render() {
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view || (S.view === 'sheet' && b.dataset.view === 'results')));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view || (S.view === 'sheet' && b.dataset.view === 'results') || (S.view === 'submit' && b.dataset.view === 'render')));
   const main = $('#main');
   if (!S.scene || !S.data) { main.innerHTML = empty('Leyendo la escena…'); renderStatus(); return; }
   const page = main.querySelector('.page');
