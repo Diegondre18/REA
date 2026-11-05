@@ -14,6 +14,14 @@ public static class ReaIdle {
 }
 "@
 
+# Cualquier error al arrancar se apunta en el registro y se muestra (el nodo corre sin ventana).
+trap {
+  $m = "REA Node no pudo arrancar:`n`n" + $_.Exception.Message + "`n`n(linea " + $_.InvocationInfo.ScriptLineNumber + ")"
+  try { Add-Content -LiteralPath (Join-Path $env:LOCALAPPDATA 'REASceneManager\node.log') -Value ("{0:yyyy-MM-dd HH:mm:ss}  {1}" -f (Get-Date), ($m -replace "`n", ' ')) -Encoding UTF8 } catch { }
+  try { [System.Windows.Forms.MessageBox]::Show($m, 'REA Node') | Out-Null } catch { }
+  exit 1
+}
+
 # ---------------------------------------------------------------- una sola instancia
 $mutex = New-Object System.Threading.Mutex($false, 'Local\REASceneManagerNode')
 if (-not $mutex.WaitOne(0)) { [System.Windows.Forms.MessageBox]::Show('REA Node ya está abierto (mira junto al reloj).', 'REA Node') | Out-Null; exit }
