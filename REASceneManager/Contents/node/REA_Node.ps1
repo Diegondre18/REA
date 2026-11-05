@@ -91,12 +91,11 @@ function Get-Versions {
   }
 }
 $versions = Get-Versions
-$hw = @{
-  cpu = ((Get-CimInstance Win32_Processor | Select-Object -First 1).Name -replace '\s+', ' ').Trim()
-  cores = (Get-CimInstance Win32_Processor | Measure-Object NumberOfLogicalProcessors -Sum).Sum
-  gpu = ((Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }) -join ', ')
-  ram = [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB)
-}
+$hw = @{ cpu = ''; cores = 0; gpu = ''; ram = 0 }
+try { $hw.cpu = ([string](Get-CimInstance Win32_Processor | Select-Object -First 1).Name -replace '\s+', ' ').Trim() } catch { }
+try { $hw.cores = [int](Get-CimInstance Win32_Processor | Measure-Object NumberOfLogicalProcessors -Sum).Sum } catch { }
+try { $hw.gpu = ((Get-CimInstance Win32_VideoController | ForEach-Object { $_.Name }) -join ', ') } catch { }
+try { $hw.ram = [math]::Round([double](Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB) } catch { }
 
 # ---------------------------------------------------------------- estado
 $script:settings = $defaults
@@ -212,13 +211,18 @@ function AbortTask($why, $requeue) {
 }
 
 function Heartbeat {
-  $os = Get-CimInstance Win32_OperatingSystem
-  $cpu = (Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average).Average
+  $cpu = 0; $used = 0; $total = 0
+  try { $c = (Get-CimInstance Win32_Processor | Measure-Object LoadPercentage -Average).Average; if ($null -ne $c) { $cpu = [math]::Round([double]$c) } } catch { }
+  try {
+    $os = Get-CimInstance Win32_OperatingSystem
+    $total = [math]::Round([double]$os.TotalVisibleMemorySize / 1MB, 1)
+    $used = [math]::Round(([double]$os.TotalVisibleMemorySize - [double]$os.FreePhysicalMemory) / 1MB, 1)
+  } catch { }
   $j = $script:job
   WriteJson $beatFile @{
     name = $pc; version = $NodeVersion; state = $script:state; lastSeen = NowMs
     settings = $script:settings; idleSec = [math]::Round([ReaIdle]::Seconds())
-    cpuLoad = [math]::Round($cpu); ramUsed = [math]::Round(($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / 1MB, 1); ramTotal = [math]::Round($os.TotalVisibleMemorySize / 1MB, 1)
+    cpuLoad = $cpu; ramUsed = $used; ramTotal = $total
     hw = $hw; versions = $versions; maxFound = (Test-Path -LiteralPath $batchExe)
     job = $(if ($j) { @{ id = $j.id; dir = $j.dir; name = $j.name; task = $j.task; taskName = $j.taskName; start = $j.start; est = $j.est } } else { $null })
   }
@@ -253,7 +257,11 @@ function Tick {
     if (((Get-Date) - $script:lastVersions).TotalMinutes -gt 60) { $script:versions = Get-Versions; $script:lastVersions = Get-Date }
     Heartbeat
     UpdateTray
-  } catch { Log ("Error: " + $_.Exception.Message) }
+  } catch {
+    $msg = "Error: " + $_.Exception.Message + " (linea " + $_.InvocationInfo.ScriptLineNumber + ")"
+    if ($msg -ne $script:lastError) { Log $msg; $script:lastError = $msg }
+    try { UpdateTray } catch { }
+  }
 }
 
 # ---------------------------------------------------------------- icono junto al reloj
