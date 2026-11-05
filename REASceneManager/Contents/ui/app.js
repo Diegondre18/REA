@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -92,7 +92,7 @@ function defaultComp() {
     lights: { on: false, items: [] },
     tone: { on: false, values: {} },
     region: { on: false, type: 'view', x: 0, y: 0, w: 0, h: 0 },
-    env: { on: false, name: '' },
+    env: { on: false, name: '', corona: true },
     layers: { on: true, items: [] },
     objects: { on: false, items: [] },
     elements: { on: false, items: [] },
@@ -293,7 +293,7 @@ function diffs(s) {
     const on = sc.suns.filter(x => x.on).map(x => x.name);
     if (c.sun.name ? (on.length !== 1 || on[0] !== c.sun.name) : on.length) out.push('sol');
   }
-  if (c.env.on && (sc.activeEnv || '') !== (c.env.name || '')) out.push('entorno');
+  if (c.env.on && ((sc.activeEnv || '') !== (c.env.name || '') || (c.env.name && c.env.corona !== false && sc.corona.hasBg && sc.corona.bgMap !== c.env.name))) out.push('entorno');
   if (c.elements.on) {
     const map = new Map(sc.elements.map(e => [e.name, e.enabled]));
     if (c.elements.items.some(e => map.has(e.name) && map.get(e.name) !== e.on)) out.push('render elements');
@@ -323,7 +323,7 @@ function opsFor(s) {
   if (c.lights.on) c.lights.items.forEach(l => ops.push(['light', l.name, l.on ? 1 : 0, l.intensity ?? '', l.color || '']));
   if (c.tone.on) Object.entries(c.tone.values).forEach(([k, v]) => { if (v !== '' && v !== null) ops.push(['corona', k, typeof v === 'boolean' ? (v ? 1 : 0) : v]); });
   if (c.region.on) ops.push(['region', c.region.type, c.region.x, c.region.y, c.region.w, c.region.h]);
-  if (c.env.on) ops.push(['env', c.env.name]);
+  if (c.env.on) ops.push(['env', c.env.name, c.env.corona !== false ? 1 : 0]);
   if (c.corona.on) {
     ['passLimit', 'noiseLimit', 'timeLimit', 'denoiseType', 'denoiseAmount'].forEach(k => {
       if (c.corona[k] !== '' && c.corona[k] !== null && c.corona[k] !== undefined) ops.push(['corona', k, c.corona[k]]);
@@ -721,7 +721,11 @@ function propBody(s, key) {
       const envs = S.scene.envMaps;
       const opts = [['', 'Sin entorno'], ...envs.map(n => [n, n])];
       if (c.name && !envs.includes(c.name)) opts.push([c.name, `${c.name} (no existe)`]);
-      return selectHtml('comp.env.name', c.name, opts);
+      const bg = S.scene.corona;
+      return `${selectHtml('comp.env.name', c.name, opts)}
+        ${bg.hasBg ? `<div class="form-row tight"><div><span>También en el Scene environment de Corona</span>
+          <p class="hint">Pone este mapa en Render Setup › Scene › Scene environment, así se renderiza aunque Corona esté en «Single map».${bg.bgMap && bg.bgMap !== c.name ? ` Ahora tiene: ${esc(bg.bgMap)}.` : ''}</p></div>
+          ${toggle(c.corona !== false, 'toggleEnvCorona')}</div>` : ''}`;
     }
     case 'elements':
       return `<div class="items" data-scroll="elements">${c.items.map((e, i) => `<div class="item">
@@ -1384,6 +1388,7 @@ const A = {
   setLayout(el) { S.ui.layout = el.dataset.v; saveUi(); render(); },
   setAccent(el) { S.ui.accent = el.dataset.v; saveUi(); render(); },
   setTheme(el) { S.ui.theme = el.dataset.v; saveUi(); render(); },
+  toggleEnvCorona() { const s = primary(); mutate(() => { s.comp.env.corona = s.comp.env.corona === false; }); },
   toggleThumbs() { S.ui.thumbs = !S.ui.thumbs; saveUi(); render(); },
 
   // seleccion

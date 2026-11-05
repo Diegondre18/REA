@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "1.0.0"
+global REASM_VERSION = "1.0.1"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -218,9 +218,18 @@ fn REASM_coronaProp key =
 		"bloomIntensity": REASM_findProp r #("bloomGlare_bloomIntensity", "*bloom*intensity*")
 		"glareIntensity": REASM_findProp r #("bloomGlare_glareIntensity", "*glare*intensity*")
 		"overrideOn": REASM_findProp r #("mtlOverride_enabled", "*override*enable*", "*override*on")
+		"bgTexmap": REASM_findProp r #("bg_texmap", "*bg*texmap*", "*bg*map")
 		"overrideMtl": REASM_findProp r #("mtlOverride", "*mtl*override", "*override*mtl", "*override*material")
 		default: ""
 	)
+)
+
+-- Nombre del mapa del Scene environment de Corona (modo "Single map"), o "".
+fn REASM_bgMapName =
+(
+	local pn = REASM_coronaProp "bgTexmap"
+	local m = if pn == "" or not (isProperty renderers.current (pn as name)) then undefined else (getProperty renderers.current (pn as name))
+	if m == undefined then "" else (try (m.name) catch (""))
 )
 
 fn REASM_getCorona key =
@@ -411,6 +420,8 @@ fn REASM_getScene =
 			#("denoiseAmount", REASM_getCorona "denoiseAmount"), \
 			#("hasDenoise", (REASM_coronaProp "denoiseType") != ""), \
 			#("hasOverride", (REASM_coronaProp "overrideOn") != ""), \
+			#("hasBg", (REASM_coronaProp "bgTexmap") != ""), \
+			#("bgMap", REASM_bgMapName()), \
 			#("clay", REASM_clayOn()))
 	)
 	REASM_obj #( \
@@ -546,6 +557,10 @@ fn REASM_applyOps ops =
 					(
 						environmentMap = m
 						useEnvironmentMap = true
+						-- el mismo mapa en el Scene environment de Corona (modo "Single map"), para que
+						-- se renderice este mapa use Corona los ajustes de 3ds Max o su mapa unico
+						local bp = REASM_coronaProp "bgTexmap"
+						if f.count >= 3 and f[3] == "1" and bp != "" do try (setProperty renderers.current (bp as name) m) catch ()
 					)
 				)
 			)
@@ -722,7 +737,8 @@ fn REASM_batchBegin =
 			(if (REASM_lightIntProp l) != undefined then getProperty l (REASM_lightIntProp l) else undefined), \
 			(if (REASM_lightColProp l) != undefined then getProperty l (REASM_lightColProp l) else undefined), l.transform)), \
 		(try (getRenderType()) catch (#view)), \
-		(if REASM_isCorona() then (for k in REASM_TONE_KEYS collect #(k, REASM_getCorona k)) else #()))
+		(if REASM_isCorona() then (for k in REASM_TONE_KEYS collect #(k, REASM_getCorona k)) else #()), \
+		(if REASM_isCorona() then #(REASM_coronaProp "bgTexmap", REASM_getCorona "bgTexmap") else undefined))
 	REASM_lmSnap = REASM_lmGet()
 	true
 )
@@ -771,6 +787,7 @@ fn REASM_batchEnd restore =
 			try (setRenderType b[15]) catch ()
 			for p in b[16] where p[2] != undefined do try (REASM_setCorona p[1] (p[2] as string)) catch ()
 		)
+		if b.count >= 17 and b[17] != undefined and b[17][1] != "" do try (setProperty renderers.current (b[17][1] as name) b[17][2]) catch ()
 		if b[1] != undefined and isValidNode b[1] do viewport.setCamera b[1]
 	)
 	-- el LightMix se devuelve siempre, se restaure o no la escena

@@ -66,7 +66,7 @@ const Mock = (() => {
     tone: { exposure: 0.5, highlight: 2, contrast: 1, saturation: 0, whiteBalance: 6500, filmic: 0, lutEnable: false, lutFile: '', lutOpacity: 1, bloomEnable: false, bloomIntensity: 0.1, glareIntensity: 0.1 },
     envMaps: ['CoronaSky_Dia', 'HDRI_Atardecer.exr', 'HDRI_Noche.hdr'],
     activeEnv: 'CoronaSky_Dia',
-    corona: { isCorona: true, passLimit: 0, noiseLimit: 3.0, timeLimit: 0, denoiseType: 1, denoiseAmount: 0.65, hasDenoise: true, hasOverride: true, clay: false },
+    corona: { isCorona: true, passLimit: 0, noiseLimit: 3.0, timeLimit: 0, denoiseType: 1, denoiseAmount: 0.65, hasDenoise: true, hasOverride: true, clay: false, hasBg: true, bgMap: 'CoronaSky_Dia' },
     selection: ['Sofa_01', 'Mesa_Centro'],
     outputFile: 'D:\\Proyectos\\CasaPlaya\\render\\Casa_Playa.exr',
     defaultFolder: 'D:\\Proyectos\\CasaPlaya\\render',
