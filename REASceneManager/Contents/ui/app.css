@@ -671,3 +671,29 @@ h2 .count { font-weight: 400; color: var(--muted); margin-left: 6px; }
 @media (max-width: 760px) {
   .node-b { grid-template-columns: 1fr; gap: 8px; }
 }
+
+/* ---------------------------------------------------------------- variantes de materiales */
+.items.swaps { display: grid; gap: 8px; }
+.item.swap { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.item.swap select { min-width: 0; width: 100%; }
+.item.swap .arrow { color: var(--muted); display: grid; place-items: center; }
+.item.swap .arrow svg { width: 14px; height: 14px; }
+
+/* ---------------------------------------------------------------- exportar para cliente */
+.export-grid { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.export-opts { position: sticky; top: 74px; display: grid; gap: 12px; }
+.export-opts h3 { margin: 8px 0 0; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.export-opts .form-row { margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: 1fr; gap: 8px; }
+.export-opts .seg { width: 100%; display: flex; flex-wrap: wrap; }
+.export-opts .seg .seg-btn { flex: 1; white-space: nowrap; }
+.export-opts .line.range input { flex: 1; }
+.export-opts input.short { width: 100%; }
+.export-opts { min-width: 0; overflow: hidden; }
+.thumb.exp .chk { left: auto; right: 8px; }
+.export-opts .hint { margin: 0; }
+.thumb.exp { position: relative; cursor: pointer; }
+.result.off { opacity: .4; }
+.wm { position: absolute; width: var(--lw, 14%); aspect-ratio: 1598 / 449; opacity: var(--lo, .85); background: url("assets/lap_logo.png") center / contain no-repeat; pointer-events: none; }
+.wm.black { filter: brightness(0); }
+.wm.br { right: 4%; bottom: 5%; } .wm.bl { left: 4%; bottom: 5%; } .wm.tr { right: 4%; top: 5%; } .wm.tl { left: 4%; top: 5%; }
+@media (max-width: 860px) { .export-grid { grid-template-columns: 1fr; } .export-opts { position: static; } }

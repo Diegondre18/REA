@@ -2,7 +2,7 @@
 -- Funciones que la interfaz web llama para leer y modificar la escena de 3ds Max.
 -- La interfaz guarda sus datos (setups) como un texto JSON dentro del .max (appData del nodo raiz).
 
-global REASM_VERSION = "1.0.1"
+global REASM_VERSION = "1.1.0"
 global REASM_APPDATA_DATA = 7310
 global REASM_US = bit.intAsChar 31   -- separa argumentos de un mensaje
 global REASM_RS = bit.intAsChar 30   -- separa campos dentro de una operacion
@@ -440,6 +440,7 @@ fn REASM_getScene =
 		#("region", REASM_regionInfo()), \
 		#("tone", (if REASM_isCorona() then (REASM_obj (for k in REASM_TONE_KEYS collect #(k, REASM_getCorona k))) else (REASM_obj #()))), \
 		#("envMaps", envs), \
+		#("materials", (try (REASM_mtlNames()) catch (#()))), \
 		#("activeEnv", (if environmentMap != undefined and useEnvironmentMap then environmentMap.name else "")), \
 		#("corona", corona), \
 		#("selection", (for o in selection collect o.name)), \
@@ -473,6 +474,8 @@ fn REASM_applyOps ops =
 	if wasOpen do renderSceneDialog.close()
 	local re = maxOps.GetCurRenderElementMgr()
 	local camToSet = undefined
+	-- los cambios de material del setup anterior se deshacen siempre (los setups sin la tarjeta usan los originales)
+	try (REASM_mtlRestore()) catch ()
 	for op in ops where op != "" do
 	(
 		local f = REASM_split op REASM_RS
@@ -571,6 +574,11 @@ fn REASM_applyOps ops =
 			"clay":
 			(
 				if REASM_isCorona() do try (REASM_setClay (f[2] == "1")) catch (append missing "Clay (Material Override)")
+			)
+			"mtl":
+			(
+				local n = try (REASM_mtlSwap f[2] f[3]) catch (-1)
+				if n < 0 do append missing ("Material: " + f[2] + " > " + f[3])
 			)
 			"proj":
 			(
@@ -787,6 +795,7 @@ fn REASM_batchEnd restore =
 			try (setRenderType b[15]) catch ()
 			for p in b[16] where p[2] != undefined do try (REASM_setCorona p[1] (p[2] as string)) catch ()
 		)
+		try (REASM_mtlRestore()) catch ()
 		if b.count >= 17 and b[17] != undefined and b[17][1] != "" do try (setProperty renderers.current (b[17][1] as name) b[17][2]) catch ()
 		if b[1] != undefined and isValidNode b[1] do viewport.setCamera b[1]
 	)

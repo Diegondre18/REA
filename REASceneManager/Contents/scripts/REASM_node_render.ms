@@ -7,6 +7,7 @@
 	local dir = getFilenamePath (getSourceFileName())
 	fileIn (dir + "REASM_core.ms")
 	fileIn (dir + "REASM_farm.ms")
+	fileIn (dir + "REASM_variants.ms")
 
 	local taskFile = try (maxOps.mxsCmdLineArgs[#task]) catch (undefined)
 	local status = "error", outFile = "", lmFile = "", ms = 0, thumb = "", msg = ""

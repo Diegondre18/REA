@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '1.0.1';
+const VERSION = '1.1.0';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -12,6 +12,7 @@ const PROPS = [
   { key: 'lights', title: 'Luces', icon: 'bulb', color: '#FFD60A' },
   { key: 'layers', title: 'Capas', icon: 'layers', color: '#30D158' },
   { key: 'objects', title: 'Objetos', icon: 'cube', color: '#8E8E93' },
+  { key: 'materials', title: 'Materiales', icon: 'swap', color: '#FF375F' },
   { key: 'elements', title: 'Render elements', icon: 'layers2', color: '#BF5AF2' },
   { key: 'corona', title: 'Corona', icon: 'zap', color: '#FF453A' },
   { key: 'tone', title: 'Tone mapping', icon: 'contrast', color: '#64D2FF' },
@@ -95,6 +96,7 @@ function defaultComp() {
     env: { on: false, name: '', corona: true },
     layers: { on: true, items: [] },
     objects: { on: false, items: [] },
+    materials: { on: false, items: [] },
     elements: { on: false, items: [] },
     corona: { on: false, passLimit: '', noiseLimit: '', timeLimit: '', denoiseType: '', denoiseAmount: '' },
     clay: { on: false, value: true },
@@ -262,6 +264,7 @@ function summary(s, key) {
     case 'lights': return c.items.length ? `${c.items.filter(i => i.on).length} de ${c.items.length} encendidas` : 'Sin luces';
     case 'tone': { const n = Object.keys(c.values).filter(k => c.values[k] !== '').length; return n ? `${n} ajustes` : 'Sin cambios'; }
     case 'region': return { view: 'Vista completa', region: 'Región', crop: 'Recorte', blowup: 'Ampliación' }[c.type] || c.type;
+    case 'materials': return c.items.filter(i => i.from && i.to).length ? plural(c.items.filter(i => i.from && i.to).length, 'cambio', 'cambios') : 'Sin cambios';
     case 'env': return c.name || 'Sin entorno';
     case 'elements': return c.items.length ? `${c.items.filter(i => i.on).length} de ${c.items.length} activos` : 'Sin elementos';
     case 'corona': {
@@ -323,6 +326,7 @@ function opsFor(s) {
   if (c.lights.on) c.lights.items.forEach(l => ops.push(['light', l.name, l.on ? 1 : 0, l.intensity ?? '', l.color || '']));
   if (c.tone.on) Object.entries(c.tone.values).forEach(([k, v]) => { if (v !== '' && v !== null) ops.push(['corona', k, typeof v === 'boolean' ? (v ? 1 : 0) : v]); });
   if (c.region.on) ops.push(['region', c.region.type, c.region.x, c.region.y, c.region.w, c.region.h]);
+  if (c.materials.on) c.materials.items.forEach(m => { if (m.from && m.to && m.from !== m.to) ops.push(['mtl', m.from, m.to]); });
   if (c.env.on) ops.push(['env', c.env.name, c.env.corona !== false ? 1 : 0]);
   if (c.corona.on) {
     ['passLimit', 'noiseLimit', 'timeLimit', 'denoiseType', 'denoiseAmount'].forEach(k => {
@@ -656,6 +660,18 @@ function propBody(s, key) {
             ${ib('removeItem', 'x', 'Quitar', { list: 'objects', index: i }, 'hover')}
           </div>`).join('') || '<p class="hint">Selecciona objetos en 3ds Max y añádelos.</p>'}</div>
         <div class="line end">${btn('addSelection', 'Ocultar selección', 'eyeOff', { val: 1 }, 'ghost')}${btn('addSelection', 'Mostrar selección', 'eye', { val: 0 }, 'ghost')}</div>`;
+    case 'materials': {
+      const all = S.scene.materials || [];
+      const opts = (v, ph) => [['', ph], ...all.map(n => [n, n]), ...(v && !all.includes(v) ? [[v, `${v} (no existe)`]] : [])];
+      return `<div class="items swaps">${c.items.map((m, i) => `<div class="item swap">
+            ${selectHtml(`comp.materials.items.${i}.from`, m.from, opts(m.from, 'Material original…'))}
+            <span class="arrow">${icon('chevron')}</span>
+            ${selectHtml(`comp.materials.items.${i}.to`, m.to, opts(m.to, 'Cambiar por…'))}
+            ${ib('removeItem', 'x', 'Quitar', { list: 'materials', index: i }, 'hover')}
+          </div>`).join('') || '<p class="hint">Cambia un material por otro solo en este setup (por ejemplo, piso de madera por mármol).</p>'}</div>
+        <div class="line end">${btn('addSwap', 'Añadir cambio', 'plus', {}, 'ghost')}${btn('swapFromSelection', 'Material de la selección', 'target', {}, 'ghost')}</div>
+        <p class="hint">El material nuevo tiene que estar en la escena o en el Material Editor. Los setups sin esta tarjeta usan los materiales originales.</p>`;
+    }
     case 'sun': {
       const suns = S.scene.suns.map(x => x.name);
       const opts = [['', 'Apagar todos los soles'], ...suns.map(n => [n, n])];
@@ -1128,6 +1144,7 @@ function viewResults() {
     <div class="toolbar"><h1>Resultados</h1>${total ? `<span class="count">${total}</span>` : ''}<span class="spacer"></span>
       ${nCmp ? `<div class="capsule"><span class="capsule-label">${nCmp} de 2 seleccionados</span>${ib('clearCompare', 'x', 'Quitar selección')}</div>` : ''}
       ${btn('compare', 'Comparar', 'compare', {}, nCmp === 2 ? 'primary' : '')}
+      ${total ? btn('exportClient', 'Exportar para cliente', 'up') : ''}
       ${total ? btn('goSheet', 'Hoja de contactos', 'grid', {}, 'primary') : ''}
     </div>
     ${total ? '<p class="hint" style="margin-bottom:16px">Marca dos renders para compararlos (antes / después). Clic en una imagen para verla en grande.</p>' : ''}
@@ -1224,7 +1241,7 @@ function renderList() {
 }
 
 function render() {
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view || (S.view === 'sheet' && b.dataset.view === 'results') || (S.view === 'submit' && b.dataset.view === 'render')));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === S.view || ((S.view === 'sheet' || S.view === 'export') && b.dataset.view === 'results') || (S.view === 'submit' && b.dataset.view === 'render')));
   const main = $('#main');
   if (!S.scene || !S.data) { main.innerHTML = empty('Leyendo la escena…'); renderStatus(); return; }
   const page = main.querySelector('.page');
@@ -1517,6 +1534,14 @@ const A = {
       if (el.dataset.list === 'objects') it.hidden = !it.hidden; else it.on = !it.on;
     });
   },
+  addSwap() { mutate(() => comp('materials').items.push({ from: '', to: '' })); },
+  async swapFromSelection() {
+    const m = await Bridge.call('selectionMtl');
+    if (!m) return toast('Selecciona en 3ds Max un objeto con material.', 'warn');
+    await refreshScene();
+    mutate(() => comp('materials').items.push({ from: m, to: '' }));
+  },
+  exportClient() { S.view = 'export'; render(); },
   removeItem(el) { mutate(() => comp(el.dataset.list).items.splice(Number(el.dataset.index), 1)); },
   setAll(el) { mutate(() => comp(el.dataset.list).items.forEach(it => { it.on = el.dataset.val === '1'; })); },
   async captureLayers() { await refreshScene(); mutate(() => { comp('layers').items = S.scene.layers.map(l => ({ name: l.name, on: l.on })); }); },

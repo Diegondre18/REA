@@ -64,6 +64,7 @@ const Mock = (() => {
     ],
     region: { type: 'view', x: 0, y: 0, w: 0, h: 0 },
     tone: { exposure: 0.5, highlight: 2, contrast: 1, saturation: 0, whiteBalance: 6500, filmic: 0, lutEnable: false, lutFile: '', lutOpacity: 1, bloomEnable: false, bloomIntensity: 0.1, glareIntensity: 0.1 },
+    materials: ['Fachada_Blanca', 'Fachada_Gris', 'Piso_Madera', 'Piso_Marmol', 'Sofa_Lino', 'Sofa_Terciopelo', 'Vidrio'],
     envMaps: ['CoronaSky_Dia', 'HDRI_Atardecer.exr', 'HDRI_Noche.hdr'],
     activeEnv: 'CoronaSky_Dia',
     corona: { isCorona: true, passLimit: 0, noiseLimit: 3.0, timeLimit: 0, denoiseType: 1, denoiseAmount: 0.65, hasDenoise: true, hasOverride: true, clay: false, hasBg: true, bgMap: 'CoronaSky_Dia' },
@@ -152,6 +153,8 @@ const Mock = (() => {
       }
       case 'batchBegin': case 'batchEnd': return wait(true);
       case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + '\\' + a[2] + a[3], lightmix: a[4] === '1' ? a[0] + '\\' + a[1] + '\\' + a[2] + '_LightMix' + a[3] : '', aborted: false }), 2500 + Math.random() * 2500));
+      case 'selectionMtl': return wait('Piso_Madera');
+      case 'clientExport': return new Promise(r => setTimeout(() => r({ file: a[1], w: 2560, h: 1440 }), 400));
       case 'pcName': return wait('LAP-DIEGO');
       case 'versions': return wait({ max: '2021', corona: '11.0.1', forest: '9.4.0', railclone: '7.3.0', tyflow: '' });
       case 'farmSetRoot': return wait(true);

@@ -60,6 +60,8 @@ fn REASM_dispatch cmd a =
 		"farmSetRoot": REASM_farmSetRoot g[1]
 		"versions": REASM_versions()
 		"pcName": sysInfo.computername
+		"selectionMtl": REASM_selectionMtl()
+		"clientExport": REASM_clientExport g[1] g[2] (g[3] as integer) (g[4] as integer) g[5] g[6] (g[7] as float) (g[8] as float)
 		"loadPreset": REASM_loadPreset g[1] (g[2] == "1")
 		"removePresets": REASM_removePresetLayers()
 		"thumbFromFile": REASM_thumbFromFile g[1] g[2]
