@@ -234,8 +234,13 @@ function viewFarm() {
   const jobs = S.farm.jobs;
   const active = jobs.filter(j => j.status !== 'done' && j.status !== 'cancelled');
   const done = jobs.filter(j => j.status === 'done' || j.status === 'cancelled');
+  const mine = nodes.find(n => n.name === S.farm.pc);
+  const startMine = !mine || !mine.online ? `<section class="panel pad start-node"><div class="form-row"><div><strong>El nodo de este PC está cerrado</strong>
+      <p class="hint">Ábrelo para que este PC renderice trabajos de la red. Marca «Iniciar con Windows» en su menú (el punto junto al reloj) para que se abra solo.</p></div>
+      ${btn('farmStartNode', 'Abrir nodo en este PC', 'play', {}, 'primary')}</div></section>` : '';
   return `<div class="page">
     ${head}
+    ${startMine}
     <h2>Nodos <span class="count">${online.length} de ${nodes.length} conectados</span></h2>
     ${nodes.length ? `<div class="nodes">${nodes.map(nodeRow).join('')}</div>`
       : `<section class="panel pad"><p class="hint" style="margin:0">Ningún PC conectado. En cada PC que vaya a renderizar, abre <b>iniciar_nodo.bat</b> (viene en el zip del plugin). Aparece un punto junto al reloj de Windows.</p></section>`}
@@ -359,6 +364,11 @@ async function farmDo(fn) {
 Object.assign(A, {
   prodTab(el) { S.ui.prodTab = el.dataset.v; saveUi(); if (el.dataset.v === 'net') farmPoll(); render(); },
   farmRefresh() { return farmPoll(); },
+  async farmStartNode() {
+    await Bridge.call('startNode');
+    toast('Abriendo REA Node… aparecerá en unos segundos.', 'ok');
+    setTimeout(() => farmPoll(), 6000);
+  },
   goSettings() { S.view = 'settings'; render(); },
   async goSubmit() {
     S.farm.form = null;

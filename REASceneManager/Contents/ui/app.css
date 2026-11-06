@@ -697,3 +697,6 @@ h2 .count { font-weight: 400; color: var(--muted); margin-left: 6px; }
 .wm.black { filter: brightness(0); }
 .wm.br { right: 4%; bottom: 5%; } .wm.bl { left: 4%; bottom: 5%; } .wm.tr { right: 4%; top: 5%; } .wm.tl { left: 4%; top: 5%; }
 @media (max-width: 860px) { .export-grid { grid-template-columns: 1fr; } .export-opts { position: static; } }
+
+.start-node { margin-bottom: 14px; }
+.start-node .form-row { margin: 0; padding: 0; border: 0; }

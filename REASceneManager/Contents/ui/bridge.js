@@ -155,6 +155,7 @@ const Mock = (() => {
       case 'render': return new Promise(r => setTimeout(() => r({ file: a[0] + '\\' + a[1] + '\\' + a[2] + a[3], lightmix: a[4] === '1' ? a[0] + '\\' + a[1] + '\\' + a[2] + '_LightMix' + a[3] : '', aborted: false }), 2500 + Math.random() * 2500));
       case 'selectionMtl': return wait('Piso_Madera');
       case 'clientExport': return new Promise(r => setTimeout(() => r({ file: a[1], w: 2560, h: 1440 }), 400));
+      case 'startNode': return wait(true);
       case 'pcName': return wait('LAP-DIEGO');
       case 'versions': return wait({ max: '2021', corona: '11.0.1', forest: '9.4.0', railclone: '7.3.0', tyflow: '' });
       case 'farmSetRoot': return wait(true);

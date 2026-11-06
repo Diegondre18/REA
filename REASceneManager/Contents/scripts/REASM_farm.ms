@@ -132,3 +132,12 @@ fn REASM_versions =
 		#("railclone", ver dirs "RailClone*.dlo"), \
 		#("tyflow", ver dirs "tyFlow*.dlo"))
 )
+
+-- Abre REA Node en este PC (si ya esta abierto, el nodo lo avisa y no abre otro).
+fn REASM_startNode =
+(
+	local ps = (pathConfig.removePathLeaf (trimRight REASM_dir "\\")) + "\\node\\REA_Node.ps1"
+	if not (doesFileExist ps) do throw ("No se encuentra " + ps)
+	ShellLaunch "powershell.exe" ("-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"" + ps + "\"")
+	true
+)
