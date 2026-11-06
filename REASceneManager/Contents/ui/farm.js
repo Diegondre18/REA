@@ -1,7 +1,6 @@
 // Granja de render en red: enviar trabajos, ver los nodos (PCs) y la cola compartida.
 // No hay servidor: todo es una carpeta compartida en el NAS (ver scripts/REASM_farm.ms y node/REA_Node.ps1).
 
-const GS = '\x1d';  // separa id y texto de cada imagen al enviar
 const NAS_FARM = '\\\\LAP-NAS\\LAP Arquitectura NAS\\Arch Viz Lap\\00_RenderFarm';
 const PLUGINS = [['max', '3ds Max'], ['corona', 'Corona'], ['forest', 'Forest Pack'], ['railclone', 'RailClone'], ['tyflow', 'tyFlow']];
 const MODES = [['always', 'Siempre'], ['idle', 'Sin uso'], ['night', 'De noche']];
@@ -332,7 +331,7 @@ async function farmSubmit() {
     }
     const job = { id, name: f.name, created: Date.now(), by: S.farm.pc, scene: S.scene.file, sceneDir: S.scene.filePath, priority: f.priority, pc: f.pc,
       folder, ext, versions: S.farm.local || {}, tasks: tasks.map(({ text, ...t }) => t) };
-    await Bridge.call('farmSubmit', root, id, JSON.stringify(job), ...tasks.map(t => t.id + GS + t.text));
+    await Bridge.call('farmSubmit', root, id, JSON.stringify(job), ...tasks.flatMap(t => [t.id, t.text]));
     save();
     S.farm.form = null;
     S.ui.prodTab = 'net'; saveUi();

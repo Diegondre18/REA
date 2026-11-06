@@ -9,8 +9,6 @@
 --   <raiz>\nodes\<PC>.json             latido del nodo (cada pocos segundos)
 --   <raiz>\nodes\<PC>.settings.json    disponibilidad del nodo (la cambia el plugin)
 
-global REASM_GS = bit.intAsChar 29   -- separa id y texto de una imagen
-
 fn REASM_readText f = (try ((dotNetClass "System.IO.File").ReadAllText f) catch (undefined))
 fn REASM_writeText f txt =
 (
@@ -35,11 +33,10 @@ fn REASM_farmSubmit root jobId jobJson tasks =
 	local scene = dir + "scene.max"
 	local ok = saveMaxFile scene clearNeedSaveFlag:false useNewFile:false quiet:true
 	if not (doesFileExist scene) do throw ("No se pudo guardar la escena en " + scene)
-	for t in tasks where t != "" do
-	(
-		local i = findString t REASM_GS
-		REASM_writeText (dir + "tasks\\" + (substring t 1 (i - 1)) + ".txt") (substring t (i + 1) -1)
-	)
+	-- las imagenes llegan por pares: id, texto, id, texto...
+	if (mod tasks.count 2) != 0 do throw "Datos de las imagenes incompletos"
+	for k = 1 to tasks.count by 2 do
+		REASM_writeText (dir + "tasks\\" + tasks[k] + ".txt") tasks[k + 1]
 	REASM_writeText (dir + "job.json") jobJson
 	REASM_writeText (dir + "job.ready") (localTime as string)
 	dir
