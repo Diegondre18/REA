@@ -2,7 +2,7 @@
 // Un "setup" es una vista guardada de la escena. Solo las propiedades que el setup usa
 // (camara, resolucion, capas...) se aplican en 3ds Max; el resto no se toca.
 
-const VERSION = '1.1.2';
+const VERSION = '1.1.3';
 
 const PROPS = [
   { key: 'camera', title: 'Cámara', icon: 'camera', color: '#0A84FF' },
@@ -1267,8 +1267,10 @@ function toast(text, kind = 'info') {
   el.className = `toast ${kind}`;
   el.textContent = text;
   const box = $('#toasts');
-  while (box.children.length >= 2) box.firstChild.remove();
+  while (box.children.length >= 3) box.firstChild.remove();
   box.appendChild(el);
+  // los errores se quedan hasta que se cierran (clic), para poder leerlos
+  if (kind === 'error') { el.title = 'Clic para cerrar'; el.addEventListener('click', () => el.remove()); return; }
   setTimeout(() => el.classList.add('hide'), 2600);
   setTimeout(() => el.remove(), 3000);
 }

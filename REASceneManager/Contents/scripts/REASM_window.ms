@@ -80,6 +80,7 @@ fn REASM_handle raw =
 	local err = undefined
 	try (result = REASM_dispatch cmd args)
 	catch (err = getCurrentException())
+	if err != undefined do format "REA Scene Manager - error en %: %\n" cmd err
 	REASM_post (REASM_toJson (REASM_obj #(#("id", id), #("ok", err == undefined), #("result", result), #("error", err))))
 )
 

@@ -291,6 +291,7 @@ function viewSubmit() {
         <div class="row-main"><span class="name">${esc(s.name)}</span><span class="meta">${esc(metaText(s))}</span></div>
         <span class="ptime">${estimateFor(s, []) ? '~' + fmtDur(estimateFor(s, [])) : ''}</span>
       </label>`).join('')}</section>
+    ${S.farm.sendError ? `<section class="panel pad checks"><p class="check bad">${icon('warn')}<span><b>No se pudo enviar:</b> ${esc(S.farm.sendError)}</span></p></section>` : ''}
     ${checks.length ? `<section class="panel pad checks">${checks.map(([k, t]) => `<p class="check ${k}">${icon('warn')}<span>${esc(t)}</span></p>`).join('')}</section>` : ''}
     <p class="hint">Se guarda una copia de la escena en la granja: puedes seguir trabajando y cambiarla sin afectar a lo enviado. La salida usa la carpeta, el nombre y el formato de Render.${est ? ` Tiempo total estimado: ~${fmtDur(est)}.` : ''}</p>
     <div class="cta"><button class="btn primary big" data-action="farmSubmit" ${blocked || S.farm.sending ? 'disabled' : ''}>${icon('render')}<span>${S.farm.sending ? 'Enviando…' : `Enviar ${plural(send.length, 'imagen', 'imágenes')}`}</span></button></div>
@@ -316,6 +317,7 @@ async function farmSubmit() {
   const d = new Date();
   const id = `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}_${pad2(d.getHours())}${pad2(d.getMinutes())}${pad2(d.getSeconds())}_${Math.random().toString(36).slice(2, 6)}`;
   S.farm.sending = true;
+  S.farm.sendError = '';
   render();
   try {
     const tasks = [];
@@ -338,6 +340,7 @@ async function farmSubmit() {
     toast(`Enviado a la red: ${plural(tasks.length, 'imagen', 'imágenes')}`, 'ok');
     await farmPoll(true);
   } catch (err) {
+    S.farm.sendError = err.message;
     toast('No se pudo enviar: ' + err.message, 'error');
   } finally {
     S.farm.sending = false;
@@ -372,6 +375,7 @@ Object.assign(A, {
   goSettings() { S.view = 'settings'; render(); },
   async goSubmit() {
     S.farm.form = null;
+    S.farm.sendError = '';
     S.view = 'submit';
     render();
     if (!S.farm.local) S.farm.local = await Bridge.call('versions').catch(() => null);
