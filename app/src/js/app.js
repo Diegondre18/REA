@@ -9,36 +9,65 @@
   function Gate() {
     const s = L.useStore();
     const g = s.gate || { mode: "server" };
-    const [f, setF] = useState({ url: s.serverUrl || "", name: "", email: "", password: "", team: "" });
+    const [f, setF] = useState({ url: s.serverUrl || "", name: "", email: "", password: "", team: "", mname: "Soporte LAP" });
     const [err, setErr] = useState(g.error || "");
     const [busy, setBusy] = useState(false);
+    const [found, setFound] = useState(null); // null = buscando
+    const [manual, setManual] = useState(!L.desk);
+    const [confirmHost, setConfirmHost] = useState(false);
+    const [hosting, setHosting] = useState(false);
+    const [notice] = useState(g.notice ? g.notice : g.hosted ? (g.firewall === false ? "Este PC ya es el servidor. Windows no abrió el firewall: si los demás PC no lo encuentran, ve a Tu perfil → Revisar el firewall." : "Este PC ya es el servidor del estudio. Los demás PC lo encontrarán solos.") : "");
     useEffect(() => { setErr(g.error || ""); }, [g.mode]);
+    useEffect(() => {
+      if (L.desk && L.desk.hostStatus) L.desk.hostStatus().then((h) => setHosting(!!(h && h.hosting))).catch(() => {});
+      if (g.mode !== "server" || !L.desk) return;
+      let alive = true;
+      setFound(null);
+      auth.discover().then((list) => { if (alive) setFound(list); });
+      return () => { alive = false; };
+    }, [g.mode]);
     const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
-    const submit = async (e) => {
-      e.preventDefault(); setBusy(true); setErr("");
-      let r = "";
-      if (g.mode === "server") r = await auth.connect(f.url);
-      else if (g.mode === "login") r = await auth.login(f.email.trim(), f.password);
-      else r = !f.name.trim() ? "Escribe tu nombre." : !f.team ? "Elige el equipo al que perteneces." : await auth.register(f.name.trim(), f.email.trim(), f.password, f.team);
-      setBusy(false);
-      if (r) setErr(r);
+    const run = async (fn) => { setBusy(true); setErr(""); const r = await fn(); setBusy(false); if (r) setErr(r); };
+    const submit = (e) => {
+      e.preventDefault();
+      if (g.mode === "server") run(() => auth.connect(f.url));
+      else if (g.mode === "login") run(() => auth.login(f.email.trim(), f.password));
+      else if (g.mode === "register") run(async () => (!f.name.trim() ? "Escribe tu nombre." : !f.team ? "Elige el equipo al que perteneces." : auth.register(f.name.trim(), f.email.trim(), f.password, f.team)));
+      else if (g.mode === "maestro") run(async () => {
+        if (f.password.length < 10) return "La contraseña del perfil maestro necesita al menos 10 caracteres.";
+        const r = await auth.maestro(f.email.trim(), f.password, f.mname.trim());
+        if (!r) auth.gate("login", { notice: "Perfil maestro listo. Entra con ese correo y contraseña." });
+        return r;
+      });
     };
+    const search = () => { setFound(null); auth.discover().then(setFound); };
     return html`
       <div class="gate"><form class="gate-card glass" onSubmit=${submit}>
         <${Sym} />
         ${g.mode === "server" && html`
           <h1><span class="sl">//</span>Conectar</h1>
-          <p>Escribe la dirección del servidor del Cerebro en la oficina. Te la da quien lo instaló, por ejemplo <span class="mono">192.168.1.20:8090</span>.</p>
-          <div class="fld"><label for="g-url">Servidor</label><input id="g-url" class="mono" value=${f.url} onInput=${set("url")} placeholder="192.168.1.20:8090" autocomplete="off" required /></div>
-          <button class="btn primary block" type="submit" disabled=${busy}>Conectar</button>
+          ${L.desk && html`
+            <p>${found === null ? "Buscando el servidor del estudio en la red…" : found.length ? "Encontramos el servidor del estudio:" : "No encontramos el servidor del estudio en esta red."}</p>
+            ${found && found.length > 0 && html`<div class="found">${found.map((x) => html`<button type="button" key=${x.url} class="btn block" disabled=${busy} onClick=${() => run(() => auth.connect(x.url))}><${Icon} name="check" /> Conectar a ${x.name} <span class="mono muted">${x.url.replace(/^https?:\/\//, "")}</span></button>`)}</div>`}
+            ${found && !found.length && html`
+              <div class="host-offer">
+                <p><b>¿Este es el PC del servidor?</b> Elige el PC del estudio que siempre está prendido. La app arranca el servidor sola cada vez que ese PC prende, y los demás lo encuentran sin escribir nada.</p>
+                ${confirmHost ? html`<div class="inline wrap"><button type="button" class="btn primary" disabled=${busy} onClick=${() => run(auth.hostHere)}>Sí, este PC será el servidor</button><button type="button" class="btn ghost" onClick=${() => setConfirmHost(false)}>Cancelar</button></div>
+                  <span class="hint">Windows puede pedir permiso de administrador una vez, para dejar entrar a los demás PC.</span>` : html`<button type="button" class="btn" onClick=${() => setConfirmHost(true)}>Usar este PC como servidor del estudio</button>`}
+              </div>
+              <div class="alt"><button type="button" onClick=${search}>Buscar de nuevo</button><button type="button" onClick=${() => setManual(!manual)}>${manual ? "Ocultar dirección" : "Escribir la dirección a mano"}</button></div>`}`}
+          ${manual && html`
+            <div class="fld"><label for="g-url">Dirección del servidor</label><input id="g-url" class="mono" value=${f.url} onInput=${set("url")} placeholder="192.168.1.20:8090" autocomplete="off" /></div>
+            <button class="btn primary block" type="submit" disabled=${busy || !f.url.trim()}>Conectar</button>`}
           ${g.back && html`<div class="alt"><button type="button" onClick=${auth.closeGate}>Cancelar</button></div>`}`}
         ${g.mode === "login" && html`
           <h1><span class="sl">//</span>Entrar</h1>
-          <p>Usa tu cuenta del Cerebro. Es la misma en todos los PC de la oficina.</p>
+          ${notice ? html`<p class="ok-note">${notice}</p>` : html`<p>Usa tu cuenta del Cerebro. Es la misma en todos los PC de la oficina.</p>`}
           <div class="fld"><label for="g-email">Correo</label><input id="g-email" type="email" value=${f.email} onInput=${set("email")} autocomplete="username" required /></div>
           <div class="fld"><label for="g-pass">Contraseña</label><input id="g-pass" type="password" value=${f.password} onInput=${set("password")} autocomplete="current-password" required /></div>
           <button class="btn primary block" type="submit" disabled=${busy}>Entrar</button>
-          <div class="alt"><button type="button" onClick=${() => auth.gate("register")}>Crear mi cuenta</button><button type="button" onClick=${() => auth.gate("server")}>Cambiar de servidor</button></div>`}
+          <div class="alt"><button type="button" onClick=${() => auth.gate("register")}>Crear mi cuenta</button>
+            ${hosting ? html`<button type="button" onClick=${() => auth.gate("maestro")}>Crear perfil maestro</button>` : html`<button type="button" onClick=${() => auth.gate("server")}>Cambiar de servidor</button>`}</div>`}
         ${g.mode === "register" && html`
           <h1><span class="sl">//</span>Crear cuenta</h1>
           <p>Con tu correo del estudio. Tu nombre es el que verá el equipo junto a tu trabajo.</p>
@@ -49,6 +78,14 @@
             ${f.team === "direccion" && html`<span class="hint">La Dirección creativa tiene un solo cupo. Si ya está ocupado, el registro te lo dirá.</span>`}</div>
           <button class="btn primary block" type="submit" disabled=${busy}>Crear cuenta y entrar</button>
           <div class="alt"><button type="button" onClick=${() => auth.gate("login")}>Ya tengo cuenta</button></div>`}
+        ${g.mode === "maestro" && html`
+          <h1><span class="sl">//</span>Perfil maestro</h1>
+          <p>Cuenta de soporte por si algo falla: puede cambiar roles, corregir proyectos y aprobar planes. No aparece en el equipo. Solo se crea desde el PC que es el servidor. Si ya existe con ese correo, se le pone esta contraseña nueva.</p>
+          <div class="fld"><label for="g-email">Correo</label><input id="g-email" type="email" value=${f.email} onInput=${set("email")} autocomplete="off" required /></div>
+          <div class="fld"><label for="g-pass">Contraseña</label><input id="g-pass" type="password" value=${f.password} onInput=${set("password")} autocomplete="new-password" minlength="10" required /><span class="hint">Mínimo 10 caracteres. Guárdala en un lugar seguro.</span></div>
+          <div class="fld"><label for="g-mname">Nombre</label><input id="g-mname" value=${f.mname} onInput=${set("mname")} /></div>
+          <button class="btn primary block" type="submit" disabled=${busy}>Crear perfil maestro</button>
+          <div class="alt"><button type="button" onClick=${() => auth.gate("login")}>Volver</button></div>`}
         ${err && html`<p class="err">${err}</p>`}
       </form></div>`;
   }

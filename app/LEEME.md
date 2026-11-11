@@ -14,8 +14,9 @@ App de escritorio del estudio. Reúne los proyectos de Arquitectura, Diseño Int
 
 1. Descarga `LAP-Cerebro-Setup-x.y.z.exe` desde *Releases* (o desde la ejecución más reciente de *Actions* → artefacto `LAP-Cerebro-Setup`).
 2. Ábrelo. Como el instalador no tiene firma digital paga, Windows puede mostrar **"Windows protegió su PC"**: haz clic en **Más información → Ejecutar de todas formas**.
-3. Al abrir la app, escribe la dirección del servidor (por ejemplo `192.168.1.20:8090`) y crea tu cuenta con tu correo @laparq.com, eligiendo tu equipo.
-4. Desde ese momento la app se abre sola al prender el PC y te deja conectado con el equipo. Cerrar la ventana la deja en la bandeja junto al reloj, para que sigas apareciendo conectado; para salir del todo, clic derecho en el ícono → Salir. El arranque automático se puede apagar en Tu perfil.
+3. Al abrir la app, busca sola el servidor del estudio en la red y se conecta. Si es el primer PC, ofrece **Usar este PC como servidor del estudio**: elígelo en el PC que siempre está prendido (ver `../servidor/LEEME.md`).
+4. Crea tu cuenta con tu correo @laparq.com y elige tu equipo.
+5. Desde ese momento la app se abre sola al prender el PC y te deja conectado con el equipo. Cerrar la ventana la deja en la bandeja junto al reloj, para que sigas apareciendo conectado; para salir del todo, clic derecho en el ícono → Salir. El arranque automático se puede apagar en Tu perfil (en el PC servidor conviene dejarlo encendido).
 
 ## Actualizaciones automáticas
 
@@ -44,6 +45,10 @@ npm run vendor
 ```
 
 ```bash
+npm run bundle-server
+```
+
+```bash
 npm start
 ```
 
@@ -55,7 +60,9 @@ git tag v2.1.1 && git push origin v2.1.1
 
 | Archivo | Para qué sirve |
 |---|---|
-| `main.js` | Ventana, bandeja, arranque con Windows, sesión cifrada, avisos y carpetas. |
+| `main.js` | Ventana, bandeja, arranque con Windows, sesión cifrada, avisos, actualizaciones y carpetas. |
+| `host.js` | El servidor dentro de la app y la búsqueda del servidor en la red. |
+| `server-bundle/` | Se arma al construir: PocketBase y las reglas de `../servidor` que viajan dentro del instalador. |
 | `preload.js` | Puente mínimo entre la interfaz y Windows. |
 | `src/js/core.js` | Áreas, estados, fases, fechas y utilidades. |
 | `src/js/store.js` | Conexión, sincronización en vivo, consultas y acciones. |

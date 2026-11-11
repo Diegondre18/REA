@@ -35,6 +35,14 @@ jobs:
       # Sin scripts de instalación: electron-builder descarga Electron por su cuenta.
       - run: npm ci --ignore-scripts
       - run: npm run vendor
+      # El servidor viaja dentro de la app: reglas del estudio y PocketBase para Windows.
+      - run: npm run bundle-server
+      - name: Descargar PocketBase para Windows
+        shell: pwsh
+        run: |
+          Invoke-WebRequest "https://github.com/pocketbase/pocketbase/releases/download/v$env:PB_VERSION/pocketbase_$($env:PB_VERSION)_windows_amd64.zip" -OutFile pb.zip
+          Expand-Archive pb.zip -DestinationPath pbtmp
+          Copy-Item pbtmp/pocketbase.exe server-bundle/pocketbase.exe
       - run: npx electron-builder --win nsis --x64 --publish never
       - uses: actions/upload-artifact@v4
         with:

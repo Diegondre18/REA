@@ -1,10 +1,28 @@
 # LAP Cerebro · Servidor
 
-El servidor guarda los proyectos, los planes de entregables con sus vistos buenos, las tareas, las reuniones y comités, los avisos y quién está trabajando en qué. Todas las apps de la oficina se conectan a él y se sincronizan al instante. Es gratis: usa [PocketBase](https://pocketbase.io) (licencia MIT), un solo programa sin instalación.
+El servidor guarda los proyectos, los planes de entregables con sus vistos buenos, las tareas, las reuniones y comités, los avisos y quién está trabajando en qué. Todas las apps de la oficina se conectan a él y se sincronizan al instante. Es gratis: usa [PocketBase](https://pocketbase.io) (licencia MIT).
 
-Necesita estar encendido mientras el equipo trabaja. Ponlo en el NAS o en un PC que no se apague (por ejemplo, el de un nodo de render).
+## La forma fácil: la app es el servidor (recomendada)
 
-## Opción A · En un PC con Windows
+No hace falta instalar nada aparte. El servidor viaja dentro de la app de Windows.
+
+1. Instala LAP Cerebro en el PC del estudio que **siempre está prendido**.
+2. Al abrirla por primera vez, la app busca el servidor en la red. Como todavía no hay, ofrece **«Usar este PC como servidor del estudio»**. Púlsalo y acepta el permiso de Windows (es para que los demás PC puedan entrar).
+3. Listo. Desde ahí, cada vez que ese PC prende, la app abre sola y arranca el servidor por dentro, sin ventanas.
+4. En los demás PC solo se instala la app: al abrirla, **encuentra el servidor sola** y se conecta. Nadie escribe direcciones.
+5. Cuando la app se actualiza sola, el servidor también.
+
+Mientras ese PC esté prendido y con la app abierta (aunque sea en la bandeja junto al reloj), el equipo trabaja conectado. Si se sale de la app desde la bandeja, el equipo se queda sin servidor hasta que se vuelva a abrir.
+
+- **Perfil maestro:** en el PC servidor, en la pantalla de entrar, aparece **Crear perfil maestro**; o ya dentro, en **Tu perfil → Crear o recuperar perfil maestro**.
+- **Datos y copias:** quedan en `%APPDATA%\LAP Cerebro\servidor\pb_data`. Cada madrugada se hace una copia automática y se guardan las últimas 14, en `pb_data\backups`.
+- **Cambiar de PC servidor:** en el PC actual, **Tu perfil → Dejar de ser el servidor**; copia la carpeta `pb_data` al mismo lugar del PC nuevo y actívalo ahí.
+
+## Servidor aparte (NAS o PC dedicado)
+
+Si prefieren tenerlo fuera de la app, por ejemplo en el NAS, usen el zip `LAP-Cerebro-Servidor-Windows.zip` de *Releases* o la carpeta `servidor` con Docker. En ese caso las actualizaciones del servidor son a mano (ver más abajo).
+
+### En un PC con Windows
 
 1. Descarga `LAP-Cerebro-Servidor-Windows.zip` desde la página de *Releases* del repositorio (o desde la ejecución más reciente de *Actions*) y descomprímelo en una carpeta fija, por ejemplo `C:\LAP-Cerebro-Servidor`.
 2. Clic derecho en `abrir-firewall.bat` → **Ejecutar como administrador**. Esto deja entrar a los demás PC por el puerto 8090.
@@ -14,7 +32,7 @@ Necesita estar encendido mientras el equipo trabaja. Ponlo en el NAS o en un PC 
 
 Conviene darle a ese PC una IP fija en el router, para que la dirección no cambie.
 
-## Opción B · En un NAS con Docker
+### En un NAS con Docker
 
 Copia esta carpeta `servidor` al NAS y, desde ahí:
 
@@ -45,13 +63,13 @@ Para crearlo, o para recuperarlo si se olvida la contraseña, en el PC del servi
 
 En Docker: `docker exec -it lap-cerebro /pb/pocketbase maestro correo contraseña "Soporte LAP" --dir=/pb/pb_data --hooksDir=/pb/pb_hooks`
 
-## Actualizar desde la versión 1
+## Actualizar un servidor aparte
 
-Detén el servidor, haz una copia de la carpeta `pb_data`, reemplaza `pb_migrations`, `pb_hooks` y los `.bat` por los nuevos y vuelve a arrancarlo. Las actualizaciones del servidor se hacen así, a mano; las de la app de cada PC son automáticas. Los renders de la versión 1 pasan solos a tareas de Visualización, agrupadas en un proyecto por cada nombre de proyecto que tenían.
+Descarga el zip nuevo de *Releases*, descomprímelo en cualquier carpeta y haz doble clic en **`actualizar-servidor.bat`**. Te pregunta dónde está tu servidor (por defecto `C:\LAP-Cerebro-Servidor`), lo detiene, guarda una copia de los datos en `copias\`, copia la versión nueva y lo vuelve a arrancar. Los datos no se tocan. Si vienes de la versión 1, los renders pasan solos a tareas de Visualización.
 
 ## Copias de seguridad
 
-Todos los datos están en la carpeta `pb_data`. Para respaldar, copia esa carpeta con el servidor detenido, o usa el panel de administración (`http://IP:8090/_/` → *Settings* → *Backups*), que puede programar copias automáticas.
+Todos los datos están en la carpeta `pb_data`. El servidor hace una copia automática cada madrugada y guarda las últimas 14 en `pb_data/backups`. Para una copia a mano, copia la carpeta `pb_data` con el servidor detenido.
 
 ## Qué hace cada archivo
 
@@ -64,6 +82,7 @@ Todos los datos están en la carpeta `pb_data`. Para respaldar, copia esa carpet
 | `pb_hooks/avisos.pb.js` | Avisos al asignar tareas, agendar reuniones, sumar a un proyecto o responder un plan. |
 | `pb_hooks/maestro.pb.js` | El comando que crea o recupera el perfil maestro. |
 | `crear-perfil-maestro.bat` | Crea o recupera el perfil maestro desde Windows. |
+| `actualizar-servidor.bat` | Actualiza un servidor aparte sin tocar los datos. |
 | `pb_hooks/limpieza.pb.js` | Recordatorios de cada mañana y limpieza de avisos y actividad con más de 30 días. |
 | `iniciar-servidor.bat` | Arranca el servidor en una ventana. |
 | `iniciar-con-windows.bat` | Lo registra para que arranque con Windows. |

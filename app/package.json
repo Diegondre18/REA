@@ -1,7 +1,7 @@
 {
   "name": "lap-cerebro",
   "productName": "LAP Cerebro",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Cerebro del estudio LAP: proyectos, planes de entregables, cronogramas personales, reuniones, comités y quién trabaja en qué.",
   "author": "Left Angle Partnership",
   "license": "UNLICENSED",
@@ -10,7 +10,8 @@
   "scripts": {
     "start": "electron .",
     "vendor": "node scripts/vendor.js",
-    "dist": "electron-builder --win nsis --x64"
+    "dist": "electron-builder --win nsis --x64",
+    "bundle-server": "node scripts/server-bundle.js"
   },
   "build": {
     "appId": "com.laparq.cerebro",
@@ -51,6 +52,15 @@
         "owner": "Diegondre18",
         "repo": "REA",
         "releaseType": "release"
+      }
+    ],
+    "extraResources": [
+      {
+        "from": "server-bundle",
+        "to": "servidor",
+        "filter": [
+          "**/*"
+        ]
       }
     ]
   },

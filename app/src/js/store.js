@@ -168,30 +168,69 @@
     if (desk && desk.notify) desk.notify(n.title, n.body || "", n.route || "");
   }
 
-  async function boot() {
-    const cfg = config.load();
-    state.serverUrl = cfg.url || "";
-    if (!cfg.url) { set({ mode: "gate", gate: { mode: "server" } }); return; }
-    pb = makeClient(cfg.url);
+  // Conecta con un servidor ya guardado. "offline" si no responde, "login" si hay que entrar.
+  async function connectTo(url) {
+    pb = makeClient(url);
+    state.serverUrl = url;
     const saved = await session.load();
     if (saved && saved.token) pb.authStore.save(saved.token, saved.record);
-    if (pb.authStore.isValid) {
-      try {
-        await pb.collection("users").authRefresh();
-        await startLive();
-        return;
-      } catch (e) {
-        if (e && e.status === 0) {
-          set({ mode: "gate", gate: { mode: "server", error: `No encuentro el servidor en ${cfg.url}. ¿Está encendido el PC o NAS del servidor?` } });
-          return;
-        }
-        pb.authStore.clear();
-      }
+    if (!pb.authStore.isValid) return (await ping(url)) ? "login" : "offline";
+    try {
+      await pb.collection("users").authRefresh();
+      await startLive();
+      return "ok";
+    } catch (e) {
+      if (e && e.status === 0) return "offline";
+      pb.authStore.clear();
+      return "login";
     }
-    set({ mode: "gate", gate: { mode: "login" } });
+  }
+
+  async function boot() {
+    const cfg = config.load();
+    let url = cfg.url || "";
+    // En el PC que es el servidor, la app lo arranca antes de conectarse.
+    const hs = desk && desk.hostStatus ? await desk.hostStatus().catch(() => null) : null;
+    if (hs && hs.hosting) {
+      const r = await desk.hostStart();
+      if (!r.ok) { set({ mode: "gate", gate: { mode: "server", error: r.error } }); return; }
+      url = r.url;
+      config.save({ url, host: true });
+    }
+    if (!url) { set({ mode: "gate", gate: { mode: "server", auto: true } }); return; }
+    let r = await connectTo(url);
+    // Si el servidor cambió de dirección en la red, se busca solo.
+    if (r === "offline" && !(hs && hs.hosting) && desk && desk.discover) {
+      const found = await desk.discover().catch(() => []);
+      const other = found.find((f) => f.url !== url);
+      if (other) { config.save({ url: other.url }); r = await connectTo(other.url); }
+    }
+    if (r === "ok") return;
+    if (r === "login") { set({ mode: "gate", gate: { mode: "login" } }); return; }
+    set({ mode: "gate", gate: { mode: "server", auto: true, error: `No encuentro el servidor del estudio (${url.replace(/^https?:\/\//, "")}). ¿Está prendido el PC que hace de servidor?` } });
   }
 
   const auth = {
+    discover: () => (desk && desk.discover ? desk.discover().catch(() => []) : Promise.resolve([])),
+    // Convierte este PC en el servidor del estudio. Desde ahí arranca solo cada vez que abre la app.
+    async hostHere() {
+      const r = await desk.hostEnable();
+      if (!r.ok) return r.error || "No se pudo arrancar el servidor en este PC.";
+      config.save({ url: r.url, host: true });
+      state.serverUrl = r.url;
+      pb = makeClient(r.url);
+      set({ mode: "gate", gate: { mode: "login", hosted: true, firewall: r.firewall } });
+      return "";
+    },
+    async stopHosting() {
+      await desk.hostDisable();
+      config.save({});
+      auth.logout();
+    },
+    async maestro(email, password, name) {
+      const r = await desk.hostMaestro(email, password, name);
+      return r.ok ? "" : r.message || "No se pudo crear el perfil maestro.";
+    },
     async connect(rawUrl) {
       const url = normalizeUrl(rawUrl);
       if (!(await ping(url))) return `No encuentro el servidor en ${url}. Revisa la dirección y que el PC o NAS del servidor esté encendido.`;
@@ -226,7 +265,7 @@
       location.reload();
     },
     changeServer() { set({ mode: "gate", gate: { mode: "server", back: !!state.me } }); },
-    gate(mode) { set({ mode: "gate", gate: { mode } }); },
+    gate(mode, extra) { set({ mode: "gate", gate: { mode, ...(extra || {}) } }); },
     closeGate() { if (state.me) set({ mode: "live", gate: null }); },
   };
 

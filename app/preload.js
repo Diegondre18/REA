@@ -15,4 +15,11 @@ contextBridge.exposeInMainWorld("lap", {
   updateStatus: () => ipcRenderer.invoke("update-status"),
   onUpdateReady: (fn) => ipcRenderer.on("update-ready", (_e, version) => fn(version)),
   installUpdate: () => ipcRenderer.send("update-install"),
+  hostStatus: () => ipcRenderer.invoke("host-status"),
+  hostStart: () => ipcRenderer.invoke("host-start"),
+  hostEnable: () => ipcRenderer.invoke("host-enable"),
+  hostDisable: () => ipcRenderer.invoke("host-disable"),
+  hostFirewall: () => ipcRenderer.invoke("host-firewall"),
+  hostMaestro: (email, password, name) => ipcRenderer.invoke("host-maestro", email, password, name),
+  discover: () => ipcRenderer.invoke("discover"),
 });

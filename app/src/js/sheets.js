@@ -227,11 +227,15 @@
     const [f, setF, set] = useForm(() => ({ name: u.name || "", cargo: u.cargo || "", areas: (u.areas || []).filter((a) => a !== "direccion"), estado: u.estado || "", role: u.role || "miembro" }));
     const [autostart, setAutostart] = useState(null);
     const [version, setVersion] = useState("");
+    const [hostInfo, setHostInfo] = useState(null);
+    const [leaveHost, setLeaveHost] = useState(false);
     useEffect(() => {
       if (!isMe || !L.desk) return;
       L.desk.getAutostart().then(setAutostart).catch(() => {});
       L.desk.appInfo().then((i) => setVersion(i.version)).catch(() => {});
+      if (L.desk.hostStatus) L.desk.hostStatus().then(setHostInfo).catch(() => {});
     }, []);
+    const hosting = !!(hostInfo && hostInfo.hosting);
     const can = isMe || director;
     const save = async () => {
       const body = { cargo: f.cargo.trim(), areas: f.role === "director" ? ["direccion", ...f.areas] : f.areas };
@@ -254,8 +258,22 @@
         ${isMe && html`
           <div class="settings">
             ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}
-            <div class="fld"><span class="lbl">Servidor</span><p class="mono">${s.serverUrl}</p></div>
-            <div class="inline"><button type="button" class="btn sm" onClick=${() => { L.closeSheet(); L.auth.changeServer(); }}>Cambiar de servidor</button><button type="button" class="btn sm" onClick=${L.auth.logout}>Cerrar sesión</button></div>
+            ${hosting ? html`
+              <div class="host-box">
+                <span class="lbl">Servidor del estudio</span>
+                <p><b>Este PC es el servidor.</b> Arranca solo cada vez que se abre la app; mientras este PC esté prendido, el equipo trabaja conectado. Los demás PC lo encuentran solos.</p>
+                ${(hostInfo.addresses || []).length > 0 && html`<p class="muted">Si algún PC pide la dirección: <span class="mono">${hostInfo.addresses.join(" · ")}</span></p>`}
+                ${hostInfo.error && html`<p class="err">${hostInfo.error}</p>`}
+                <div class="inline wrap">
+                  <button type="button" class="btn sm" onClick=${() => { L.closeSheet(); L.auth.gate("maestro"); }}>Crear o recuperar perfil maestro</button>
+                  <button type="button" class="btn sm" onClick=${async () => { const ok = await L.desk.hostFirewall(); L.toast(ok ? "Firewall listo: los demás PC pueden entrar." : "Windows no dio el permiso. Pide a quien administra el PC que lo acepte."); }}>Revisar el firewall</button>
+                  ${leaveHost ? html`<button type="button" class="btn sm danger" onClick=${L.auth.stopHosting}>Confirmar: dejar de ser el servidor</button><button type="button" class="btn sm ghost" onClick=${() => setLeaveHost(false)}>No</button>`
+                    : html`<button type="button" class="btn sm ghost danger" onClick=${() => setLeaveHost(true)}>Dejar de ser el servidor</button>`}
+                </div>
+                ${leaveHost && html`<p class="hint">Los datos se quedan guardados en este PC. Mientras no haya otro servidor, nadie podrá conectarse.</p>`}
+              </div>` : html`
+              <div class="fld"><span class="lbl">Servidor</span><p class="mono">${s.serverUrl.replace(/^https?:\/\//, "")}</p></div>`}
+            <div class="inline">${!hosting && html`<button type="button" class="btn sm" onClick=${() => { L.closeSheet(); L.auth.changeServer(); }}>Cambiar de servidor</button>`}<button type="button" class="btn sm" onClick=${L.auth.logout}>Cerrar sesión</button></div>
             ${version && html`<p class="meta-line">LAP Cerebro ${version}</p>`}
           </div>`}
       <//>`;

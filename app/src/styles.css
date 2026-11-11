@@ -550,6 +550,16 @@ h3 { font-size: 19px; font-weight: 400; letter-spacing: -0.01em; margin: 0; }
 .gate-card .alt { display: flex; gap: 8px; flex-wrap: wrap; justify-content: space-between; font-size: 13px; }
 .gate-card .alt button { border: 0; background: none; color: var(--blue-text); cursor: pointer; padding: 0; }
 .gate-card .alt button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.found { display: grid; gap: 8px; }
+.found .btn { justify-content: flex-start; }
+.found .btn .mono { margin-left: auto; }
+.host-offer { display: grid; gap: 10px; padding: 14px; border-radius: 12px; border: 1px dashed var(--line-strong); }
+.host-offer p, .host-box p { margin: 0; font-size: 14px; }
+.host-offer p b, .host-box p b { color: var(--fg); font-weight: 500; }
+.host-box { display: grid; gap: 8px; padding: 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, var(--blue) 40%, var(--line)); }
+.inline.wrap { flex-wrap: wrap; }
+.ok-note { color: var(--blue-text) !important; font-weight: 400 !important; }
+.gate-card .hint { font-size: 12px; color: var(--faint); }
 .boot { position: fixed; inset: 40px 0 0; z-index: 2; display: grid; place-content: center; justify-items: center; gap: 12px; color: var(--muted); }
 .boot .sym { width: 72px; height: 62px; color: var(--blue); }
 .toast { position: fixed; z-index: 50; left: 50%; bottom: 20px; transform: translateX(-50%); padding: 10px 16px; border-radius: 10px; background: var(--fg); color: var(--bg); font-weight: 500; box-shadow: 0 12px 30px -12px var(--shadow); max-width: calc(100% - 32px); }
