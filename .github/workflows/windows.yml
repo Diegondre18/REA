@@ -6,6 +6,11 @@ on:
     tags: ["v*"]
     paths: ["app/**", "servidor/**", ".github/workflows/windows.yml"]
   workflow_dispatch:
+    inputs:
+      publicar:
+        description: "Publicar esta versión en Releases (los PC con 2.1 o posterior se actualizan solos)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -61,10 +66,12 @@ jobs:
 
   release:
     name: Publicar versión
-    if: startsWith(github.ref, 'refs/tags/v')
+    # Con un tag v* o a mano desde Actions marcando "publicar". El número sale de app/package.json.
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.publicar
     needs: [app, servidor]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: files
@@ -73,7 +80,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${GITHUB_REF_NAME}" files/* \
+          VERSION="v$(node -p "require('./app/package.json').version")"
+          if [[ "${GITHUB_REF}" == refs/tags/v* && "${GITHUB_REF_NAME}" != "${VERSION}" ]]; then
+            echo "El tag ${GITHUB_REF_NAME} no coincide con la versión ${VERSION} de app/package.json." >&2
+            exit 1
+          fi
+          gh release create "${VERSION}" files/* \
+            --target "${GITHUB_SHA}" \
             --repo "${GITHUB_REPOSITORY}" \
-            --title "LAP Cerebro ${GITHUB_REF_NAME}" \
+            --title "LAP Cerebro ${VERSION}" \
             --notes "Los PC que ya tienen LAP Cerebro 2.1 o posterior se actualizan solos. Para instalar por primera vez, usa LAP-Cerebro-Setup en cada PC. El servidor va en un solo PC o NAS: ver LEEME.md dentro del zip."

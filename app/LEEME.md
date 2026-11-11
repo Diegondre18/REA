@@ -21,7 +21,7 @@ App de escritorio del estudio. Reúne los proyectos de Arquitectura, Diseño Int
 
 Cada PC busca versiones nuevas en *Releases* de GitHub al abrir la app y cada 4 horas. La descarga ocurre en segundo plano y la app muestra el aviso **«LAP Cerebro x.y.z está lista»** con el botón **Reiniciar y actualizar**. Si nadie lo pulsa, se instala sola la próxima vez que se cierre la app.
 
-Para publicar una versión nueva: sube el número de `version` en `package.json` y crea un tag con ese número (por ejemplo `v2.1.1`). GitHub Actions arma el instalador y lo publica; desde ahí cada PC se actualiza sola. Solo se actualizan solos los PC que ya tienen la 2.1.0 o posterior; la 2.0 se instala a mano una última vez.
+Para publicar una versión nueva: sube el número de `version` en `package.json` y, en GitHub, ve a *Actions → App de Windows y servidor → Run workflow*, marca **Publicar** y ejecútalo (o sube un tag con ese número, por ejemplo `v2.1.1`). GitHub Actions arma el instalador y lo publica en *Releases*; desde ahí cada PC se actualiza sola. Solo se actualizan solos los PC que ya tienen la 2.1.0 o posterior; la 2.0 se instala a mano una última vez.
 
 ## Integración con Windows y Google
 
@@ -50,7 +50,7 @@ npm start
 El instalador se arma en GitHub Actions (`.github/workflows/windows.yml`) en una máquina Windows. Para publicar una versión, sube un tag:
 
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+git tag v2.1.1 && git push origin v2.1.1
 ```
 
 | Archivo | Para qué sirve |
