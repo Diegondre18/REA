@@ -73,11 +73,24 @@ jobs:
           curl -fsSL -o pb.zip "https://github.com/pocketbase/pocketbase/releases/download/v${PB_VERSION}/pocketbase_${PB_VERSION}_windows_amd64.zip"
           unzip -q pb.zip pocketbase.exe -d out/LAP-Cerebro-Servidor
           cp -r servidor/pb_migrations servidor/pb_hooks servidor/*.bat servidor/LEEME.md out/LAP-Cerebro-Servidor/
-          cd out && zip -qr LAP-Cerebro-Servidor-Windows.zip LAP-Cerebro-Servidor
+          (cd out && zip -qr LAP-Cerebro-Servidor-Windows.zip LAP-Cerebro-Servidor)
+          # Reglas del servidor para el NAS: el contenedor las descarga solo en cada versión nueva.
+          mkdir -p out/reglas/nas
+          cp -r servidor/pb_migrations servidor/pb_hooks out/reglas/
+          echo "$PB_VERSION" > out/reglas/PB_VERSION
+          cp servidor/nas/cerebro.js app/host.js out/reglas/nas/
+          (cd out/reglas && zip -qr ../LAP-Cerebro-Reglas.zip .)
+          # Paquete para instalar en el NAS por primera vez.
+          mkdir -p out/nas
+          cp servidor/nas/docker-compose.yml servidor/nas/cerebro.js servidor/nas/LEEME.md app/host.js out/nas/
+          (cd out/nas && zip -qr ../LAP-Cerebro-NAS.zip .)
       - uses: actions/upload-artifact@v4
         with:
           name: LAP-Cerebro-Servidor-Windows
-          path: out/LAP-Cerebro-Servidor-Windows.zip
+          path: |
+            out/LAP-Cerebro-Servidor-Windows.zip
+            out/LAP-Cerebro-Reglas.zip
+            out/LAP-Cerebro-NAS.zip
           if-no-files-found: error
 
   release:

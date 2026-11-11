@@ -18,9 +18,13 @@ Mientras ese PC esté prendido y con la app abierta (aunque sea en la bandeja ju
 - **Datos y copias:** quedan en `%APPDATA%\LAP Cerebro\servidor\pb_data`. Cada madrugada se hace una copia automática y se guardan las últimas 14, en `pb_data\backups`.
 - **Cambiar de PC servidor:** en el PC actual, **Tu perfil → Dejar de ser el servidor**; copia la carpeta `pb_data` al mismo lugar del PC nuevo y actívalo ahí.
 
-## Servidor aparte (NAS o PC dedicado)
+## En el NAS (igual de fácil, y nunca se apaga)
 
-Si prefieren tenerlo fuera de la app, por ejemplo en el NAS, usen el zip `LAP-Cerebro-Servidor-Windows.zip` de *Releases* o la carpeta `servidor` con Docker. En ese caso las actualizaciones del servidor son a mano (ver más abajo).
+El NAS también puede ser el servidor: arranca solo, los PC lo encuentran solos y se actualiza solo. La guía paso a paso está en [`nas/LEEME.md`](nas/LEEME.md) y el paquete es `LAP-Cerebro-NAS.zip` en *Releases*.
+
+## Servidor aparte en un PC con Windows
+
+Si prefieren un PC dedicado sin la app, usen `LAP-Cerebro-Servidor-Windows.zip` de *Releases*. En ese caso las actualizaciones del servidor se hacen con `actualizar-servidor.bat` (ver más abajo).
 
 ### En un PC con Windows
 
@@ -31,22 +35,6 @@ Si prefieren tenerlo fuera de la app, por ejemplo en el NAS, usen el zip `LAP-Ce
 5. Para que arranque solo cada vez que se enciende el PC: clic derecho en `iniciar-con-windows.bat` → **Ejecutar como administrador**.
 
 Conviene darle a ese PC una IP fija en el router, para que la dirección no cambie.
-
-### En un NAS con Docker
-
-Copia esta carpeta `servidor` al NAS y, desde ahí:
-
-```bash
-docker compose up -d --build
-```
-
-La primera vez, crea la cuenta de administrador:
-
-```bash
-docker exec -it lap-cerebro /pb/pocketbase superuser upsert tu-correo@laparq.com UnaClaveSegura --dir=/pb/pb_data
-```
-
-La app se conecta a `IP-del-NAS:8090`.
 
 ## Primera vez
 
@@ -87,7 +75,7 @@ Todos los datos están en la carpeta `pb_data`. El servidor hace una copia autom
 | `iniciar-servidor.bat` | Arranca el servidor en una ventana. |
 | `iniciar-con-windows.bat` | Lo registra para que arranque con Windows. |
 | `abrir-firewall.bat` | Abre el puerto 8090 en el firewall de Windows. |
-| `Dockerfile`, `docker-compose.yml` | Para correrlo en un NAS con Docker. |
+| `nas/` | Todo lo del NAS: `docker-compose.yml`, el programa que lo mantiene en marcha y actualizado, y su guía. |
 
 ## Seguridad
 

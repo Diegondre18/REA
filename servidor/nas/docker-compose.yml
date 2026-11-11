@@ -1,0 +1,18 @@
+# LAP Cerebro en el NAS. Arranca solo con el NAS, responde a los PC que lo buscan en la red
+# y se actualiza solo con cada versión nueva. Los datos quedan en esta misma carpeta (pb_data).
+services:
+  cerebro:
+    image: node:22-alpine
+    container_name: lap-cerebro
+    restart: unless-stopped
+    # "host" para que los PC lo encuentren solos en la red (usa los puertos 8090 y 8091).
+    network_mode: host
+    working_dir: /data
+    command: ["node", "/data/cerebro.js"]
+    volumes:
+      - ./:/data
+    environment:
+      - TZ=America/Bogota
+      # Para crear el perfil maestro al arrancar: completa las dos líneas, arranca una vez y luego bórralas.
+      # - MAESTRO_EMAIL=soporte@laparq.com
+      # - MAESTRO_PASSWORD=una-clave-de-al-menos-10
