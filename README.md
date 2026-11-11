@@ -2,7 +2,7 @@ hola
 
 # LAP Cerebro
 
-Herramienta del área de Visualización 3D de LAP: qué se va a trabajar (cronograma), qué renders están en máquina, cuáles ya se guardaron y en qué carpeta, y en qué está trabajando cada persona, sincronizado en vivo.
+El cerebro del estudio LAP: proyectos de Arquitectura, Diseño Interior, Visualización y Administración, planes de entregables que el equipo aprueba y pasan solos al cronograma de cada persona, reuniones con cliente, comités internos y quién está trabajando en qué, sincronizado en vivo.
 
 - [`app/`](app/LEEME.md): app de escritorio para Windows (Electron).
 - [`servidor/`](servidor/LEEME.md): servidor gratuito de la oficina (PocketBase), en un PC o en el NAS.

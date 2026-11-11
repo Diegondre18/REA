@@ -1,4 +1,4 @@
-// Copia a src/vendor lo que la interfaz carga sin internet: el SDK de PocketBase y las tipografías.
+// Copia a src/vendor lo que la interfaz carga sin internet: PocketBase, Preact, htm y las tipografías.
 const fs = require("fs");
 const path = require("path");
 
@@ -8,6 +8,9 @@ fs.mkdirSync(path.join(out, "fonts"), { recursive: true });
 
 const copy = (from, to) => fs.copyFileSync(path.join(root, "node_modules", from), path.join(out, to));
 copy("pocketbase/dist/pocketbase.iife.js", "pocketbase.iife.js");
+copy("preact/dist/preact.min.umd.js", "preact.js");
+copy("preact/hooks/dist/hooks.umd.js", "preact-hooks.js");
+copy("htm/dist/htm.umd.js", "htm.js");
 for (const w of [300, 400, 500, 600]) copy(`@fontsource/hanken-grotesk/files/hanken-grotesk-latin-${w}-normal.woff2`, `fonts/hanken-grotesk-${w}.woff2`);
 for (const w of [400, 500]) copy(`@fontsource/geist-mono/files/geist-mono-latin-${w}-normal.woff2`, `fonts/geist-mono-${w}.woff2`);
 copy("@fontsource/hanken-grotesk/LICENSE", "fonts/OFL-hanken-grotesk.txt");

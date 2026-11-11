@@ -1,0 +1,495 @@
+// Datos: conexión con el servidor de la oficina (PocketBase), sincronización en vivo, consultas y acciones.
+(() => {
+  "use strict";
+  const L = LAP;
+  const desk = window.lap || null;
+  const CONFIG_KEY = "lap-cerebro-config";
+  const SESSION_KEY = "lap-cerebro-session";
+  const ONLINE_MS = 150000; // "conectado" = latido en los últimos 2,5 minutos
+
+  // colección del servidor → lista en state
+  const COLS = {
+    users: "users", proyectos: "proyectos", tareas: "tareas", eventos: "eventos", planes: "planes",
+    plan_items: "planItems", vistos: "vistos", reportes: "reportes", notificaciones: "notifs", actividad: "actividad",
+  };
+
+  const state = {
+    mode: "boot", // boot | gate | connecting | live | offline
+    gate: null, // { mode: server|login|register, error }
+    me: null,
+    users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
+    route: { name: "inicio", id: "", tab: "" },
+    sheet: null, // { type, id, defaults }
+    toast: null,
+    q: "",
+    serverUrl: "",
+  };
+
+  /* ---------- suscripción de la interfaz ---------- */
+  const listeners = new Set();
+  let raf = 0;
+  function emit() {
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; listeners.forEach((f) => f()); });
+  }
+  function useStore() {
+    const [, force] = L.hooks.useState(0);
+    L.hooks.useEffect(() => {
+      const f = () => force((n) => n + 1);
+      listeners.add(f);
+      f(); // ponerse al día con cambios ocurridos antes de suscribirse
+      return () => listeners.delete(f);
+    }, []);
+    return state;
+  }
+  function set(patch) { Object.assign(state, patch); emit(); }
+
+  let toastTimer = 0;
+  function toast(msg) {
+    clearTimeout(toastTimer);
+    set({ toast: msg });
+    toastTimer = setTimeout(() => set({ toast: null }), 3600);
+  }
+
+  /* ---------- configuración y sesión ---------- */
+  const config = {
+    load() { try { return JSON.parse(localStorage.getItem(CONFIG_KEY) || "{}"); } catch (e) { return {}; } },
+    save(c) { try { localStorage.setItem(CONFIG_KEY, JSON.stringify(c)); } catch (e) { /* bloqueado */ } },
+  };
+  // En la app de escritorio la sesión se guarda cifrada con la protección de Windows; en un navegador, en su almacenamiento.
+  const session = {
+    async load() {
+      try {
+        const raw = desk ? await desk.sessionLoad() : localStorage.getItem(SESSION_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) { return null; }
+    },
+    save(token, record) {
+      const raw = token ? JSON.stringify({ token, record }) : "";
+      try { if (desk) desk.sessionSave(raw); else if (raw) localStorage.setItem(SESSION_KEY, raw); else localStorage.removeItem(SESSION_KEY); } catch (e) { /* bloqueado */ }
+    },
+  };
+
+  let pb = null;
+  function makeClient(url) {
+    // Almacén de sesión en memoria (el del SDK escribiría el token sin cifrar en localStorage).
+    const probe = new PocketBase(url);
+    const MemoryStore = Object.getPrototypeOf(Object.getPrototypeOf(probe.authStore)).constructor;
+    const client = new PocketBase(url, new MemoryStore());
+    client.autoCancellation(false);
+    client.authStore.onChange((token, record) => session.save(token, record));
+    return client;
+  }
+
+  const normalizeUrl = (u) => {
+    let v = String(u || "").trim().replace(/\/+$/, "");
+    if (v && !/^https?:\/\//i.test(v)) v = "http://" + v;
+    if (/^http:\/\/[^/:]+$/i.test(v)) v += ":8090";
+    return v;
+  };
+  async function ping(url) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    try { return (await fetch(url + "/api/health", { signal: ctrl.signal })).ok; } catch (e) { return false; } finally { clearTimeout(timer); }
+  }
+
+  /* ---------- errores ---------- */
+  function errMsg(e) {
+    const status = e && typeof e.status === "number" ? e.status : -1;
+    const msg = e && e.response && e.response.message;
+    if (status === 0) return "No hay conexión con el servidor. Revisa la red de la oficina.";
+    if (e && e.url && String(e.url).includes("/api/lap/") && msg) return msg;
+    if (status === 400) {
+      const fields = (e.response && e.response.data) || {};
+      const f = Object.keys(fields)[0];
+      return f ? `Revisa el campo «${f}»: ${fields[f].message}` : "No tienes permiso para esto o faltan datos.";
+    }
+    if (status === 401) return "Tu sesión expiró. Vuelve a entrar.";
+    if (status === 403 || status === 404) return "No tienes permiso para hacer esto.";
+    return "No se pudo guardar. Inténtalo de nuevo.";
+  }
+  function fail(e) {
+    if (e && e.status === 0) set({ mode: "offline" });
+    toast(errMsg(e));
+    return null;
+  }
+
+  /* ---------- sincronización ---------- */
+  function upsert(k, rec) {
+    const arr = state[k];
+    const i = arr.findIndex((x) => x.id === rec.id);
+    state[k] = i >= 0 ? arr.map((x) => (x.id === rec.id ? rec : x)) : [...arr, rec];
+  }
+  function remove(k, id) { state[k] = state[k].filter((x) => x.id !== id); }
+
+  async function loadAll() {
+    const full = (c, opts) => pb.collection(c).getFullList({ batch: 500, ...opts });
+    const [users, proyectos, tareas, eventos, planes, planItems, vistos, reportes, notifs, act] = await Promise.all([
+      full("users"), full("proyectos"), full("tareas"), full("eventos"), full("planes"), full("plan_items"), full("vistos"), full("reportes"),
+      full("notificaciones", { sort: "-created" }), pb.collection("actividad").getList(1, 80, { sort: "-created" }),
+    ]);
+    Object.assign(state, { users, proyectos, tareas, eventos, planes, planItems, vistos, reportes, notifs, actividad: act.items, mode: "live" });
+    state.me = users.find((u) => u.id === pb.authStore.record.id) || pb.authStore.record;
+    emit();
+  }
+
+  let beatTimer = 0;
+  async function startLive() {
+    state.me = pb.authStore.record;
+    set({ mode: "connecting", gate: null });
+    await loadAll();
+    for (const col of Object.keys(COLS)) {
+      const k = COLS[col];
+      pb.collection(col).subscribe("*", (ev) => {
+        if (ev.action === "delete") remove(k, ev.record.id);
+        else if (k === "actividad") { if (ev.action === "create") state.actividad = [ev.record, ...state.actividad].slice(0, 80); }
+        else if (k === "notifs") {
+          const isNew = ev.action === "create" && !state.notifs.some((n) => n.id === ev.record.id);
+          if (isNew) { state.notifs = [ev.record, ...state.notifs]; announce(ev.record); } else upsert(k, ev.record);
+        } else upsert(k, ev.record);
+        if (k === "users" && ev.record.id === state.me.id) state.me = ev.record;
+        emit();
+      }).catch(() => {});
+    }
+    let first = true;
+    pb.realtime.subscribe("PB_CONNECT", () => { if (first) { first = false; return; } loadAll().catch(() => {}); });
+    pb.realtime.onDisconnect = () => { set({ mode: "offline" }); };
+    clearInterval(beatTimer);
+    const beat = () => pb.collection("users").update(state.me.id, { lastSeen: new Date().toISOString() })
+      .then(() => { if (state.mode === "offline") loadAll().catch(() => {}); })
+      .catch((e) => { if (e && e.status === 0) set({ mode: "offline" }); });
+    beat();
+    beatTimer = setInterval(beat, 60000);
+  }
+
+  function announce(n) {
+    toast(n.title);
+    if (desk && desk.notify) desk.notify(n.title, n.body || "", n.route || "");
+  }
+
+  async function boot() {
+    const cfg = config.load();
+    state.serverUrl = cfg.url || "";
+    if (!cfg.url) { set({ mode: "gate", gate: { mode: "server" } }); return; }
+    pb = makeClient(cfg.url);
+    const saved = await session.load();
+    if (saved && saved.token) pb.authStore.save(saved.token, saved.record);
+    if (pb.authStore.isValid) {
+      try {
+        await pb.collection("users").authRefresh();
+        await startLive();
+        return;
+      } catch (e) {
+        if (e && e.status === 0) {
+          set({ mode: "gate", gate: { mode: "server", error: `No encuentro el servidor en ${cfg.url}. ¿Está encendido el PC o NAS del servidor?` } });
+          return;
+        }
+        pb.authStore.clear();
+      }
+    }
+    set({ mode: "gate", gate: { mode: "login" } });
+  }
+
+  const auth = {
+    async connect(rawUrl) {
+      const url = normalizeUrl(rawUrl);
+      if (!(await ping(url))) return `No encuentro el servidor en ${url}. Revisa la dirección y que el PC o NAS del servidor esté encendido.`;
+      config.save({ url });
+      state.serverUrl = url;
+      pb = makeClient(url);
+      set({ mode: "gate", gate: { mode: "login" } });
+      return "";
+    },
+    async login(email, password) {
+      try { await pb.collection("users").authWithPassword(email, password); await startLive(); return ""; }
+      catch (e) { return e && e.status === 0 ? "No hay conexión con el servidor." : "Correo o contraseña incorrectos."; }
+    },
+    async register(name, email, password, areas) {
+      try {
+        await pb.collection("users").create({ name, email, password, passwordConfirm: password, areas });
+        await pb.collection("users").authWithPassword(email, password);
+        await startLive();
+        return "";
+      } catch (e) {
+        if (e && e.status === 0) return "No hay conexión con el servidor.";
+        const data = (e.response && e.response.data) || {};
+        if (e.response && e.response.message && /@/.test(e.response.message)) return e.response.message;
+        if (data.email) return "Ese correo no es válido o ya tiene una cuenta.";
+        if (data.password) return "La contraseña necesita al menos 8 caracteres.";
+        return "No se pudo crear la cuenta. Revisa los datos.";
+      }
+    },
+    logout() {
+      if (pb) { pb.realtime.unsubscribe().catch(() => {}); pb.authStore.clear(); }
+      location.reload();
+    },
+    changeServer() { set({ mode: "gate", gate: { mode: "server", back: !!state.me } }); },
+    gate(mode) { set({ mode: "gate", gate: { mode } }); },
+    closeGate() { if (state.me) set({ mode: "live", gate: null }); },
+  };
+
+  /* ---------- consultas ---------- */
+  const q = {
+    user: (id) => state.users.find((u) => u.id === id) || null,
+    project: (id) => state.proyectos.find((p) => p.id === id) || null,
+    task: (id) => state.tareas.find((t) => t.id === id) || null,
+    event: (id) => state.eventos.find((e) => e.id === id) || null,
+    name: (id) => { const u = q.user(id); return u ? (u.name || "Alguien") : "Alguien"; },
+    first: (id) => (state.me && id === state.me.id ? "Tú" : L.first(q.name(id)) || "Alguien"),
+    avatar: (u) => (u && u.avatar ? pb.files.getURL(u, u.avatar, { thumb: "100x100" }) : ""),
+    isDirector: () => !!state.me && state.me.role === "director",
+    canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || state.me.role === "director"),
+    isMember: (p) => !!p && !!state.me && (p.members || []).includes(state.me.id),
+    online: (u) => !!u && ((state.me && u.id === state.me.id) || (!!u.lastSeen && Date.now() - Date.parse(u.lastSeen) < ONLINE_MS)),
+    workingOn: (taskId) => state.users.filter((u) => u.taskId === taskId),
+    viewing: (taskId) => state.users.filter((u) => u.id !== state.me.id && u.viewing === taskId && q.online(u)),
+    projectTasks: (pid) => state.tareas.filter((t) => t.project === pid),
+    projectEvents: (pid) => state.eventos.filter((e) => e.project === pid).sort((a, b) => L.eventStamp(a).localeCompare(L.eventStamp(b))),
+    projectPlans: (pid) => state.planes.filter((p) => p.project === pid).sort((a, b) => a.version - b.version),
+    approvedPlan: (pid) => state.planes.find((p) => p.project === pid && p.status === "aprobado") || null,
+    openPlan: (pid) => state.planes.find((p) => p.project === pid && (p.status === "borrador" || p.status === "en_aprobacion")) || null,
+    planItems: (planId) => state.planItems.filter((i) => i.plan === planId).sort((a, b) => a.date.localeCompare(b.date) || (a.order || 0) - (b.order || 0)),
+    planVistos: (planId) => state.vistos.filter((v) => v.plan === planId),
+    // Integrantes que deben dar visto bueno: todos menos quien lidera.
+    reviewers: (p) => (p ? (p.members || []).filter((m) => m !== p.leader) : []),
+    // La reunión con cliente más cercana del proyecto, a partir de una fecha.
+    nextClientMeeting: (pid, from) => {
+      const start = from || L.todayIso();
+      return state.eventos.filter((e) => e.project === pid && e.kind === "cliente" && e.date >= start)
+        .sort((a, b) => L.eventStamp(a).localeCompare(L.eventStamp(b)))[0] || null;
+    },
+    myTasks: (uid) => state.tareas.filter((t) => (t.assignees || []).includes(uid)),
+    myEvents: (uid) => state.eventos.filter((e) => (e.attendees || []).includes(uid)),
+    myProjects: (uid) => state.proyectos.filter((p) => p.status !== "cerrado" && ((p.members || []).includes(uid) || p.leader === uid)),
+    unread: () => state.notifs.filter((n) => !n.read).length,
+    // Lo que está esperando una acción mía.
+    pending: () => {
+      const me = state.me.id;
+      const out = { vistos: [], aprobar: [], reportes: [] };
+      for (const plan of state.planes) {
+        if (plan.status !== "en_aprobacion") continue;
+        const p = q.project(plan.project); if (!p) continue;
+        const vistos = q.planVistos(plan.id);
+        if (q.reviewers(p).includes(me) && !vistos.some((v) => v.user === me)) out.vistos.push({ plan, project: p });
+        if (p.leader === me || q.isDirector()) {
+          const ok = q.reviewers(p).filter((m) => vistos.some((v) => v.user === m && v.verdict === "ok")).length;
+          out.aprobar.push({ plan, project: p, ok, total: q.reviewers(p).length, cambios: vistos.filter((v) => v.verdict === "cambios") });
+        }
+      }
+      const t = L.todayIso(), lim = L.iso(L.addDays(L.today(), 3));
+      for (const ev of state.eventos) {
+        if (ev.kind !== "comite" || ev.date < t || ev.date > lim || !(ev.attendees || []).includes(me)) continue;
+        if (!state.reportes.some((r) => r.event === ev.id && r.user === me)) out.reportes.push(ev);
+      }
+      return out;
+    },
+  };
+
+  /* ---------- acciones ---------- */
+  const now = () => new Date().toISOString();
+  const run = async (fn) => { try { return await fn(); } catch (e) { return fail(e); } };
+  const log = (kind, title, ref, project, to) =>
+    pb.collection("actividad").create({ by: state.me.id, kind, title: String(title || "").slice(0, 200), ref: ref || "", project: project || "", to: to || "" }).catch(() => {});
+
+  const act = {
+    async saveTask(id, data) {
+      return run(async () => {
+        const prev = id ? q.task(id) : null;
+        const body = { ...data, updatedBy: state.me.id };
+        if (body.status === "terminado") { body.progress = 100; if (!prev || prev.status !== "terminado") body.doneAt = L.todayIso(); }
+        else if (body.status) body.doneAt = "";
+        if (body.status && body.status !== "en_curso") body.stage = "";
+        const rec = id ? await pb.collection("tareas").update(id, body) : await pb.collection("tareas").create({ status: "pendiente", progress: 0, ...body });
+        upsert("tareas", rec); emit();
+        if (!prev) log("create", rec.title, rec.id, rec.project);
+        else if (body.status && prev.status !== rec.status) {
+          log(rec.status === "terminado" ? "done" : "stage", rec.title, rec.id, rec.project, rec.status);
+          // Al terminar, quien la tenía como trabajo actual queda libre.
+          if (rec.status === "terminado" && state.me.taskId === rec.id) act.setWorking(null);
+        }
+        return rec;
+      });
+    },
+    async deleteTask(id) {
+      return run(async () => {
+        const t = q.task(id);
+        await pb.collection("tareas").delete(id);
+        remove("tareas", id); emit();
+        if (t) log("delete", t.title, "", t.project);
+        return true;
+      });
+    },
+    // "Estoy trabajando en esto": lo ve todo el equipo. Una tarea por hacer pasa a En curso.
+    async setWorking(taskId) {
+      return run(async () => {
+        const t = now();
+        const rec = await pb.collection("users").update(state.me.id, { taskId: taskId || "", since: taskId ? t : "", lastSeen: t });
+        upsert("users", rec); state.me = rec; emit();
+        const task = taskId && q.task(taskId);
+        if (task) {
+          if (task.status === "pendiente") await act.saveTask(task.id, { status: "en_curso" });
+          log("working", task.title, task.id, task.project);
+        }
+        return rec;
+      });
+    },
+    setViewing(taskId) {
+      if (!pb || !state.me || (state.me.viewing || "") === (taskId || "")) return;
+      pb.collection("users").update(state.me.id, { viewing: taskId || "" }).then((rec) => { upsert("users", rec); state.me = rec; }).catch(() => {});
+    },
+    async saveProject(id, data) {
+      return run(async () => {
+        const rec = id ? await pb.collection("proyectos").update(id, data) : await pb.collection("proyectos").create({ status: "activo", leader: state.me.id, ...data });
+        upsert("proyectos", rec); emit();
+        if (!id) log("project", rec.name, rec.id, rec.id);
+        return rec;
+      });
+    },
+    async deleteProject(id) {
+      return run(async () => { await pb.collection("proyectos").delete(id); await loadAll(); return true; });
+    },
+    async saveEvent(id, data) {
+      return run(async () => {
+        const rec = id ? await pb.collection("eventos").update(id, data) : await pb.collection("eventos").create({ ...data, createdBy: state.me.id });
+        upsert("eventos", rec); emit();
+        if (!id) log(rec.kind === "comite" ? "comite" : "meeting", rec.title, rec.id, rec.project);
+        return rec;
+      });
+    },
+    async deleteEvent(id) {
+      return run(async () => { await pb.collection("eventos").delete(id); remove("eventos", id); emit(); return true; });
+    },
+    async saveReport(eventId, data) {
+      return run(async () => {
+        const prev = state.reportes.find((r) => r.event === eventId && r.user === state.me.id);
+        const rec = prev ? await pb.collection("reportes").update(prev.id, data) : await pb.collection("reportes").create({ event: eventId, user: state.me.id, ...data });
+        upsert("reportes", rec); emit();
+        return rec;
+      });
+    },
+    // ---- plan de entregables ----
+    async createPlan(projectId) {
+      return run(async () => {
+        const version = Math.max(0, ...q.projectPlans(projectId).map((p) => p.version || 0)) + 1;
+        const rec = await pb.collection("planes").create({ project: projectId, version, status: "borrador", createdBy: state.me.id });
+        upsert("planes", rec); emit();
+        return rec;
+      });
+    },
+    async saveItem(id, data) {
+      return run(async () => {
+        const rec = id ? await pb.collection("plan_items").update(id, data) : await pb.collection("plan_items").create({ key: L.key(), ...data });
+        upsert("planItems", rec); emit();
+        return rec;
+      });
+    },
+    async deleteItem(id) {
+      return run(async () => { await pb.collection("plan_items").delete(id); remove("planItems", id); emit(); return true; });
+    },
+    async planStep(planId, step) {
+      return run(async () => {
+        const r = await pb.send(`/api/lap/planes/${planId}/${step}`, { method: "POST" });
+        await loadAll();
+        return r;
+      });
+    },
+    async setVisto(planId, verdict, comment) {
+      return run(async () => {
+        const prev = state.vistos.find((v) => v.plan === planId && v.user === state.me.id);
+        const body = { verdict, comment: comment || "" };
+        const rec = prev ? await pb.collection("vistos").update(prev.id, body) : await pb.collection("vistos").create({ plan: planId, user: state.me.id, ...body });
+        upsert("vistos", rec); emit();
+        return rec;
+      });
+    },
+    // ---- notificaciones ----
+    async readNotif(n) {
+      if (n.read) return;
+      upsert("notifs", { ...n, read: true }); emit();
+      pb.collection("notificaciones").update(n.id, { read: true }).catch(() => {});
+    },
+    async readAll() {
+      const unread = state.notifs.filter((n) => !n.read);
+      state.notifs = state.notifs.map((n) => ({ ...n, read: true })); emit();
+      for (const n of unread) pb.collection("notificaciones").update(n.id, { read: true }).catch(() => {});
+    },
+    // ---- personas ----
+    async saveUser(id, data) {
+      return run(async () => {
+        const rec = await pb.collection("users").update(id, data);
+        upsert("users", rec); if (id === state.me.id) state.me = rec; emit();
+        return rec;
+      });
+    },
+    reconnect() { if (pb) loadAll().catch(fail); },
+
+    // ---- datos de ejemplo: solo a pedido, marcados, y se borran de un golpe ----
+    async loadSample() {
+      return run(async () => {
+        const me = state.me.id;
+        const others = state.users.filter((u) => u.id !== me).map((u) => u.id);
+        const team = [me, ...others.slice(0, 5)];
+        const who = (i) => [team[i % team.length]];
+        const D = (n) => L.iso(L.addDays(L.today(), n));
+        const mk = (c, d) => pb.collection(c).create(d);
+        toast("Cargando ejemplo…");
+        const p1 = await mk("proyectos", { name: "Torre Alameda", code: "TA-24", client: "Constructora Alameda", phase: "ejecucion", status: "activo", leader: me, members: team, areas: ["arquitectura", "interior", "visualizacion"], start: D(-30), end: D(60), folder: "\\\\NAS-LAP\\Proyectos\\TA-24_TorreAlameda\\", sample: true });
+        const p2 = await mk("proyectos", { name: "Casa Encinos", code: "CE-07", client: "Familia Encinos", phase: "anteproyecto", status: "activo", leader: me, members: team.slice(0, 3), areas: ["arquitectura", "interior"], start: D(-10), end: D(45), sample: true });
+        const r1 = await mk("eventos", { project: p1.id, kind: "cliente", title: "Presentación de fachadas al cliente", date: D(6), time: "10:00", duration: 60, attendees: team, createdBy: me, agenda: "Fachadas, lobby y avance de planos de licencia." });
+        await mk("eventos", { project: p1.id, kind: "comite", title: "Comité interno Torre Alameda", date: D(1), time: "09:00", duration: 30, attendees: team, createdBy: me });
+        await mk("eventos", { project: p2.id, kind: "cliente", title: "Revisión de anteproyecto", date: D(9), time: "15:00", duration: 60, attendees: team.slice(0, 3), createdBy: me });
+        const T = (title, project, area, kind, status, s, e, i, extra) => mk("tareas", { title, project, area, kind, status, start: D(s), due: D(e), assignees: who(i), progress: 0, updatedBy: me, ...extra });
+        await T("Fachada principal al atardecer", p1.id, "visualizacion", "render", "en_curso", -3, 2, 1, { stage: "render", progress: 60, engine: "V-Ray", resolution: "5000×2813", version: "v02", meeting: r1.id });
+        await T("Lobby de doble altura", p1.id, "visualizacion", "render", "revision", -6, 1, 2, { progress: 100, engine: "Corona", resolution: "3840×2160", version: "v03", meeting: r1.id });
+        await T("Planos de fachada para licencia", p1.id, "arquitectura", "planos", "en_curso", -4, 4, 0, { progress: 35 });
+        await T("Selección de acabados del lobby", p1.id, "interior", "diseno", "pendiente", 1, 5, 3, { meeting: r1.id });
+        await T("Radicar solicitud en curaduría", p1.id, "administracion", "gestion", "pendiente", 7, 10, 4, {});
+        await T("Vista aérea con contexto", p1.id, "visualizacion", "render", "terminado", -14, -6, 1, { progress: 100, doneAt: D(-6), engine: "V-Ray", resolution: "7680×4320", version: "v02", path: "\\\\NAS-LAP\\Proyectos\\TA-24_TorreAlameda\\03_Renders\\Final\\v02\\" });
+        await T("Planta arquitectónica nivel 1", p2.id, "arquitectura", "planos", "en_curso", -2, 3, 0, { progress: 50 });
+        await T("Moodboard de interiores", p2.id, "interior", "presentacion", "pendiente", 0, 6, 2, {});
+        const plan = await mk("planes", { project: p2.id, version: 1, status: "borrador", createdBy: me });
+        const I = (date, end, content, area, kind, i, order) => mk("plan_items", { plan: plan.id, key: L.key(), date: D(date), end: D(end), content, area, kind, assignees: who(i), order });
+        await I(1, 3, "Plantas y cortes del anteproyecto", "arquitectura", "planos", 0, 1);
+        await I(3, 6, "Modelo 3D de volumetría", "visualizacion", "modelado", 1, 2);
+        await I(5, 8, "Renders de fachada y sala", "visualizacion", "render", 1, 3);
+        await I(6, 8, "Presentación para el cliente", "interior", "presentacion", 2, 4);
+        await loadAll();
+        toast("Ejemplo cargado. Puedes borrarlo cuando quieras.");
+        return true;
+      });
+    },
+    async clearSample() {
+      return run(async () => {
+        for (const p of state.proyectos.filter((x) => x.sample)) await pb.collection("proyectos").delete(p.id);
+        if (state.me.taskId && !q.task(state.me.taskId)) await pb.collection("users").update(state.me.id, { taskId: "", since: "" });
+        await loadAll();
+        toast("Ejemplos borrados");
+        return true;
+      });
+    },
+  };
+
+  /* ---------- rutas ---------- */
+  const VIEWS = ["inicio", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo"];
+  function parseRoute() {
+    const [name, id, tab] = location.hash.replace(/^#/, "").split("/");
+    if (name === "tarea" && id) {
+      // Un aviso puede apuntar a una tarea: se abre su panel sobre la vista actual.
+      state.sheet = { type: "task", id };
+      history.replaceState(null, "", "#" + [state.route.name, state.route.id, state.route.tab].filter(Boolean).join("/"));
+      emit();
+      return;
+    }
+    state.route = { name: VIEWS.includes(name) ? name : "inicio", id: id || "", tab: tab || "" };
+    state.sheet = null;
+    state.q = "";
+    emit();
+  }
+  window.addEventListener("hashchange", parseRoute);
+  const go = (hash) => { if (location.hash === hash) parseRoute(); else location.hash = hash; };
+  const openSheet = (type, id, defaults) => { set({ sheet: { type, id: id || null, defaults: defaults || {} } }); };
+  const closeSheet = () => { set({ sheet: null }); };
+  if (desk && desk.onNavigate) desk.onNavigate((route) => { if (route) go(route); });
+
+  Object.assign(L, { state, useStore, set, toast, q, act, auth, boot, go, openSheet, closeSheet, parseRoute, desk, errMsg });
+})();

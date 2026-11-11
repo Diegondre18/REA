@@ -1,6 +1,6 @@
 # LAP Cerebro · Servidor
 
-El servidor guarda los renders, el cronograma, el archivo y quién está trabajando en qué. Todas las apps de la oficina se conectan a él y se sincronizan al instante. Es gratis: usa [PocketBase](https://pocketbase.io) (licencia MIT), un solo programa sin instalación.
+El servidor guarda los proyectos, los planes de entregables con sus vistos buenos, las tareas, las reuniones y comités, los avisos y quién está trabajando en qué. Todas las apps de la oficina se conectan a él y se sincronizan al instante. Es gratis: usa [PocketBase](https://pocketbase.io) (licencia MIT), un solo programa sin instalación.
 
 Necesita estar encendido mientras el equipo trabaja. Ponlo en el NAS o en un PC que no se apague (por ejemplo, el de un nodo de render).
 
@@ -30,6 +30,16 @@ docker exec -it lap-cerebro /pb/pocketbase superuser upsert tu-correo@laparq.com
 
 La app se conecta a `IP-del-NAS:8090`.
 
+## Primera vez
+
+- **La primera cuenta que se crea desde la app queda como Director creativo.** Que la cree el director. Las siguientes quedan como integrantes; el director puede cambiar roles y áreas desde Equipo.
+- **Solo se aceptan correos @laparq.com.** Para cambiarlo, edita `DOMINIO` al inicio de `pb_hooks/lib.js` y reinicia el servidor.
+- De lunes a viernes a las 8:05 a. m. (hora de Bogotá) el servidor manda los recordatorios del día: comités que esperan tu avance, reuniones de hoy y tareas por vencer.
+
+## Actualizar desde la versión 1
+
+Detén el servidor, haz una copia de la carpeta `pb_data`, reemplaza `pb_migrations` y `pb_hooks` por los nuevos y vuelve a arrancarlo. Los renders de la versión 1 pasan solos a tareas de Visualización, agrupadas en un proyecto por cada nombre de proyecto que tenían.
+
 ## Copias de seguridad
 
 Todos los datos están en la carpeta `pb_data`. Para respaldar, copia esa carpeta con el servidor detenido, o usa el panel de administración (`http://IP:8090/_/` → *Settings* → *Backups*), que puede programar copias automáticas.
@@ -39,8 +49,11 @@ Todos los datos están en la carpeta `pb_data`. Para respaldar, copia esa carpet
 | Archivo | Para qué sirve |
 |---|---|
 | `pocketbase.exe` | El servidor (viene en el zip de Releases). |
-| `pb_migrations/` | Crea las tablas de renders, entregas, actividad y equipo la primera vez que arranca. |
-| `pb_hooks/limpieza.pb.js` | Borra cada madrugada la actividad con más de 30 días. |
+| `pb_migrations/` | Crea las tablas la primera vez que arranca y actualiza las de la versión 1. |
+| `pb_hooks/lib.js` | Reglas del estudio: dominio de correo, aprobación de planes, avisos y recordatorios. |
+| `pb_hooks/rutas.pb.js` | Envío, retiro, aprobación y nueva versión del plan de entregables. Solo los puede usar quien lidera el proyecto o el director. |
+| `pb_hooks/avisos.pb.js` | Avisos al asignar tareas, agendar reuniones, sumar a un proyecto o responder un plan. |
+| `pb_hooks/limpieza.pb.js` | Recordatorios de cada mañana y limpieza de avisos y actividad con más de 30 días. |
 | `iniciar-servidor.bat` | Arranca el servidor en una ventana. |
 | `iniciar-con-windows.bat` | Lo registra para que arranque con Windows. |
 | `abrir-firewall.bat` | Abre el puerto 8090 en el firewall de Windows. |
@@ -48,5 +61,5 @@ Todos los datos están en la carpeta `pb_data`. Para respaldar, copia esa carpet
 
 ## Seguridad
 
-- Cualquiera que llegue al servidor puede crear una cuenta desde la app. Está pensado para la red de la oficina; **no abras el puerto 8090 a internet**. Para trabajar desde casa, usen la VPN de la oficina.
+- Solo se pueden crear cuentas con correo @laparq.com. Aun así, está pensado para la red de la oficina; **no abras el puerto 8090 a internet**. Para trabajar desde casa, usen la VPN de la oficina.
 - Si quieres cerrar el registro, en el panel de administración entra a la colección `users` → *API Rules* y pon el candado en *Create rule*. Desde ese momento solo el administrador crea cuentas, desde el mismo panel.

@@ -1,22 +1,39 @@
-// Proceso principal: ventana, barra de título integrada y acceso al disco y a la red de la oficina.
-const { app, BrowserWindow, ipcMain, shell, dialog, nativeTheme } = require("electron");
+// Proceso principal: ventana, bandeja del sistema, arranque con Windows, sesión cifrada, avisos y acceso a carpetas.
+const { app, BrowserWindow, ipcMain, shell, dialog, nativeTheme, Tray, Menu, Notification, safeStorage, nativeImage } = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
 
 if (!app.requestSingleInstanceLock()) app.quit();
+app.setAppUserModelId("com.laparq.cerebro");
+
+// Al arrancar con Windows la app abre oculta en la bandeja y se conecta sola.
+const HIDDEN_FLAG = "--oculta";
+const startHidden = process.argv.includes(HIDDEN_FLAG);
 
 let win = null;
+let tray = null;
+let quitting = false;
+
 const colors = () => (nativeTheme.shouldUseDarkColors
   ? { color: "#0a0f1c", symbolColor: "#eceeef", height: 40 }
   : { color: "#e9e9e8", symbolColor: "#1f1f1f", height: 40 });
+const iconPath = () => path.join(__dirname, "src", "assets", "icon.png");
+
+function showWindow() {
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+}
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 1440,
-    height: 920,
-    minWidth: 980,
-    minHeight: 640,
+    width: 1480,
+    height: 940,
+    minWidth: 1080,
+    minHeight: 680,
     title: "LAP Cerebro",
+    icon: iconPath(),
     backgroundColor: colors().color,
     titleBarStyle: "hidden",
     titleBarOverlay: colors(),
@@ -29,21 +46,57 @@ function createWindow() {
       spellcheck: false,
     },
   });
-  win.once("ready-to-show", () => win.show());
+  win.once("ready-to-show", () => { if (!startHidden) win.show(); });
   win.loadFile(path.join(__dirname, "src", "index.html"));
-  // Los enlaces web se abren en el navegador; la ventana nunca navega fuera de la app.
+  // Los enlaces web (Meet, Google Calendar) se abren en el navegador; la ventana nunca navega fuera de la app.
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//.test(url)) shell.openExternal(url);
+    if (/^https:\/\//.test(url)) shell.openExternal(url);
     return { action: "deny" };
   });
-  win.webContents.on("will-navigate", (e, url) => { if (!url.startsWith("file:")) e.preventDefault(); });
+  win.webContents.on("will-navigate", (e, url) => {
+    if (url.startsWith("file:")) return;
+    e.preventDefault();
+    if (/^https:\/\//.test(url)) shell.openExternal(url);
+  });
+  // Cerrar la ventana la esconde en la bandeja: así el equipo te sigue viendo conectado.
+  win.on("close", (e) => {
+    if (quitting) return;
+    e.preventDefault();
+    win.hide();
+  });
+}
+
+function createTray() {
+  const img = nativeImage.createFromPath(iconPath()).resize({ width: 16, height: 16 });
+  tray = new Tray(img);
+  tray.setToolTip("LAP Cerebro · conectado con el equipo");
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: "Abrir LAP Cerebro", click: showWindow },
+    { type: "separator" },
+    { label: "Salir", click: () => { quitting = true; app.quit(); } },
+  ]));
+  tray.on("click", showWindow);
 }
 
 nativeTheme.on("updated", () => { if (win) { win.setTitleBarOverlay(colors()); win.setBackgroundColor(colors().color); } });
+app.on("second-instance", showWindow);
+app.on("before-quit", () => { quitting = true; });
+app.whenReady().then(() => {
+  createWindow();
+  createTray();
+  // La primera vez queda configurada para abrir con Windows; cada persona puede apagarlo en su perfil.
+  if (app.isPackaged && !app.getLoginItemSettings({ args: [HIDDEN_FLAG] }).openAtLogin && !process.argv.includes("--sin-autoinicio")) {
+    setAutostartOnce();
+  }
+});
+app.on("window-all-closed", () => { /* sigue en la bandeja */ });
 
-app.on("second-instance", () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
-app.whenReady().then(createWindow);
-app.on("window-all-closed", () => app.quit());
+async function setAutostartOnce() {
+  const flag = path.join(app.getPath("userData"), "autoinicio-configurado");
+  try { await fs.access(flag); return; } catch (e) { /* primera vez */ }
+  app.setLoginItemSettings({ openAtLogin: true, args: [HIDDEN_FLAG] });
+  await fs.writeFile(flag, new Date().toISOString()).catch(() => {});
+}
 
 async function stat(p) {
   if (typeof p !== "string" || !p.trim() || p.length > 1000) return null;
@@ -71,7 +124,7 @@ ipcMain.handle("path-exists", async (_e, p) => {
 ipcMain.handle("pick-folder", async (_e, start) => {
   const s = await stat(start);
   const r = await dialog.showOpenDialog(win, {
-    title: "Elegir la carpeta del render",
+    title: "Elegir la carpeta",
     properties: ["openDirectory"],
     defaultPath: s && s.isDirectory() ? start.trim() : undefined,
   });
@@ -79,3 +132,37 @@ ipcMain.handle("pick-folder", async (_e, start) => {
 });
 
 ipcMain.handle("app-info", () => ({ version: app.getVersion(), platform: process.platform }));
+
+// Sesión: se guarda cifrada con la protección de datos de Windows (DPAPI), atada a esta cuenta de Windows.
+const sessionFile = () => path.join(app.getPath("userData"), "sesion.bin");
+ipcMain.handle("session-load", async () => {
+  try {
+    const buf = await fs.readFile(sessionFile());
+    return safeStorage.isEncryptionAvailable() ? safeStorage.decryptString(buf) : "";
+  } catch (e) { return ""; }
+});
+ipcMain.handle("session-save", async (_e, raw) => {
+  try {
+    if (!raw) { await fs.rm(sessionFile(), { force: true }); return true; }
+    if (typeof raw !== "string" || raw.length > 20000 || !safeStorage.isEncryptionAvailable()) return false;
+    await fs.writeFile(sessionFile(), safeStorage.encryptString(raw));
+    return true;
+  } catch (e) { return false; }
+});
+
+ipcMain.handle("autostart-get", () => app.getLoginItemSettings({ args: [HIDDEN_FLAG] }).openAtLogin);
+ipcMain.handle("autostart-set", (_e, on) => {
+  app.setLoginItemSettings({ openAtLogin: !!on, args: [HIDDEN_FLAG] });
+  return !!on;
+});
+
+// Avisos nativos de Windows; al hacer clic se abre la app en lo que corresponde.
+ipcMain.on("notify", (_e, title, body, route) => {
+  if (!Notification.isSupported() || (win && win.isFocused())) return;
+  const n = new Notification({ title: String(title || "").slice(0, 120), body: String(body || "").slice(0, 300), icon: iconPath(), silent: false });
+  n.on("click", () => {
+    showWindow();
+    if (win && typeof route === "string" && /^#[\w/-]*$/.test(route)) win.webContents.send("navigate", route);
+  });
+  n.show();
+});
