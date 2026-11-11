@@ -41,7 +41,7 @@
     if (id && !task) return html`<${Sheet} title="Tarea" onClose=${L.closeSheet} footer=${html`<button type="button" class="btn" onClick=${L.closeSheet}>Cerrar</button>`}><p class="note">Esta tarea ya no existe.</p><//>`;
 
     const project = q.project(f.project);
-    const candidates = project ? [...new Set([project.leader, ...(project.members || [])].filter(Boolean))] : s.users.map((u) => u.id);
+    const candidates = project ? [...new Set([project.leader, ...(project.members || [])].filter(Boolean))] : q.staff().map((u) => u.id);
     const meetings = f.project ? q.projectEvents(f.project).filter((e) => e.kind !== "comite" && (e.date >= L.todayIso() || e.id === f.meeting)) : [];
     const viz = f.area === "visualizacion";
     const workers = id ? q.workingOn(id) : [];
@@ -137,7 +137,7 @@
     const [repeat, setRepeat] = useState(1);
     const [err, setErr] = useState("");
     const project = q.project(f.project);
-    const candidates = project ? [...new Set([project.leader, ...(project.members || [])].filter(Boolean))] : s.users.map((u) => u.id);
+    const candidates = project ? [...new Set([project.leader, ...(project.members || [])].filter(Boolean))] : q.staff().map((u) => u.id);
     const defTitle = () => ({ cliente: "Reunión con cliente", comite: "Comité interno", entrega: "Entrega", interna: "Reunión interna" }[f.kind] + (project ? " · " + project.name : ""));
 
     const save = async () => {
@@ -207,8 +207,8 @@
           <${Field} label="Estado" id="p-status"><select id="p-status" value=${f.status} onChange=${set("status")} disabled=${ro}><option value="activo">Activo</option><option value="pausado">En pausa</option><option value="cerrado">Cerrado</option></select><//>
         </div>
         <div class="fld"><span class="lbl">Áreas que participan</span><${Pills} options=${L.AREAS} value=${f.areas || []} attr="data-a" disabled=${ro} onChange=${(a) => setF((x) => ({ ...x, areas: toggleIn(x.areas || [], a) }))} /></div>
-        <${Field} label="Lidera" id="p-leader" hint="Arma el plan de entregables y lo aprueba cuando el equipo da su visto bueno."><select id="p-leader" value=${f.leader} onChange=${set("leader")} disabled=${ro}>${s.users.map((u) => html`<option key=${u.id} value=${u.id}>${u.name}</option>`)}</select><//>
-        <div class="fld"><span class="lbl">Integrantes</span><${PeoplePicker} candidates=${s.users.map((u) => u.id)} value=${f.members || []} onChange=${set("members")} disabled=${ro} /></div>
+        <${Field} label="Lidera" id="p-leader" hint="Arma el plan de entregables y lo aprueba cuando el equipo da su visto bueno."><select id="p-leader" value=${f.leader} onChange=${set("leader")} disabled=${ro}>${q.staff().map((u) => html`<option key=${u.id} value=${u.id}>${u.name}</option>`)}</select><//>
+        <div class="fld"><span class="lbl">Integrantes</span><${PeoplePicker} candidates=${q.staff().map((u) => u.id)} value=${f.members || []} onChange=${set("members")} disabled=${ro} /></div>
         <div class="two">
           <${Field} label="Inicio" id="p-start"><input id="p-start" type="date" value=${f.start} onInput=${set("start")} disabled=${ro} /><//>
           <${Field} label="Entrega final" id="p-end"><input id="p-end" type="date" value=${f.end} onInput=${set("end")} disabled=${ro} /><//>
@@ -224,7 +224,7 @@
     const u = q.user(id) || s.me;
     const isMe = u.id === s.me.id;
     const director = q.isDirector();
-    const [f, setF, set] = useForm(() => ({ name: u.name || "", cargo: u.cargo || "", areas: u.areas || [], estado: u.estado || "", role: u.role || "miembro" }));
+    const [f, setF, set] = useForm(() => ({ name: u.name || "", cargo: u.cargo || "", areas: (u.areas || []).filter((a) => a !== "direccion"), estado: u.estado || "", role: u.role || "miembro" }));
     const [autostart, setAutostart] = useState(null);
     const [version, setVersion] = useState("");
     useEffect(() => {
@@ -234,24 +234,26 @@
     }, []);
     const can = isMe || director;
     const save = async () => {
-      const body = { cargo: f.cargo.trim(), areas: f.areas };
+      const body = { cargo: f.cargo.trim(), areas: f.role === "director" ? ["direccion", ...f.areas] : f.areas };
       if (isMe) { body.name = f.name.trim() || u.name; body.estado = f.estado.trim(); }
-      if (director && !isMe) body.role = f.role;
+      if (director && !isMe && f.role !== u.role) body.role = f.role;
       if (await act.saveUser(u.id, body)) { L.toast("Guardado"); L.closeSheet(); }
     };
-    const areaOptions = [...L.AREAS, L.AREA.direccion];
+    const areaOptions = L.AREAS;
+    const roleOptions = [{ id: "miembro", label: "Integrante" }, { id: "director", label: "Director creativo (un solo cupo)" }, ...(q.isMaestro() ? [{ id: "maestro", label: "Perfil maestro" }] : [])];
     const footer = html`<span class="spacer"></span><button type="button" class="btn ghost" onClick=${L.closeSheet}>${can ? "Cancelar" : "Cerrar"}</button>${can && html`<button type="submit" class="btn primary">Guardar</button>`}`;
     return html`
       <${Sheet} title=${isMe ? "Tu perfil" : "Persona"} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
-        <div class="profile-head"><${Avatar} id=${u.id} cls="xl" dot /><div><b>${u.name}</b><span class="muted">${u.email || ""}</span><span class="tag">${u.role === "director" ? "Director creativo" : "Integrante"}</span></div></div>
+        <div class="profile-head"><${Avatar} id=${u.id} cls="xl" dot /><div><b>${u.name}</b><span class="muted">${u.email || ""}</span><span class="tag">${q.roleLabel(u)}</span></div></div>
         ${isMe && html`<${Field} label="Nombre" id="u-name"><input id="u-name" value=${f.name} onInput=${set("name")} /><//>`}
         <${Field} label="Cargo" id="u-cargo"><input id="u-cargo" value=${f.cargo} onInput=${set("cargo")} disabled=${!can} placeholder="Arquitecta, visualizador, coordinadora…" /><//>
-        <div class="fld"><span class="lbl">Áreas</span><${Pills} options=${areaOptions} value=${f.areas} attr="data-a" disabled=${!can} onChange=${(a) => setF((x) => ({ ...x, areas: toggleIn(x.areas, a) }))} /></div>
+        <div class="fld"><span class="lbl">${u.role === "director" || f.role === "director" ? "Áreas, además de Dirección" : "Equipo"}</span><${Pills} options=${areaOptions} value=${f.areas} attr="data-a" disabled=${!can} onChange=${(a) => setF((x) => ({ ...x, areas: toggleIn(x.areas, a) }))} /></div>
         ${isMe && html`<${Field} label="Estado" id="u-estado" hint="Lo ve el equipo junto a tu nombre. Por ejemplo: en obra hasta las 3."><input id="u-estado" value=${f.estado} onInput=${set("estado")} maxlength="80" /><//>`}
-        ${director && !isMe && html`<${Field} label="Rol" id="u-role" hint="El director ve todo y puede aprobar cualquier plan."><select id="u-role" value=${f.role} onChange=${set("role")}><option value="miembro">Integrante</option><option value="director">Director creativo</option></select><//>`}
+        ${director && !isMe && (u.role !== "maestro" || q.isMaestro()) && html`<${Field} label="Rol" id="u-role" hint="La Dirección creativa ve todo y aprueba cualquier plan. Para pasarla a otra persona, primero quítasela a quien la tiene.">
+          <select id="u-role" value=${f.role} onChange=${set("role")}>${roleOptions.map((o) => html`<option key=${o.id} value=${o.id}>${o.label}</option>`)}</select><//>`}
         ${isMe && html`
           <div class="settings">
-            ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app arranca sola en la bandeja, junto al reloj, y te deja conectado con el equipo.</small></span></label>`}
+            ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}
             <div class="fld"><span class="lbl">Servidor</span><p class="mono">${s.serverUrl}</p></div>
             <div class="inline"><button type="button" class="btn sm" onClick=${() => { L.closeSheet(); L.auth.changeServer(); }}>Cambiar de servidor</button><button type="button" class="btn sm" onClick=${L.auth.logout}>Cerrar sesión</button></div>
             ${version && html`<p class="meta-line">LAP Cerebro ${version}</p>`}

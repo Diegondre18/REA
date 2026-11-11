@@ -81,7 +81,7 @@
     const weekEnd = L.iso(L.addDays(L.monday(L.today()), 6));
     if (!s.proyectos.length && !s.tareas.length) {
       return html`<${PageHead} eyebrow=${L.cap(L.fmtLong(t))} title=${`${L.greeting()}, ${L.first(me.name)}.`} />
-        <div class="grid"><${TeamNow} users=${s.users} />
+        <div class="grid"><${TeamNow} users=${q.staff()} />
         <div class="glass span-12"><${Empty} title="El estudio todavía no tiene proyectos aquí" text="Crea un proyecto, suma a su equipo y arma el plan de entregables. Cuando el plan se aprueba, cada quien ve lo suyo en su cronograma.">
           <button type="button" class="btn primary" onClick=${() => L.openSheet("project")}>Crear el primer proyecto</button>
           <button type="button" class="btn" onClick=${act.loadSample}>Ver con datos de ejemplo</button><//></div></div>`;
@@ -108,7 +108,7 @@
         <${Panel} title="Mis reuniones" cls="span-5" action=${html`<a class="link" href="#reuniones">Todas</a>`}>
           <div class="rows">${eventos.length ? eventos.slice(0, 6).map((e) => html`<${EventRow} key=${e.id} ev=${e} />`) : html`<p class="note">Sin reuniones ni comités agendados.</p>`}</div>
         <//>
-        <${TeamNow} users=${s.users} />
+        <${TeamNow} users=${q.staff()} />
         <${Panel} title="Mis proyectos" cls="span-7" action=${html`<a class="link" href="#proyectos">Todos</a>`}>
           <div class="rows">${proyectos.length ? proyectos.map((p) => html`<${L.ProjectRow} key=${p.id} p=${p} />`) : html`<p class="note">Todavía no estás en ningún proyecto.</p>`}</div>
         <//>
@@ -140,7 +140,7 @@
     };
     return html`
       <${PageHead} title=${who} sub="Tus tareas y los entregables de los planes aprobados, con tus reuniones y comités.">
-        <select class="select" aria-label="Ver el cronograma de" value=${uid} onChange=${(e) => setUid(e.target.value)}>${sortPeople(s.users).map((u) => html`<option key=${u.id} value=${u.id}>${u.id === s.me.id ? "Yo" : u.name}</option>`)}</select>
+        <select class="select" aria-label="Ver el cronograma de" value=${uid} onChange=${(e) => setUid(e.target.value)}>${sortPeople(q.staff()).map((u) => html`<option key=${u.id} value=${u.id}>${u.id === s.me.id ? "Yo" : u.name}</option>`)}</select>
         <${Seg} label="Vista" value=${mode} onChange=${setMode} options=${[{ id: "semana", label: "Semana" }, { id: "tiempo", label: "Línea de tiempo" }]} />
       <//>
       ${mode === "tiempo" ? (tasks.length ? html`<${Gantt} groups=${groups()} />` : html`<div class="glass"><${Empty} small title="Sin tareas con fecha" /></div>`) : html`
@@ -276,7 +276,7 @@
     const [mode, setMode] = useState("tablero");
     const area = L.AREA[id];
     if (!area) return html`<div class="glass"><${Empty} title="Área desconocida" /></div>`;
-    const people = s.users.filter((u) => (u.areas || []).includes(id));
+    const people = q.staff().filter((u) => (u.areas || []).includes(id));
     const tasks = s.tareas.filter((x) => x.area === id);
     const open = tasks.filter((x) => x.status !== "terminado");
     const groups = () => {
@@ -300,8 +300,9 @@
     const s = L.useStore();
     const t = L.todayIso();
     const weekEnd = L.iso(L.addDays(L.monday(L.today()), 6));
-    const sections = [L.AREA.direccion, ...L.AREAS].map((a) => ({ a, people: s.users.filter((u) => (u.areas || []).includes(a.id)) }));
-    const none = s.users.filter((u) => !(u.areas || []).length);
+    const staff = q.staff();
+    const sections = [L.AREA.direccion, ...L.AREAS].map((a) => ({ a, people: staff.filter((u) => (u.areas || []).includes(a.id)) }));
+    const none = staff.filter((u) => !(u.areas || []).length);
     const card = (u) => {
       const open = q.myTasks(u.id).filter((x) => x.status !== "terminado");
       const week = open.filter((x) => x.due && x.due <= weekEnd).length;
@@ -313,7 +314,7 @@
       </div>`;
     };
     return html`
-      <${PageHead} title="Equipo" sub=${`${L.plural(s.users.length, "persona", "personas")} · ${s.users.filter(q.online).length} conectadas ahora`}>
+      <${PageHead} title="Equipo" sub=${`${L.plural(staff.length, "persona", "personas")} · ${staff.filter(q.online).length} conectadas ahora`}>
         <button type="button" class="btn" onClick=${() => L.openSheet("profile", s.me.id)}><${Icon} name="edit" /> Mi perfil</button>
       <//>
       <div class="grid">

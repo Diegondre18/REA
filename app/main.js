@@ -1,14 +1,17 @@
-// Proceso principal: ventana, bandeja del sistema, arranque con Windows, sesión cifrada, avisos y acceso a carpetas.
+// Proceso principal: ventana, bandeja del sistema, arranque con Windows, sesión cifrada, avisos,
+// actualizaciones automáticas y acceso a carpetas.
 const { app, BrowserWindow, ipcMain, shell, dialog, nativeTheme, Tray, Menu, Notification, safeStorage, nativeImage } = require("electron");
 const path = require("path");
 const fs = require("fs/promises");
+const { autoUpdater } = require("electron-updater");
 
 if (!app.requestSingleInstanceLock()) app.quit();
 app.setAppUserModelId("com.laparq.cerebro");
 
-// Al arrancar con Windows la app abre oculta en la bandeja y se conecta sola.
-const HIDDEN_FLAG = "--oculta";
-const startHidden = process.argv.includes(HIDDEN_FLAG);
+// Al iniciar Windows la app se abre (visible) y se conecta sola. "--oculta" era la marca de la versión 2.0,
+// que arrancaba escondida; se sigue reconociendo para reemplazar esa configuración.
+const AUTOSTART = { openAtLogin: true, args: [] };
+const OLD_FLAG = "--oculta";
 
 let win = null;
 let tray = null;
@@ -46,7 +49,7 @@ function createWindow() {
       spellcheck: false,
     },
   });
-  win.once("ready-to-show", () => { if (!startHidden) win.show(); });
+  win.once("ready-to-show", () => win.show());
   win.loadFile(path.join(__dirname, "src", "index.html"));
   // Los enlaces web (Meet, Google Calendar) se abren en el navegador; la ventana nunca navega fuera de la app.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -84,19 +87,48 @@ app.on("before-quit", () => { quitting = true; });
 app.whenReady().then(() => {
   createWindow();
   createTray();
-  // La primera vez queda configurada para abrir con Windows; cada persona puede apagarlo en su perfil.
-  if (app.isPackaged && !app.getLoginItemSettings({ args: [HIDDEN_FLAG] }).openAtLogin && !process.argv.includes("--sin-autoinicio")) {
+  if (app.isPackaged) {
     setAutostartOnce();
+    startUpdates();
   }
 });
 app.on("window-all-closed", () => { /* sigue en la bandeja */ });
 
+// La primera vez queda configurada para abrir con Windows; cada persona puede apagarlo en su perfil.
 async function setAutostartOnce() {
+  const old = app.getLoginItemSettings({ args: [OLD_FLAG] });
+  if (old.openAtLogin) {
+    app.setLoginItemSettings({ openAtLogin: false, args: [OLD_FLAG] });
+    app.setLoginItemSettings(AUTOSTART);
+  }
   const flag = path.join(app.getPath("userData"), "autoinicio-configurado");
   try { await fs.access(flag); return; } catch (e) { /* primera vez */ }
-  app.setLoginItemSettings({ openAtLogin: true, args: [HIDDEN_FLAG] });
+  app.setLoginItemSettings(AUTOSTART);
   await fs.writeFile(flag, new Date().toISOString()).catch(() => {});
 }
+
+// Actualizaciones: busca versiones nuevas en GitHub Releases al abrir y cada 4 horas, las descarga
+// en segundo plano y avisa en la app. Se instalan al reiniciar desde el aviso o al salir.
+let updateReady = null;
+function startUpdates() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("update-downloaded", (info) => {
+    updateReady = info.version;
+    if (win) win.webContents.send("update-ready", info.version);
+    if (tray) tray.setToolTip("LAP Cerebro · versión " + info.version + " lista para instalar");
+  });
+  autoUpdater.on("error", (err) => console.log("actualización:", err && err.message));
+  const check = () => autoUpdater.checkForUpdates().catch(() => {});
+  setTimeout(check, 15000);
+  setInterval(check, 4 * 3600 * 1000);
+}
+ipcMain.handle("update-status", () => updateReady);
+ipcMain.on("update-install", () => {
+  if (!updateReady) return;
+  quitting = true;
+  autoUpdater.quitAndInstall(true, true);
+});
 
 async function stat(p) {
   if (typeof p !== "string" || !p.trim() || p.length > 1000) return null;
@@ -150,9 +182,9 @@ ipcMain.handle("session-save", async (_e, raw) => {
   } catch (e) { return false; }
 });
 
-ipcMain.handle("autostart-get", () => app.getLoginItemSettings({ args: [HIDDEN_FLAG] }).openAtLogin);
+ipcMain.handle("autostart-get", () => app.getLoginItemSettings(AUTOSTART).openAtLogin);
 ipcMain.handle("autostart-set", (_e, on) => {
-  app.setLoginItemSettings({ openAtLogin: !!on, args: [HIDDEN_FLAG] });
+  app.setLoginItemSettings({ ...AUTOSTART, openAtLogin: !!on });
   return !!on;
 });
 

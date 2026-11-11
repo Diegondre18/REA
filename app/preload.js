@@ -12,4 +12,7 @@ contextBridge.exposeInMainWorld("lap", {
   setAutostart: (on) => ipcRenderer.invoke("autostart-set", on),
   notify: (title, body, route) => ipcRenderer.send("notify", title, body, route),
   onNavigate: (fn) => ipcRenderer.on("navigate", (_e, route) => fn(route)),
+  updateStatus: () => ipcRenderer.invoke("update-status"),
+  onUpdateReady: (fn) => ipcRenderer.on("update-ready", (_e, version) => fn(version)),
+  installUpdate: () => ipcRenderer.send("update-install"),
 });

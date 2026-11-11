@@ -34,7 +34,11 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: LAP-Cerebro-Setup
-          path: app/dist/*.exe
+          # latest.yml y el .blockmap son los que lee la actualización automática de cada PC.
+          path: |
+            app/dist/*.exe
+            app/dist/*.blockmap
+            app/dist/latest.yml
           if-no-files-found: error
 
   servidor:
@@ -72,4 +76,4 @@ jobs:
           gh release create "${GITHUB_REF_NAME}" files/* \
             --repo "${GITHUB_REPOSITORY}" \
             --title "LAP Cerebro ${GITHUB_REF_NAME}" \
-            --notes "Instala LAP-Cerebro-Setup en cada PC. El servidor va en un solo PC o NAS: ver LEEME.md dentro del zip."
+            --notes "Los PC que ya tienen LAP Cerebro 2.1 o posterior se actualizan solos. Para instalar por primera vez, usa LAP-Cerebro-Setup en cada PC. El servidor va en un solo PC o NAS: ver LEEME.md dentro del zip."

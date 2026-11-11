@@ -13,6 +13,8 @@ window.LAP = {};
   ];
   const AREA = Object.fromEntries(AREAS.map((a) => [a.id, a]));
   AREA.direccion = { id: "direccion", label: "Dirección Creativa", short: "DIR" };
+  // Equipos para registrarse: las cuatro áreas y la Dirección creativa, que tiene un solo cupo.
+  const TEAMS = [...AREAS, AREA.direccion];
 
   const STATUSES = [
     { id: "pendiente", label: "Por hacer" },
@@ -128,7 +130,7 @@ window.LAP = {};
 
   Object.assign(LAP, {
     h, render, Fragment, html, hooks: preactHooks,
-    AREAS, AREA, STATUSES, STATUS, STAGES, STAGE, KINDS, KIND, KIND_AREA, PHASES, PHASE, EVENT_KINDS, EVENT_KIND, PLAN_STATUS, ENGINES, RESOLUTIONS,
+    AREAS, AREA, TEAMS, STATUSES, STATUS, STAGES, STAGE, KINDS, KIND, KIND_AREA, PHASES, PHASE, EVENT_KINDS, EVENT_KIND, PLAN_STATUS, ENGINES, RESOLUTIONS,
     iso, parse, today, todayIso, addDays, diff, monday, isoWeek, MES, MES_L, DIAS, DIAS_C, INI, fmtShort, fmtDay, fmtLong, cap, relDay, relTime,
     dueClass, plural, initials, first, key, byDue, cx, greeting, eventStamp, calendarLink,
   });

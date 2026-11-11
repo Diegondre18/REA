@@ -14,8 +14,14 @@ App de escritorio del estudio. Reúne los proyectos de Arquitectura, Diseño Int
 
 1. Descarga `LAP-Cerebro-Setup-x.y.z.exe` desde *Releases* (o desde la ejecución más reciente de *Actions* → artefacto `LAP-Cerebro-Setup`).
 2. Ábrelo. Como el instalador no tiene firma digital paga, Windows puede mostrar **"Windows protegió su PC"**: haz clic en **Más información → Ejecutar de todas formas**.
-3. Al abrir la app, escribe la dirección del servidor (por ejemplo `192.168.1.20:8090`) y crea tu cuenta con tu correo @laparq.com y tu área.
-4. Desde ese momento la app abre sola al iniciar Windows, escondida en la bandeja junto al reloj, y te mantiene conectado con el equipo. Cerrar la ventana la esconde en la bandeja; para salir del todo, clic derecho en el ícono → Salir. Se puede apagar en Tu perfil.
+3. Al abrir la app, escribe la dirección del servidor (por ejemplo `192.168.1.20:8090`) y crea tu cuenta con tu correo @laparq.com, eligiendo tu equipo.
+4. Desde ese momento la app se abre sola al prender el PC y te deja conectado con el equipo. Cerrar la ventana la deja en la bandeja junto al reloj, para que sigas apareciendo conectado; para salir del todo, clic derecho en el ícono → Salir. El arranque automático se puede apagar en Tu perfil.
+
+## Actualizaciones automáticas
+
+Cada PC busca versiones nuevas en *Releases* de GitHub al abrir la app y cada 4 horas. La descarga ocurre en segundo plano y la app muestra el aviso **«LAP Cerebro x.y.z está lista»** con el botón **Reiniciar y actualizar**. Si nadie lo pulsa, se instala sola la próxima vez que se cierre la app.
+
+Para publicar una versión nueva: sube el número de `version` en `package.json` y crea un tag con ese número (por ejemplo `v2.1.1`). GitHub Actions arma el instalador y lo publica; desde ahí cada PC se actualiza sola. Solo se actualizan solos los PC que ya tienen la 2.1.0 o posterior; la 2.0 se instala a mano una última vez.
 
 ## Integración con Windows y Google
 

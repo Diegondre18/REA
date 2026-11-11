@@ -31,8 +31,45 @@ function primerNombre(rec) {
   return n ? n.split(" ")[0] : "Alguien";
 }
 
+// Dirección creativa y perfil maestro tienen los mismos permisos sobre proyectos y planes.
 function esDirector(auth) {
-  return !!auth && auth.getString("role") === "director";
+  return !!auth && (auth.getString("role") === "director" || auth.getString("role") === "maestro");
+}
+
+// Equipo y rol de una persona. La Dirección creativa tiene un solo cupo; el perfil maestro solo lo da otro maestro.
+function validarPersona(app, record, auth, nuevo) {
+  const areas = arr(record.getStringSlice("areas"));
+  let role = record.getString("role") || "miembro";
+  const antes = nuevo ? "" : record.original().getString("role");
+  const antesAreas = nuevo ? [] : arr(record.original().getStringSlice("areas"));
+  const admin = esDirector(auth);
+  const maestro = !!auth && auth.getString("role") === "maestro";
+
+  if (nuevo) {
+    if (!areas.length) throw new BadRequestError("Elige el equipo al que perteneces.");
+    role = areas.indexOf("direccion") >= 0 ? "director" : "miembro";
+  } else {
+    // Sumarse a Dirección es pedir el rol de director: solo lo asigna dirección o el perfil maestro.
+    if (areas.indexOf("direccion") >= 0 && antesAreas.indexOf("direccion") < 0 && role !== "director") {
+      if (!admin) throw new BadRequestError("La Dirección creativa la asigna el director o el perfil maestro.");
+      role = "director";
+    }
+    if (role !== antes) {
+      if (!admin) throw new BadRequestError("No puedes cambiar tu rol.");
+      if ((role === "maestro" || antes === "maestro") && !maestro) throw new BadRequestError("El perfil maestro solo lo asigna otro perfil maestro.");
+    }
+  }
+  if (role === "director" && antes !== "director") {
+    const otros = app.findRecordsByFilter("users", "role = 'director' && id != {:id}", "", 1, 0, { id: record.id || "" });
+    if (otros.length) {
+      throw new BadRequestError("El cupo de Dirección creativa ya lo ocupa " + otros[0].getString("name") + ". Si cambió, pídele al perfil maestro que lo reasigne.");
+    }
+  }
+  // El área Dirección va siempre con el rol de director.
+  let finales = areas.filter((a) => a !== "direccion");
+  if (role === "director") finales = ["direccion"].concat(finales);
+  record.set("role", role);
+  record.set("areas", finales);
 }
 
 function notificar(app, userId, kind, title, body, route) {
@@ -293,7 +330,7 @@ function limpiar(app) {
 }
 
 module.exports = {
-  avisarVisto, recordatorios, limpiar,
+  validarPersona, avisarVisto, recordatorios, limpiar,
   DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,
 };

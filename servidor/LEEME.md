@@ -32,13 +32,22 @@ La app se conecta a `IP-del-NAS:8090`.
 
 ## Primera vez
 
-- **La primera cuenta que se crea desde la app queda como Director creativo.** Que la cree el director. Las siguientes quedan como integrantes; el director puede cambiar roles y áreas desde Equipo.
+- **Al crear la cuenta, cada persona elige su equipo:** Arquitectura, Diseño Interior, Visualización, Administración o Dirección creativa.
+- **Dirección creativa tiene un solo cupo.** Quien la elija primero queda como director; si ya está ocupada, el registro lo avisa.
 - **Solo se aceptan correos @laparq.com.** Para cambiarlo, edita `DOMINIO` al inicio de `pb_hooks/lib.js` y reinicia el servidor.
 - De lunes a viernes a las 8:05 a. m. (hora de Bogotá) el servidor manda los recordatorios del día: comités que esperan tu avance, reuniones de hoy y tareas por vencer.
 
+## Perfil maestro
+
+Es una cuenta de soporte por si algo falla: puede cambiar roles (incluida la Dirección creativa), corregir cualquier proyecto y aprobar planes. No aparece en el equipo ni en las listas de personas.
+
+Para crearlo, o para recuperarlo si se olvida la contraseña, en el PC del servidor haz doble clic en `crear-perfil-maestro.bat` y escribe correo, contraseña (mínimo 10 caracteres) y nombre. Después se entra con ese correo desde la app, como cualquier persona. Solo lo puede crear quien tiene acceso al PC o NAS del servidor.
+
+En Docker: `docker exec -it lap-cerebro /pb/pocketbase maestro correo contraseña "Soporte LAP" --dir=/pb/pb_data --hooksDir=/pb/pb_hooks`
+
 ## Actualizar desde la versión 1
 
-Detén el servidor, haz una copia de la carpeta `pb_data`, reemplaza `pb_migrations` y `pb_hooks` por los nuevos y vuelve a arrancarlo. Los renders de la versión 1 pasan solos a tareas de Visualización, agrupadas en un proyecto por cada nombre de proyecto que tenían.
+Detén el servidor, haz una copia de la carpeta `pb_data`, reemplaza `pb_migrations`, `pb_hooks` y los `.bat` por los nuevos y vuelve a arrancarlo. Las actualizaciones del servidor se hacen así, a mano; las de la app de cada PC son automáticas. Los renders de la versión 1 pasan solos a tareas de Visualización, agrupadas en un proyecto por cada nombre de proyecto que tenían.
 
 ## Copias de seguridad
 
@@ -53,6 +62,8 @@ Todos los datos están en la carpeta `pb_data`. Para respaldar, copia esa carpet
 | `pb_hooks/lib.js` | Reglas del estudio: dominio de correo, aprobación de planes, avisos y recordatorios. |
 | `pb_hooks/rutas.pb.js` | Envío, retiro, aprobación y nueva versión del plan de entregables. Solo los puede usar quien lidera el proyecto o el director. |
 | `pb_hooks/avisos.pb.js` | Avisos al asignar tareas, agendar reuniones, sumar a un proyecto o responder un plan. |
+| `pb_hooks/maestro.pb.js` | El comando que crea o recupera el perfil maestro. |
+| `crear-perfil-maestro.bat` | Crea o recupera el perfil maestro desde Windows. |
 | `pb_hooks/limpieza.pb.js` | Recordatorios de cada mañana y limpieza de avisos y actividad con más de 30 días. |
 | `iniciar-servidor.bat` | Arranca el servidor en una ventana. |
 | `iniciar-con-windows.bat` | Lo registra para que arranque con Windows. |

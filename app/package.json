@@ -1,7 +1,7 @@
 {
   "name": "lap-cerebro",
   "productName": "LAP Cerebro",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Cerebro del estudio LAP: proyectos, planes de entregables, cronogramas personales, reuniones, comités y quién trabaja en qué.",
   "author": "Left Angle Partnership",
   "license": "UNLICENSED",
@@ -44,7 +44,18 @@
       "createDesktopShortcut": true,
       "shortcutName": "LAP Cerebro",
       "language": "3082"
-    }
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Diegondre18",
+        "repo": "REA",
+        "releaseType": "release"
+      }
+    ]
+  },
+  "dependencies": {
+    "electron-updater": "6.8.11"
   },
   "devDependencies": {
     "electron": "44.7.0",

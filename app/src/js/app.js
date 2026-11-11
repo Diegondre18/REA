@@ -9,7 +9,7 @@
   function Gate() {
     const s = L.useStore();
     const g = s.gate || { mode: "server" };
-    const [f, setF] = useState({ url: s.serverUrl || "", name: "", email: "", password: "", areas: [] });
+    const [f, setF] = useState({ url: s.serverUrl || "", name: "", email: "", password: "", team: "" });
     const [err, setErr] = useState(g.error || "");
     const [busy, setBusy] = useState(false);
     useEffect(() => { setErr(g.error || ""); }, [g.mode]);
@@ -19,7 +19,7 @@
       let r = "";
       if (g.mode === "server") r = await auth.connect(f.url);
       else if (g.mode === "login") r = await auth.login(f.email.trim(), f.password);
-      else r = !f.name.trim() ? "Escribe tu nombre." : await auth.register(f.name.trim(), f.email.trim(), f.password, f.areas);
+      else r = !f.name.trim() ? "Escribe tu nombre." : !f.team ? "Elige el equipo al que perteneces." : await auth.register(f.name.trim(), f.email.trim(), f.password, f.team);
       setBusy(false);
       if (r) setErr(r);
     };
@@ -45,7 +45,8 @@
           <div class="fld"><label for="g-name">Nombre y apellido</label><input id="g-name" value=${f.name} onInput=${set("name")} autocomplete="name" required /></div>
           <div class="fld"><label for="g-email">Correo</label><input id="g-email" type="email" value=${f.email} onInput=${set("email")} autocomplete="username" placeholder="nombre@laparq.com" required /></div>
           <div class="fld"><label for="g-pass">Contraseña</label><input id="g-pass" type="password" value=${f.password} onInput=${set("password")} autocomplete="new-password" minlength="8" required /><span class="hint">Mínimo 8 caracteres.</span></div>
-          <div class="fld"><span class="lbl">Tu área</span><${Pills} options=${L.AREAS} value=${f.areas} attr="data-a" onChange=${(a) => setF({ ...f, areas: f.areas.includes(a) ? f.areas.filter((x) => x !== a) : [...f.areas, a] })} /></div>
+          <div class="fld"><span class="lbl">¿A qué equipo perteneces?</span><${Pills} options=${L.TEAMS} value=${f.team} attr="data-a" onChange=${(t) => setF({ ...f, team: t })} />
+            ${f.team === "direccion" && html`<span class="hint">La Dirección creativa tiene un solo cupo. Si ya está ocupado, el registro te lo dirá.</span>`}</div>
           <button class="btn primary block" type="submit" disabled=${busy}>Crear cuenta y entrar</button>
           <div class="alt"><button type="button" onClick=${() => auth.gate("login")}>Ya tengo cuenta</button></div>`}
         ${err && html`<p class="err">${err}</p>`}
@@ -80,7 +81,7 @@
         <span class="spacer"></span>
         <button type="button" class="me" onClick=${() => L.openSheet("profile", s.me.id)}>
           <${Avatar} id=${s.me.id} cls="lg" dot />
-          <span><b>${s.me.name}</b><small>${s.me.role === "director" ? "Director creativo" : (s.me.areas || []).map((a) => L.AREA[a] && L.AREA[a].label).filter(Boolean).join(", ") || "Elige tu área"}</small></span>
+          <span><b>${s.me.name}</b><small>${s.me.role !== "miembro" ? q.roleLabel(s.me) : (s.me.areas || []).map((a) => L.AREA[a] && L.AREA[a].label).filter(Boolean).join(", ") || "Elige tu equipo"}</small></span>
         </button>
       </aside>`;
   }
@@ -102,7 +103,7 @@
       ...s.proyectos.filter((p) => has(p.name, p.code, p.client)).slice(0, 4).map((p) => ({ k: "p" + p.id, icon: "folder", title: p.name, sub: "Proyecto" + (p.client ? " · " + p.client : ""), go: () => L.go("#proyecto/" + p.id) })),
       ...s.tareas.filter((t) => has(t.title, t.path, t.notes)).slice(0, 6).map((t) => ({ k: "t" + t.id, icon: "check", title: t.title, sub: L.taskMeta(t, true) || "Tarea", go: () => L.openTask(t.id) })),
       ...s.eventos.filter((e) => has(e.title)).slice(0, 3).map((e) => ({ k: "e" + e.id, icon: "meet", title: e.title, sub: L.fmtDay(e.date), go: () => L.go("#evento/" + e.id) })),
-      ...s.users.filter((u) => has(u.name, u.cargo)).slice(0, 3).map((u) => ({ k: "u" + u.id, icon: "users", title: u.name, sub: u.cargo || "Persona", go: () => L.openSheet("profile", u.id) })),
+      ...q.staff().filter((u) => has(u.name, u.cargo)).slice(0, 3).map((u) => ({ k: "u" + u.id, icon: "users", title: u.name, sub: u.cargo || "Persona", go: () => L.openSheet("profile", u.id) })),
     ];
     const pick = (r) => { r.go(); setText(""); setOpen(false); };
     return html`
@@ -143,7 +144,7 @@
 
   function TopBar() {
     const s = L.useStore();
-    const online = s.users.filter((u) => u.id !== s.me.id && q.online(u));
+    const online = q.staff().filter((u) => u.id !== s.me.id && q.online(u));
     const r = s.route;
     const defaults = r.name === "proyecto" ? { project: r.id } : r.name === "area" ? { area: r.id } : {};
     const label = { connecting: "Conectando", live: "En vivo", offline: "Sin conexión" }[s.mode] || "";
@@ -162,6 +163,7 @@
     const s = L.useStore();
     const sample = s.proyectos.some((p) => p.sample);
     return html`
+      ${s.update && html`<div class="banner glass update"><p><strong>LAP Cerebro ${s.update} está lista.</strong> Se instala al reiniciar la app; tarda unos segundos y vuelve a abrir sola.</p><button type="button" class="btn sm primary" onClick=${() => L.desk.installUpdate()}>Reiniciar y actualizar</button></div>`}
       ${s.mode === "offline" && html`<div class="banner glass"><p><strong>Sin conexión con el servidor.</strong> Lo que ves puede estar desactualizado. La app reintenta sola cada minuto.</p><button type="button" class="btn sm" onClick=${act.reconnect}>Reintentar ahora</button></div>`}
       ${sample && html`<div class="banner glass"><p><strong>Hay proyectos de ejemplo.</strong> Torre Alameda y Casa Encinos son ficticios, para ver cómo funciona todo.</p><button type="button" class="btn sm" onClick=${act.clearSample}>Borrar ejemplos</button></div>`}`;
   }

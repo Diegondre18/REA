@@ -1,7 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 // Reglas de registro y avisos automáticos cuando alguien asigna, agenda o responde algo.
 
-// Registro: solo correos del estudio. La primera cuenta queda como director; las demás, como miembro.
+// Registro: solo correos del estudio y con equipo elegido. Dirección creativa tiene un solo cupo.
 onRecordCreateRequest((e) => {
   const lib = require(`${__hooks}/lib.js`);
   if (!e.hasSuperuserAuth()) {
@@ -9,11 +9,15 @@ onRecordCreateRequest((e) => {
     if (lib.DOMINIO && !email.endsWith("@" + lib.DOMINIO)) {
       throw new BadRequestError("Usa tu correo @" + lib.DOMINIO + " para crear la cuenta.");
     }
-    const directores = e.app.findRecordsByFilter("users", "role = 'director'", "", 1, 0);
-    e.record.set("role", directores.length ? "miembro" : "director");
+    lib.validarPersona(e.app, e.record, e.auth, true);
     e.record.set("emailVisibility", true);
     e.record.set("taskId", "");
   }
+  e.next();
+}, "users");
+
+onRecordUpdateRequest((e) => {
+  if (!e.hasSuperuserAuth()) require(`${__hooks}/lib.js`).validarPersona(e.app, e.record, e.auth, false);
   e.next();
 }, "users");
 

@@ -21,6 +21,7 @@
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
+    update: null, // versión nueva lista para instalar
     q: "",
     serverUrl: "",
   };
@@ -204,16 +205,17 @@
       try { await pb.collection("users").authWithPassword(email, password); await startLive(); return ""; }
       catch (e) { return e && e.status === 0 ? "No hay conexión con el servidor." : "Correo o contraseña incorrectos."; }
     },
-    async register(name, email, password, areas) {
+    async register(name, email, password, team) {
       try {
-        await pb.collection("users").create({ name, email, password, passwordConfirm: password, areas });
+        await pb.collection("users").create({ name, email, password, passwordConfirm: password, areas: [team] });
         await pb.collection("users").authWithPassword(email, password);
         await startLive();
         return "";
       } catch (e) {
         if (e && e.status === 0) return "No hay conexión con el servidor.";
         const data = (e.response && e.response.data) || {};
-        if (e.response && e.response.message && /@/.test(e.response.message)) return e.response.message;
+        // Mensajes propios del servidor: dominio de correo, equipo y cupo de Dirección.
+        if (e.response && e.response.message && !/^Failed/.test(e.response.message)) return e.response.message;
         if (data.email) return "Ese correo no es válido o ya tiene una cuenta.";
         if (data.password) return "La contraseña necesita al menos 8 caracteres.";
         return "No se pudo crear la cuenta. Revisa los datos.";
@@ -237,8 +239,13 @@
     name: (id) => { const u = q.user(id); return u ? (u.name || "Alguien") : "Alguien"; },
     first: (id) => (state.me && id === state.me.id ? "Tú" : L.first(q.name(id)) || "Alguien"),
     avatar: (u) => (u && u.avatar ? pb.files.getURL(u, u.avatar, { thumb: "100x100" }) : ""),
-    isDirector: () => !!state.me && state.me.role === "director",
-    canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || state.me.role === "director"),
+    // Dirección creativa y perfil maestro tienen los mismos permisos sobre proyectos y planes.
+    isDirector: () => !!state.me && (state.me.role === "director" || state.me.role === "maestro"),
+    isMaestro: () => !!state.me && state.me.role === "maestro",
+    canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || q.isDirector()),
+    // El equipo del estudio, sin el perfil maestro de soporte.
+    staff: () => state.users.filter((u) => u.role !== "maestro"),
+    roleLabel: (u) => (!u ? "" : u.role === "maestro" ? "Perfil maestro" : u.role === "director" ? "Director creativo" : "Integrante"),
     isMember: (p) => !!p && !!state.me && (p.members || []).includes(state.me.id),
     online: (u) => !!u && ((state.me && u.id === state.me.id) || (!!u.lastSeen && Date.now() - Date.parse(u.lastSeen) < ONLINE_MS)),
     workingOn: (taskId) => state.users.filter((u) => u.taskId === taskId),
@@ -427,7 +434,7 @@
     async loadSample() {
       return run(async () => {
         const me = state.me.id;
-        const others = state.users.filter((u) => u.id !== me).map((u) => u.id);
+        const others = q.staff().filter((u) => u.id !== me).map((u) => u.id);
         const team = [me, ...others.slice(0, 5)];
         const who = (i) => [team[i % team.length]];
         const D = (n) => L.iso(L.addDays(L.today(), n));
@@ -490,6 +497,11 @@
   const openSheet = (type, id, defaults) => { set({ sheet: { type, id: id || null, defaults: defaults || {} } }); };
   const closeSheet = () => { set({ sheet: null }); };
   if (desk && desk.onNavigate) desk.onNavigate((route) => { if (route) go(route); });
+  // Versión nueva descargada en segundo plano: se ofrece reiniciar para instalarla.
+  if (desk && desk.onUpdateReady) {
+    desk.onUpdateReady((v) => set({ update: v }));
+    desk.updateStatus().then((v) => { if (v) set({ update: v }); }).catch(() => {});
+  }
 
   Object.assign(L, { state, useStore, set, toast, q, act, auth, boot, go, openSheet, closeSheet, parseRoute, desk, errMsg });
 })();
