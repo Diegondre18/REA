@@ -114,10 +114,8 @@
         <div class="side-label">Estudio</div>
         <nav class="side-nav" aria-label="Estudio">
           ${item("#solicitudes", "out", "Solicitudes", r.name === "solicitudes", s.solicitudes.filter((x) => x.estado === "nueva" && (s.me.areas || []).includes(x.area)).length || null)}
-          ${item("#horas", "clock", "Horas", r.name === "horas")}
           ${item("#ausencias", "calendar", "Ausencias", r.name === "ausencias")}
           ${item("#directorio", "users", "Directorio", r.name === "directorio")}
-          ${item("#materiales", "grid", "Materiales", r.name === "materiales")}
           ${q.isFin() && item("#finanzas", "flag", "Finanzas", r.name === "finanzas")}
         </nav>
         <div class="side-label">Áreas</div>
@@ -232,8 +230,6 @@
       case "equipo": return html`<${L.Equipo} />`;
       case "solicitudes": return html`<${L.Solicitudes} />`;
       case "directorio": return html`<${L.Directorio} />`;
-      case "materiales": return html`<${L.Materiales} />`;
-      case "horas": return html`<${L.Horas} />`;
       case "ausencias": return html`<${L.Ausencias} />`;
       case "finanzas": return html`<${L.Finanzas} />`;
       case "oficina": return html`<${L.Oficina} />`;

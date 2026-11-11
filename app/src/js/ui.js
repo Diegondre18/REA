@@ -41,7 +41,7 @@
   function Avatar({ id, cls = "", dot = false }) {
     const u = q.user(id);
     const title = u ? u.name : "Alguien";
-    const src = q.avatar(u);
+    const src = q.avatar(u) || (L.PIX && u && u.muneco ? L.PIX.faceUrl(u) : "");
     const inner = src ? html`<img class=${"av " + cls} src=${src} alt="" title=${title} />` : html`<span class=${"av " + cls} title=${title}>${L.initials(u && u.name)}</span>`;
     if (!dot) return inner;
     return html`<span class="av-wrap">${inner}${q.online(u) && html`<span class="dot" title="Conectado ahora"></span>`}</span>`;
@@ -51,13 +51,30 @@
     return html`<span class=${"faces " + cls}>${ids.slice(0, max).map((id) => html`<${Avatar} key=${id} id=${id} />`)}${ids.length > max && html`<span class="more">+${ids.length - max}</span>`}</span>`;
   };
   // Selector de personas con píldoras: se ve quién está y quién no de un vistazo.
-  function PeoplePicker({ candidates, value = [], onChange, disabled }) {
-    const toggle = (id) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  // Con `range` ([inicio, entrega]) marca a quien está ausente en esas fechas y no deja asignarle la tarea.
+  function PeoplePicker({ candidates, value = [], onChange, disabled, range }) {
+    const issue = (id) => (range ? q.absenceIssues([id], range[0], range[1]) : { block: [], warn: [] });
+    const toggle = (id) => {
+      if (!value.includes(id) && range) {
+        const b = issue(id).block;
+        if (b.length) { L.toast(b[0].text); return; }
+      }
+      onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+    };
     if (!candidates.length) return html`<span class="muted">No hay personas para elegir.</span>`;
-    return html`<div class="people">${candidates.map((id) => html`
-      <button type="button" key=${id} class="pill" aria-pressed=${value.includes(id)} disabled=${disabled} onClick=${() => toggle(id)}>
-        <${Avatar} id=${id} /> ${L.first(q.name(id))}
-      </button>`)}</div>`;
+    return html`<div class="people">${candidates.map((id) => {
+      const iss = issue(id);
+      const away = iss.block.length ? "block" : iss.warn.length ? "warn" : "";
+      return html`<button type="button" key=${id} class=${L.cx("pill", away && "away-" + away)} aria-pressed=${value.includes(id)} disabled=${disabled} onClick=${() => toggle(id)} title=${away ? (iss.block[0] || iss.warn[0]).text : ""}>
+        <${Avatar} id=${id} /> ${L.first(q.name(id))}${away && html`<span class="away-tag">${away === "block" ? "ausente" : "ausencia en medio"}</span>`}
+      </button>`;
+    })}</div>`;
+  }
+  // Aviso bajo los responsables: quién no está en las fechas elegidas.
+  function AbsenceNote({ ids, start, due }) {
+    const iss = q.absenceIssues(ids || [], start, due);
+    if (!iss.block.length && !iss.warn.length) return null;
+    return html`<div class="absence-note">${iss.block.map((x) => html`<p class="err" key=${"b" + x.user}>${x.text}</p>`)}${iss.warn.map((x) => html`<p class="hint warn" key=${"w" + x.user}>${x.text}</p>`)}</div>`;
   }
 
   /* ---------- etiquetas ---------- */
@@ -287,7 +304,7 @@
   const state = () => L.state;
 
   Object.assign(L, {
-    Icon, Sym, Avatar, Faces, PeoplePicker, Glyph, Chip, TaskChip, AreaTag, Progress, Due, PathBlock, Panel, Empty, Seg, Field, Sheet, DeleteButton,
+    Icon, Sym, Avatar, Faces, PeoplePicker, AbsenceNote, Glyph, Chip, TaskChip, AreaTag, Progress, Due, PathBlock, Panel, Empty, Seg, Field, Sheet, DeleteButton,
     TaskRow, Board, Archive, Gantt, taskToRow, EventRow, openTask, taskMeta, copyText, openPath,
   });
 })();

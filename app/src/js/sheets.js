@@ -51,6 +51,8 @@
 
     const save = async () => {
       if (!f.title.trim()) { setErr("Escribe qué hay que hacer."); return; }
+      const ab = q.absenceIssues(f.assignees, f.start, f.due).block;
+      if (ab.length && (!task || JSON.stringify([task.assignees, task.start, task.due]) !== JSON.stringify([f.assignees, f.start, f.due]))) { L.toast(ab[0].text); return; }
       if (f.status === "terminado" && viz && !f.path) { setErr("Agrega la ruta de la carpeta para dejarlo en el archivo."); return; }
       setSaving(true);
       let meeting = f.meeting;
@@ -95,7 +97,8 @@
         <div class="fld"><span class="lbl">Área</span><${Pills} options=${L.AREAS} value=${f.area} attr="data-a" onChange=${(a) => setF((p) => ({ ...p, area: p.area === a ? "" : a }))} /></div>
         <div class="fld"><span class="lbl">Estado</span><${Pills} options=${L.STATUSES} value=${f.status} attr="data-s" onChange=${(st) => setF((p) => ({ ...p, status: st, progress: st === "terminado" ? 100 : p.progress }))} /></div>
         ${viz && f.status === "en_curso" && html`<div class="fld"><span class="lbl">Etapa de visualización</span><${Pills} options=${L.STAGES} value=${f.stage} onChange=${(st) => setF((p) => ({ ...p, stage: p.stage === st ? "" : st }))} /></div>`}
-        <div class="fld"><span class="lbl">Responsables</span><${PeoplePicker} candidates=${candidates} value=${f.assignees || []} onChange=${set("assignees")} /></div>
+        <div class="fld"><span class="lbl">Responsables</span><${PeoplePicker} candidates=${candidates} value=${f.assignees || []} onChange=${set("assignees")} range=${[f.start, f.due]} />
+          <${L.AbsenceNote} ids=${f.assignees} start=${f.start} due=${f.due} /></div>
         <div class="two">
           <${Field} label="Inicio" id="t-start"><input id="t-start" type="date" value=${f.start} onInput=${set("start")} /><//>
           <${Field} label="Entrega" id="t-due"><input id="t-due" type="date" value=${f.due} onInput=${set("due")} /><//>
@@ -263,6 +266,7 @@
           <select id="u-role" value=${f.role} onChange=${set("role")}>${roleOptions.map((o) => html`<option key=${o.id} value=${o.id}>${o.label}</option>`)}</select><//>`}
         ${isMe && html`
           <div class="settings">
+            <div class="fld"><span class="lbl">Muñeco de la oficina</span><div class="inline">${L.MunecoPreview && html`<span class="pix-mini"><${L.MunecoPreview} cfg=${L.PIX.config(s.me)} /></span>`}<button type="button" class="btn sm" onClick=${() => L.openSheet("muneco")}>${s.me.muneco && s.me.muneco.ropa ? "Cambiar mi muñeco" : "Crear mi muñeco"}</button></div></div>
             <div class="fld"><span class="lbl">Apariencia</span><${L.Seg} label="Apariencia" value=${s.theme} onChange=${L.setTheme} options=${L.THEMES} /></div>
             ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}
             ${hosting ? html`
@@ -321,6 +325,7 @@
     if (sh.type === "event") return html`<${EventSheet} key=${k} id=${sh.id} defaults=${sh.defaults} />`;
     if (sh.type === "project") return html`<${ProjectSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "profile") return html`<${ProfileSheet} key=${k} id=${sh.id} />`;
+    if (sh.type === "muneco") return html`<${L.MunecoSheet} key=${k} />`;
     if (sh.type === "tool") { const { col, ...d } = sh.defaults; return html`<${L.ToolSheet} key=${k + col} col=${col} id=${sh.id} defaults=${d} />`; }
     return null;
   }

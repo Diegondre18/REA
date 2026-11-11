@@ -15,7 +15,7 @@
     tramites: "tramites", planos: "planos", envios: "envios", visitas: "visitas", contactos: "contactos", materiales: "materiales",
     horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones",
   };
-  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "materiales", "horas", "cobros", "tarifas", "ausencias", "solicitudes", "revisiones"];
+  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
@@ -108,7 +108,9 @@
     if (status === 400) {
       const fields = (e.response && e.response.data) || {};
       const f = Object.keys(fields)[0];
-      return f ? `Revisa el campo «${f}»: ${fields[f].message}` : "No tienes permiso para esto o faltan datos.";
+      if (f) return `Revisa el campo «${f}»: ${fields[f].message}`;
+      // Reglas del estudio (ausencias, colores del muñeco…): el servidor explica qué pasó.
+      return msg && !/^(Failed|Something went wrong)/i.test(msg) ? msg : "No tienes permiso para esto o faltan datos.";
     }
     if (status === 401) return "Tu sesión expiró. Vuelve a entrar.";
     if (status === 403 || status === 404) return "No tienes permiso para hacer esto.";
@@ -167,7 +169,9 @@
     const beat = () => pb.collection("users").update(state.me.id, { lastSeen: new Date().toISOString() })
       .then(() => { if (state.mode === "offline") loadAll().catch(() => {}); })
       .catch((e) => { if (e && e.status === 0) set({ mode: "offline" }); });
-    beat();
+    // Al abrir la app, cada quien llega a su puesto en la oficina.
+    pb.collection("users").update(state.me.id, { lastSeen: new Date().toISOString(), puesto: true, pos: null })
+      .then((rec) => { upsert("users", rec); state.me = rec; emit(); }).catch(() => {});
     beatTimer = setInterval(beat, 60000);
   }
 
@@ -300,9 +304,29 @@
     // Ausencia vigente de una persona en una fecha (hoy si no se dice).
     absent: (uid, day) => { const d = day || LAP.todayIso(); return state.ausencias.find((a) => a.user === uid && a.desde <= d && a.hasta >= d) || null; },
     subtasks: (taskId) => state.tareas.filter((t) => t.parent === taskId),
+    // Ausencias contra una asignación: bloquea si la tarea empieza o se entrega mientras la persona no está;
+    // si la ausencia cae en medio, solo avisa.
+    absenceIssues: (ids, start, due) => {
+      const out = { block: [], warn: [] };
+      const ini = start || due, fin = due || start;
+      if (!ini) return out;
+      const TXT = { vacaciones: "de vacaciones", incapacidad: "incapacitada", permiso: "de permiso", fuera: "fuera de la oficina", otro: "ausente" };
+      for (const uid of ids || []) {
+        for (const a of state.ausencias.filter((x) => x.user === uid && x.desde <= fin && x.hasta >= ini)) {
+          const who = q.first(uid) === "Tú" ? "Tú estarás" : L.first(q.name(uid)) + " estará";
+          const when = a.desde === a.hasta ? "el " + L.fmtShort(a.desde) : "del " + L.fmtShort(a.desde) + " al " + L.fmtShort(a.hasta);
+          const hit = (d) => d && a.desde <= d && a.hasta >= d;
+          if (hit(ini) || hit(fin)) out.block.push({ user: uid, a, text: `${who} ${TXT[a.tipo] || "ausente"} ${when}. No se le pueden asignar tareas que empiecen o se entreguen en esas fechas.` });
+          else out.warn.push({ user: uid, a, text: `${who} ${TXT[a.tipo] || "ausente"} ${when}, en medio de esta tarea.` });
+        }
+      }
+      return out;
+    },
     fromOrigin: (origen) => state.tareas.filter((t) => t.origen === origen),
     roleLabel: (u) => (!u ? "" : u.role === "maestro" ? "Perfil maestro" : u.role === "director" ? "Director creativo" : "Integrante"),
     isMember: (p) => !!p && !!state.me && (p.members || []).includes(state.me.id),
+    // En su puesto: si se paró del escritorio en la oficina, está "fuera" (almuerzo, una vuelta).
+    atDesk: (u) => !!u && u.puesto !== false,
     online: (u) => !!u && ((state.me && u.id === state.me.id) || (!!u.lastSeen && Date.now() - Date.parse(u.lastSeen) < ONLINE_MS)),
     workingOn: (taskId) => state.users.filter((u) => u.taskId === taskId),
     viewing: (taskId) => state.users.filter((u) => u.id !== state.me.id && u.viewing === taskId && q.online(u)),
@@ -359,6 +383,10 @@
       return run(async () => {
         const prev = id ? q.task(id) : null;
         const body = { ...data, updatedBy: state.me.id };
+        const next = { ...(prev || {}), ...data };
+        const touched = !prev || ["assignees", "start", "due"].some((k) => k in data && JSON.stringify(data[k]) !== JSON.stringify(prev[k]));
+        const clash = touched ? q.absenceIssues(next.assignees, next.start, next.due).block : [];
+        if (clash.length) { toast(clash[0].text); return null; }
         if (body.status === "terminado") { body.progress = 100; if (!prev || prev.status !== "terminado") body.doneAt = L.todayIso(); }
         else if (body.status) body.doneAt = "";
         if (body.status && body.status !== "en_curso") body.stage = "";
@@ -441,6 +469,10 @@
     },
     async saveItem(id, data) {
       return run(async () => {
+        const prev = id ? state.planItems.find((i) => i.id === id) : null;
+        const next = { ...(prev || {}), ...data };
+        const clash = q.absenceIssues(next.assignees, next.date, next.end || next.date).block;
+        if (clash.length && (!prev || ["assignees", "date", "end"].some((k) => k in data && JSON.stringify(data[k]) !== JSON.stringify(prev[k])))) { toast(clash[0].text); return null; }
         const rec = id ? await pb.collection("plan_items").update(id, data) : await pb.collection("plan_items").create({ key: L.key(), ...data });
         upsert("planItems", rec); emit();
         return rec;
@@ -485,6 +517,12 @@
       });
     },
     reconnect() { if (pb) loadAll().catch(fail); },
+    // Oficina: posición del muñeco y si está en su puesto. Sin avisos de error: se reintenta al moverse.
+    movePresence(data) {
+      if (!pb || !state.me) return Promise.resolve(null);
+      Object.assign(state.me, data);
+      return pb.collection("users").update(state.me.id, data).then((rec) => { upsert("users", rec); state.me = rec; emit(); return rec; }).catch(() => null);
+    },
 
     // ---- herramientas: guardado genérico (colección del servidor, id o null para crear, datos) ----
     async save(col, id, data) {
@@ -502,11 +540,13 @@
       return run(async () => {
         const out = [];
         for (const t of list) {
+          const clash = q.absenceIssues(t.assignees, t.start, t.due).block;
+          if (clash.length) { toast(clash[0].text); continue; }
           const rec = await pb.collection("tareas").create({ status: "pendiente", progress: 0, updatedBy: state.me.id, ...t });
           upsert("tareas", rec); out.push(rec);
         }
         emit();
-        return out;
+        return out.length ? out : null;
       });
     },
 
@@ -574,7 +614,7 @@
 
   /* ---------- rutas ---------- */
   const VIEWS = ["inicio", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
-    "solicitudes", "directorio", "materiales", "horas", "ausencias", "finanzas", "revision", "oficina", "agentes"];
+    "solicitudes", "directorio", "ausencias", "finanzas", "revision", "oficina", "agentes"];
   function parseRoute() {
     const [name, id, tab] = location.hash.replace(/^#/, "").split("/");
     if (name === "tarea" && id) {

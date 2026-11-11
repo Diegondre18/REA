@@ -89,19 +89,6 @@
         { k: "notas", label: "Notas", type: "textarea" },
       ],
     },
-    materiales: {
-      title: "Material o mueble",
-      initial: (d) => ({ categoria: "piso", proyectos: [], by: L.state.me.id, ...d }),
-      fields: [
-        { k: "nombre", label: "Nombre", required: true, placeholder: "Porcelanato 60×120 gris" },
-        { k: "categoria", label: "Categoría", type: "select", options: () => L.MATERIAL_CATS },
-        { row: [{ k: "proveedor", label: "Proveedor", type: "contact" }, { k: "referencia", label: "Referencia", mono: true }] },
-        { row: [{ k: "precio", label: "Precio (COP)", type: "number", min: 0 }, { k: "unidad", label: "Unidad", placeholder: "m², unidad, ml" }] },
-        { k: "ruta", label: "Imagen o ficha técnica", type: "path", file: true },
-        { k: "proyectos", label: "Usado en", type: "projects" },
-        { k: "notas", label: "Notas", type: "textarea" },
-      ],
-    },
     cobros: {
       title: "Cobro",
       initial: (d) => ({ estado: "pendiente", fechaEsperada: today(), ...d }),
@@ -111,16 +98,6 @@
         { k: "estado", label: "Estado", type: "pills", options: () => L.COBRO_ESTADOS },
         { row: [{ k: "factura", label: "Factura", mono: true }, { k: "fechaPago", label: "Pagado el", type: "date" }] },
         { k: "notas", label: "Notas", type: "textarea" },
-      ],
-    },
-    horas: {
-      title: "Horas",
-      initial: (d) => ({ user: L.state.me.id, fecha: today(), horas: 1, ...d }),
-      fields: [
-        { row: [{ k: "fecha", label: "Fecha", type: "date" }, { k: "horas", label: "Horas", type: "number", min: 0.25, max: 24, step: 0.25, required: true }] },
-        { k: "project", label: "Proyecto", type: "project", required: true },
-        { k: "task", label: "Tarea (opcional)", type: "task" },
-        { k: "nota", label: "Qué hiciste", placeholder: "Opcional" },
       ],
     },
     ausencias: {
@@ -133,6 +110,11 @@
         { k: "nota", label: "Nota", placeholder: "Opcional" },
       ],
       before: (body) => { if (body.hasta < body.desde) [body.desde, body.hasta] = [body.hasta, body.desde]; return body; },
+      // Si ya tenía entregas en esas fechas, se avisa para reasignarlas (Equipo también lo marca).
+      after: (a) => {
+        const clash = L.state.tareas.filter((t) => t.status !== "terminado" && (t.assignees || []).includes(a.user) && ((t.due && t.due >= a.desde && t.due <= a.hasta) || (t.start && t.start >= a.desde && t.start <= a.hasta)));
+        if (clash.length) setTimeout(() => L.toast(`Ojo: ${a.user === L.state.me.id ? "tienes" : L.first(q.name(a.user)) + " tiene"} ${L.plural(clash.length, "tarea", "tareas")} en esas fechas. Avísale a quien lidera para reasignarlas.`), 400);
+      },
     },
     solicitudes: {
       title: "Solicitud a otra área",
@@ -367,49 +349,33 @@
         </article>`)}</div>` : html`<div class="glass"><${Empty} small title="Sin visitas registradas" text="Cada visita guarda fecha, avance, lo que se vio, la carpeta de fotos y los pendientes, que se vuelven tareas." /></div>`}`;
   }
 
-  // Totales de dinero y horas de un proyecto (las horas cuentan para todos; el costo solo con tarifas visibles).
+  // Totales de cobros de un proyecto.
   function projectMoney(pid) {
     const s = state();
     const cobros = s.cobros.filter((c) => c.project === pid);
     const sum = (arr) => arr.reduce((a, c) => a + (Number(c.valor) || 0), 0);
-    const horas = s.horas.filter((h) => h.project === pid);
-    const tarifa = (uid) => { const t = s.tarifas.find((x) => x.user === uid); return t ? Number(t.valorHora) || 0 : null; };
-    const totalHoras = horas.reduce((a, h) => a + (Number(h.horas) || 0), 0);
-    const sinTarifa = new Set(horas.filter((h) => tarifa(h.user) == null).map((h) => h.user));
-    const costo = horas.reduce((a, h) => a + (Number(h.horas) || 0) * (tarifa(h.user) || 0), 0);
-    const contratado = sum(cobros);
-    return { cobros, contratado, pagado: sum(cobros.filter((c) => c.estado === "pagado")), facturado: sum(cobros.filter((c) => c.estado === "facturado")), pendiente: sum(cobros.filter((c) => c.estado === "pendiente")), totalHoras, costo, sinTarifa, horas, margen: contratado - costo, conTarifas: s.tarifas.length > 0 };
+    return { cobros, contratado: sum(cobros), pagado: sum(cobros.filter((c) => c.estado === "pagado")), facturado: sum(cobros.filter((c) => c.estado === "facturado")), pendiente: sum(cobros.filter((c) => c.estado === "pendiente")) };
   }
 
   function FinanzasTab({ project }) {
     L.useStore();
     const m = projectMoney(project.id);
     const fin = q.isFin();
-    const porPersona = {};
-    for (const h of m.horas) porPersona[h.user] = (porPersona[h.user] || 0) + (Number(h.horas) || 0);
     return html`
       <div class="grid">
-        <div class="glass metrics span-12 money" role="list">
+        <div class="glass metrics span-12 money four" role="list">
           <div class="metric" role="listitem"><b>${L.money(m.contratado)}</b><span>Honorarios</span></div>
           <div class="metric" role="listitem"><b>${L.money(m.pagado)}</b><span>Pagado</span></div>
           <div class="metric" role="listitem"><b>${L.money(m.facturado)}</b><span>Facturado</span></div>
           <div class=${L.cx("metric", m.pendiente ? "" : "zero")} role="listitem"><b>${L.money(m.pendiente)}</b><span>Por facturar</span></div>
-          <div class="metric" role="listitem"><b>${L.hours(m.totalHoras)}</b><span>Horas</span></div>
         </div>
-        <${Panel} title="Cobros" cls="span-7" action=${fin ? html`<button type="button" class="btn sm primary" onClick=${() => openTool("cobros", null, { project: project.id })}><${Icon} name="plus" size=${12} /> Cobro</button>` : html`<span class="tag">Los registra Administración</span>`}>
+        <${Panel} title="Cobros" cls="span-12" action=${fin ? html`<button type="button" class="btn sm primary" onClick=${() => openTool("cobros", null, { project: project.id })}><${Icon} name="plus" size=${12} /> Cobro</button>` : html`<span class="tag">Los registra Administración</span>`}>
           <div class="rows">${m.cobros.length ? m.cobros.sort((a, b) => (a.fechaEsperada || "").localeCompare(b.fechaEsperada || "")).map((c) => html`
             <div class=${L.cx("row", !fin && "static")} key=${c.id} onClick=${fin ? () => openTool("cobros", c.id) : null}>
               <span class=${"glyph " + (c.estado === "pagado" ? "fill" : "")} data-s=${c.estado === "pagado" ? "terminado" : c.estado === "facturado" ? "en_curso" : "pendiente"}></span>
               <div class="row-main"><div class="row-title">${c.concepto}</div><div class="row-meta"><span>${label(L.COBRO_ESTADOS, c.estado)}${c.factura ? " · factura " + c.factura : ""}</span></div></div>
               <div class="row-side"><b class="mono">${L.money(c.valor)}</b><span class=${L.cx("due", c.estado === "pendiente" && c.fechaEsperada && c.fechaEsperada < today() ? "late" : "")}>${c.estado === "pagado" && c.fechaPago ? "Pagado " + L.fmtShort(c.fechaPago) : c.fechaEsperada ? L.relDay(c.fechaEsperada) : ""}</span></div>
             </div>`) : html`<p class="note">Sin cobros registrados. Administración los agrega por hitos: anticipo, entregas, cierre.</p>`}</div>
-        <//>
-        <${Panel} title="Horas del equipo" cls="span-5">
-          <div class="rows">${Object.keys(porPersona).length ? Object.entries(porPersona).sort((a, b) => b[1] - a[1]).map(([uid, h]) => html`
-            <div class="row static" key=${uid}><${Avatar} id=${uid} /><div class="row-main"><div class="row-title">${q.name(uid)}</div></div><b class="mono">${L.hours(h)}</b></div>`) : html`<p class="note">Nadie ha registrado horas en este proyecto.</p>`}</div>
-          ${fin && m.conTarifas && html`<div class="profit"><div><span class="lbl">Costo en horas</span><b class="mono">${L.money(m.costo)}</b></div><div><span class="lbl">Margen</span><b class=${L.cx("mono", m.margen < 0 && "neg")}>${L.money(m.margen)}</b></div>
-            ${m.sinTarifa.size > 0 && html`<p class="meta-line">${[...m.sinTarifa].map((u) => L.first(q.name(u))).join(", ")} sin tarifa: sus horas no suman costo.</p>`}</div>`}
-          ${fin && !m.conTarifas && html`<p class="meta-line">Para ver el costo y el margen, carga las tarifas por hora en Estudio → Finanzas.</p>`}
         <//>
       </div>`;
   }
@@ -498,7 +464,7 @@
     if (r) { L.closeSheet(); L.go("#revision/" + r.id); }
   }
 
-  /* ---------- dentro del panel de tarea: dependencias, subtareas, horas y revisiones ---------- */
+  /* ---------- dentro del panel de tarea: dependencias, subtareas y revisiones ---------- */
   function DependsField({ id, project, value, onChange }) {
     const s = L.useStore();
     const options = s.tareas.filter((t) => t.project === project && t.id !== id && !t.parent && (t.status !== "terminado" || value.includes(t.id))).sort(L.byDue);
@@ -525,9 +491,6 @@
     const s = L.useStore();
     const subs = q.subtasks(task.id).sort((a, b) => (a.created || "").localeCompare(b.created || ""));
     const [sub, setSub] = useState("");
-    const [h, setH] = useState({ horas: "", nota: "" });
-    const mine = s.horas.filter((x) => x.task === task.id);
-    const total = mine.reduce((a, x) => a + (Number(x.horas) || 0), 0);
     const revs = s.revisiones.filter((r) => r.task === task.id).sort((a, b) => (b.created || "").localeCompare(a.created || ""));
     const addSub = async () => {
       if (!sub.trim()) return;
@@ -535,21 +498,11 @@
       if (r) setSub("");
     };
     const toggle = (t) => act.saveTask(t.id, { status: t.status === "terminado" ? "pendiente" : "terminado", progress: t.status === "terminado" ? 0 : 100 });
-    const logHours = async () => {
-      const n = Number(String(h.horas).replace(",", "."));
-      if (!task.project) { L.toast("Asigna un proyecto a la tarea para registrar horas."); return; }
-      if (!(n >= 0.25 && n <= 24)) { L.toast("Escribe las horas entre 0,25 y 24."); return; }
-      if (await act.save("horas", null, { user: L.state.me.id, project: task.project, task: task.id, fecha: today(), horas: n, nota: h.nota.trim() })) { setH({ horas: "", nota: "" }); L.toast("Horas registradas"); }
-    };
     const done = subs.filter((t) => t.status === "terminado").length;
     return html`<div class="extras">
       <div class="fld"><span class="lbl">Subtareas ${subs.length ? html`<span class="muted">· ${done} de ${subs.length}</span>` : ""}</span>
         <div class="subs">${subs.map((t) => html`<div class="sub" key=${t.id}><input type="checkbox" checked=${t.status === "terminado"} onChange=${() => toggle(t)} aria-label="Terminada" /><a href="#" class=${t.status === "terminado" ? "done" : ""} onClick=${(e) => { e.preventDefault(); L.openTask(t.id); }}>${t.title}</a>${t.assignees && t.assignees.length > 0 && html`<${Faces} ids=${t.assignees} />`}</div>`)}
           <div class="sub add"><input value=${sub} onInput=${(e) => setSub(e.target.value)} onKeyDown=${(e) => { if (e.key === "Enter") { e.preventDefault(); addSub(); } }} placeholder="Agregar un paso y Enter" aria-label="Nueva subtarea" /></div></div></div>
-      <div class="fld"><span class="lbl">Horas ${total ? html`<span class="muted">· ${L.hours(total)} registradas</span>` : ""}</span>
-        <div class="hours-row"><input type="number" min="0.25" max="24" step="0.25" value=${h.horas} onInput=${(e) => setH({ ...h, horas: e.target.value })} placeholder="2" aria-label="Horas de hoy" />
-          <input value=${h.nota} onInput=${(e) => setH({ ...h, nota: e.target.value })} placeholder="Qué hiciste (opcional)" aria-label="Nota" onKeyDown=${(e) => { if (e.key === "Enter") { e.preventDefault(); logHours(); } }} />
-          <button type="button" class="btn sm" onClick=${logHours}>Registrar hoy</button></div></div>
       <div class="fld"><span class="lbl">Revisión de imágenes</span>
         <div class="revs">${revs.map((r) => { const open = (r.pins || []).filter((p) => !p.resolved).length; return html`<a key=${r.id} class="rev-link" href=${"#revision/" + r.id} onClick=${() => L.closeSheet()}><b class="mono">${r.version || "v1"}</b> ${r.estado === "resuelta" ? "resuelta" : open ? L.plural(open, "comentario abierto", "comentarios abiertos") : "sin comentarios"}</a>`; })}
           <button type="button" class="btn sm" onClick=${() => requestReview(task)}><${Icon} name="plus" size=${11} /> ${revs.length ? "Otra imagen" : "Pedir revisión de una imagen"}</button></div></div>

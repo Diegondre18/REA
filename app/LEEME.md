@@ -18,20 +18,22 @@ Cada proyecto tiene, además de su plan y sus tareas:
 - **Licencias**: trámites de curaduría con radicado, estado, plazo para responder observaciones y vigencia. La app avisa antes de que se venza un plazo.
 - **Planos**: listado con su revisión vigente (A, B, C…) y la ruta del archivo; **Envíos** registra qué planos, en qué revisión, se enviaron a quién.
 - **Obra**: bitácora de visitas con avance, carpeta de fotos y pendientes que se vuelven tareas.
-- **Finanzas** (solo quien lidera, Dirección y Administración): cobros por hitos, horas del equipo y margen.
+- **Finanzas** (solo quien lidera, Dirección y Administración): honorarios y cobros por hitos.
 - **Plantillas** para arrancar el plan de entregables de cada fase.
 
-En el panel de cada tarea: subtareas, dependencias, registro de horas y **revisión de imágenes**: se elige la imagen desde su carpeta (no se sube a ningún lado) y el equipo deja comentarios con pines sobre ella. Las actas de reuniones y comités tienen compromisos que se vuelven tareas.
+En el panel de cada tarea: subtareas, dependencias y **revisión de imágenes**: se elige la imagen desde su carpeta (no se sube a ningún lado) y el equipo deja comentarios con pines sobre ella. Las actas de reuniones y comités tienen compromisos que se vuelven tareas.
 
-En la sección **Estudio**: solicitudes entre áreas (al aceptarlas se vuelven tarea), horas, ausencias (se ven en Equipo y en la carga de trabajo), directorio de clientes y proveedores, biblioteca de materiales y finanzas del estudio con tarifas por hora.
+En la sección **Estudio**: solicitudes entre áreas (al aceptarlas se vuelven tarea), ausencias, directorio de clientes y proveedores y finanzas del estudio.
+
+**Ausencias:** a quien registró vacaciones, permiso o incapacidad no se le pueden asignar tareas ni entregables del plan que empiecen o se entreguen en esas fechas. Quien asigna ve la advertencia al elegir responsables y la app (y el servidor) no deja guardar. Si la ausencia cae en medio de una tarea larga, solo se avisa.
 
 El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sistema.
 
 ## Oficina y agentes
 
-**Oficina** muestra el estudio en vista isométrica: cada persona tiene su puesto en la zona de su área. Se ve quién está conectado, en qué tarea trabaja (con la burbuja encima; clic para abrirla), quién está en la sala de reuniones y qué puestos están vacíos por ausencia.
+**Oficina** es el estudio en pixel art, en vista isométrica. Cada persona arma su muñeco (hombre o mujer, peinado, color de pelo, piel y un color de ropa que nadie más tenga) y tiene su puesto en la fila de su área; Dirección tiene su oficina de vidrio. Se camina con las flechas (o WASD) o haciendo clic en el piso. Si el muñeco se para de su puesto, el equipo lo ve **fuera del puesto** (almuerzo, una vuelta), también en Equipo; al volver a sentarse aparece la burbuja con la tarea en que está trabajando. Al abrir la app, cada quien llega sentado a su puesto.
 
-**Agentes** son seis muñequitos que revisan el estudio con reglas fijas: Vigía (atrasos y tareas bloqueadas), Agenda (reuniones, actas y avances de comité), Plan (planes y vistos buenos), Equipo (carga y ausencias), Trámites (licencias, planos y revisiones de imagen) y Cuentas (cobros, horas y márgenes; solo Dirección y Administración). No usan inteligencia artificial ni internet ni consumo de ningún servicio: corren en cada PC con los datos que ya están sincronizados. Viven en la sala de agentes de la oficina y lo urgente aparece en Inicio.
+**Agentes** son seis muñequitos que revisan el estudio con reglas fijas: Vigía (atrasos y tareas bloqueadas), Agenda (reuniones, actas y avances de comité), Plan (planes y vistos buenos), Equipo (carga y ausencias), Trámites (licencias, planos y revisiones de imagen) y Cuentas (cobros vencidos y por facturar; solo Dirección y Administración). No usan inteligencia artificial ni internet ni consumo de ningún servicio: corren en cada PC con los datos que ya están sincronizados. Viven en el **laboratorio de agentes** de la oficina, disponibles para todos (clic en uno para ver lo que encontró), y lo urgente aparece en Inicio.
 
 ## Actualizaciones
 

@@ -362,7 +362,42 @@ function limpiar(app) {
   }
 }
 
+
+// Ausencias: no se asignan tareas que empiecen o se entreguen mientras la persona no está.
+const TIPO_AUSENCIA = { vacaciones: "de vacaciones", incapacidad: "incapacitada", permiso: "de permiso", fuera: "fuera de la oficina", otro: "ausente" };
+function conflictoAusencia(app, userIds, start, due) {
+  const fechas = [];
+  for (const f of [start, due]) if (f && fechas.indexOf(f) < 0) fechas.push(f);
+  for (const u of arr(userIds)) {
+    for (const d of fechas) {
+      const a = app.findRecordsByFilter("ausencias", "user = {:u} && desde <= {:d} && hasta >= {:d}", "desde", 1, 0, { u: u, d: d });
+      if (a.length) {
+        let nombre = "Esa persona";
+        try { nombre = app.findRecordById("users", u).getString("name").split(" ")[0]; } catch (err) { /* sin nombre */ }
+        return nombre + " estará " + (TIPO_AUSENCIA[a[0].getString("tipo")] || "ausente") + " del " + fechaCorta(a[0].getString("desde")) + " al " + fechaCorta(a[0].getString("hasta")) +
+          ": no se le pueden asignar tareas que empiecen o se entreguen en esas fechas. Cambia las fechas o asígnala a otra persona.";
+      }
+    }
+  }
+  return "";
+}
+
+// Muñeco de la oficina: el color de la ropa no se repite entre personas.
+function validarMuneco(app, record) {
+  const leer = (rec) => { try { const t = rec.getString("muneco"); return t ? JSON.parse(t) : null; } catch (err) { return null; } };
+  const m = leer(record);
+  if (!m || !m.ropa) return;
+  const otros = app.findRecordsByFilter("users", "id != {:id}", "", 500, 0, { id: record.id || "" });
+  for (const o of otros) {
+    const om = leer(o);
+    if (om && om.ropa && String(om.ropa).toLowerCase() === String(m.ropa).toLowerCase()) {
+      throw new BadRequestError("Ese color de ropa ya lo tiene " + o.getString("name").split(" ")[0] + ". Elige otro.");
+    }
+  }
+}
+
 module.exports = {
+  conflictoAusencia, validarMuneco,
   avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
   DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,

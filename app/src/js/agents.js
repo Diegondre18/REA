@@ -17,8 +17,8 @@
       intro: "Cuido que nadie esté sobrecargado y que no haya entregas para quien no está." },
     { id: "tramites", name: "Trámites", job: "Licencias, planos y revisiones de imagen", color: "#0e9aa7", prop: "flag",
       intro: "Vigilo plazos de curaduría, vigencias, planos en revisión y comentarios sin resolver." },
-    { id: "cuentas", name: "Cuentas", job: "Cobros, horas y márgenes", color: "#3d3d3d", prop: "grid", fin: true,
-      intro: "Llevo los cobros vencidos, lo que entra pronto y los proyectos que pierden plata." },
+    { id: "cuentas", name: "Cuentas", job: "Cobros vencidos y por facturar", color: "#3d3d3d", prop: "grid", fin: true,
+      intro: "Llevo los cobros vencidos y lo que toca facturar pronto." },
   ];
   const AGENT = Object.fromEntries(AGENTS.map((a) => [a.id, a]));
   const LEVELS = { alta: 0, media: 1, info: 2 };
@@ -128,15 +128,6 @@
         const go = "#proyecto/" + c.project + "/finanzas";
         if (c.fechaEsperada < t) add("cuentas", days(c.fechaEsperada, t) > 15 ? "alta" : "media", "venc" + c.id, `Cobro vencido: ${c.concepto} · ${L.money(c.valor)}`, `${pname(c.project)} · esperado el ${L.fmtShort(c.fechaEsperada)}${c.estado === "facturado" ? " · ya facturado" : " · sin facturar"}`, fin, c.project, go);
         else if (c.fechaEsperada <= plus(7) && c.estado === "pendiente") add("cuentas", "info", "prox" + c.id, `Toca facturar ${c.concepto} · ${L.money(c.valor)}`, `${pname(c.project)} · ${L.relDay(c.fechaEsperada)}`, fin, c.project, go);
-      }
-      if (s.tarifas.length && L.projectMoney) for (const p of s.proyectos.filter((x) => x.status === "activo")) {
-        const m = L.projectMoney(p.id);
-        if (m.contratado > 0 && m.margen < 0) add("cuentas", "media", "margen" + p.id, `${pname(p.id)} va con margen negativo`, `Honorarios ${L.money(m.contratado)} · costo en horas ${L.money(m.costo)}`, fin, p.id, "#proyecto/" + p.id + "/finanzas");
-      }
-      if (s.horas.length) {
-        const lastMon = L.iso(L.addDays(L.monday(L.today()), -7)), lastSun = L.iso(L.addDays(L.monday(L.today()), -1));
-        const sin = q.staff().filter((u) => !q.absent(u.id, lastMon) && !s.horas.some((h) => h.user === u.id && h.fecha >= lastMon && h.fecha <= lastSun));
-        if (sin.length) add("cuentas", "info", "horas" + lastMon, `${L.plural(sin.length, "persona no registró", "personas no registraron")} horas la semana pasada`, sin.slice(0, 6).map((u) => L.first(u.name)).join(", ") + (sin.length > 6 ? "…" : ""), fin, "", "#horas");
       }
     }
     return out.sort((a, b) => LEVELS[a.level] - LEVELS[b.level]);

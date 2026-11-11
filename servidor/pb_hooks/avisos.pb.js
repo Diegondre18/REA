@@ -17,7 +17,11 @@ onRecordCreateRequest((e) => {
 }, "users");
 
 onRecordUpdateRequest((e) => {
-  if (!e.hasSuperuserAuth()) require(`${__hooks}/lib.js`).validarPersona(e.app, e.record, e.auth, false);
+  if (!e.hasSuperuserAuth()) {
+    const lib = require(`${__hooks}/lib.js`);
+    lib.validarPersona(e.app, e.record, e.auth, false);
+    if (e.record.getString("muneco") !== e.record.original().getString("muneco")) lib.validarMuneco(e.app, e.record);
+  }
   e.next();
 }, "users");
 

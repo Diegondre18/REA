@@ -85,7 +85,8 @@
           <div class="fld"><label>Área</label><select value=${f.area} onChange=${set("area")}><option value="">Sin área</option>${L.AREAS.map((a) => html`<option key=${a.id} value=${a.id}>${a.label}</option>`)}</select></div>
           <div class="fld grow"><label>Es para la reunión</label><select value=${f.meeting} onChange=${set("meeting")}><option value="">Ninguna</option>${meetings.map((m) => html`<option key=${m.id} value=${m.id}>${L.fmtDay(m.date)} · ${m.title}</option>`)}</select></div>
         </div>
-        <div class="fld"><span class="lbl">Quién está al mando</span><${PeoplePicker} candidates=${members} value=${f.assignees} onChange=${set("assignees")} /></div>
+        <div class="fld"><span class="lbl">Quién está al mando</span><${PeoplePicker} candidates=${members} value=${f.assignees} onChange=${set("assignees")} range=${[f.date, f.end || f.date]} />
+          <${L.AbsenceNote} ids=${f.assignees} start=${f.date} due=${f.end || f.date} /></div>
         ${err && html`<span class="err">${err}</span>`}
         <div class="inline"><button type="submit" class="btn primary sm">${item ? "Guardar" : "Agregar al plan"}</button><button type="button" class="btn ghost sm" onClick=${onDone}>Cancelar</button>
           ${item && html`<span class="spacer"></span><button type="button" class="btn ghost danger sm" onClick=${async () => { if (await act.deleteItem(item.id)) onDone(); }}>Quitar del plan</button>`}</div>

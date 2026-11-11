@@ -1,4 +1,4 @@
-// Vistas del estudio: solicitudes entre áreas, directorio, materiales, horas, ausencias, finanzas y carga de trabajo.
+// Vistas del estudio: solicitudes entre áreas, directorio, ausencias, finanzas y carga de trabajo.
 (() => {
   "use strict";
   const L = LAP;
@@ -94,66 +94,6 @@
         </article>`)}</div>` : html`<div class="glass"><${Empty} small title=${s.contactos.length ? "Nada coincide" : "El directorio está vacío"} text="Guarda aquí a los proveedores y contratistas buenos para que todo el estudio los encuentre." /></div>`}`;
   }
 
-  /* ---------- materiales ---------- */
-  function Materiales() {
-    const s = L.useStore();
-    const [cat, setCat] = useState("");
-    const [text, setText] = useState("");
-    const [broken, setBroken] = useState({});
-    const list = s.materiales.filter((m) => (!cat || m.categoria === cat) && (!text || norm([m.nombre, m.referencia, m.notas, (q.contacto(m.proveedor) || {}).empresa].join(" ")).includes(norm(text))))
-      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-    return html`
-      <${L.PageHead} title="Materiales y mobiliario" sub="La biblioteca del estudio: referencia, proveedor, precio y en qué proyectos se usó.">
-        <button type="button" class="btn primary" onClick=${() => openTool("materiales", null, {})}><${Icon} name="plus" size=${12} /> Nuevo material</button>
-      <//>
-      <div class="toolbar"><select class="select" value=${cat} onChange=${(e) => setCat(e.target.value)} aria-label="Categoría"><option value="">Todas las categorías</option>${L.MATERIAL_CATS.map((c) => html`<option key=${c.id} value=${c.id}>${c.label}</option>`)}</select>
-        <span class="spacer"></span><input class="search-inline" value=${text} onInput=${(e) => setText(e.target.value)} placeholder="Buscar material, referencia o proveedor…" aria-label="Buscar material" /></div>
-      ${list.length ? html`<div class="cards">${list.map((m) => {
-        const prov = q.contacto(m.proveedor);
-        const img = L.desk && L.isImage(m.ruta) && !broken[m.id];
-        return html`<article class="glass mcard" key=${m.id} onClick=${() => openTool("materiales", m.id)}>
-          <div class="mthumb">${img ? html`<img src=${L.fileUrl(m.ruta)} alt="" loading="lazy" onError=${() => setBroken({ ...broken, [m.id]: true })} />` : html`<span>${label(L.MATERIAL_CATS, m.categoria)}</span>`}</div>
-          <div class="mbody"><h3>${m.nombre}</h3>
-            <p class="muted">${[prov && (prov.empresa || prov.nombre), m.referencia].filter(Boolean).join(" · ") || label(L.MATERIAL_CATS, m.categoria)}</p>
-            ${m.precio > 0 && html`<p class="mono">${L.money(m.precio)}${m.unidad ? " / " + m.unidad : ""}</p>`}
-            ${(m.proyectos || []).length > 0 && html`<div class="pcard-areas">${m.proyectos.slice(0, 4).map((pid) => { const p = q.project(pid); return p && html`<span key=${pid} class="chip plain">${p.code || p.name}</span>`; })}</div>`}
-            ${m.ruta && html`<div onClick=${(e) => e.stopPropagation()}><${PathBlock} path=${m.ruta} /></div>`}</div>
-        </article>`;
-      })}</div>` : html`<div class="glass"><${Empty} small title=${s.materiales.length ? "Nada coincide" : "La biblioteca está vacía"} text="Registra los acabados y muebles que especifican; la imagen o ficha se queda en su carpeta y aquí solo va la ruta." /></div>`}`;
-  }
-
-  /* ---------- horas ---------- */
-  function Horas() {
-    const s = L.useStore();
-    const [week, setWeek] = useState(() => L.monday(L.today()));
-    const [who, setWho] = useState(s.me.id);
-    const days = Array.from({ length: 7 }, (_, i) => L.iso(L.addDays(week, i)));
-    const rows = s.horas.filter((h) => h.user === who && h.fecha >= days[0] && h.fecha <= days[6]);
-    const byProject = new Map();
-    for (const h of rows) { if (!byProject.has(h.project)) byProject.set(h.project, {}); const m = byProject.get(h.project); m[h.fecha] = (m[h.fecha] || 0) + (Number(h.horas) || 0); }
-    const dayTotal = (d) => rows.filter((h) => h.fecha === d).reduce((a, h) => a + (Number(h.horas) || 0), 0);
-    const total = rows.reduce((a, h) => a + (Number(h.horas) || 0), 0);
-    const people = q.isFin() ? q.staff() : [s.me];
-    const mine = who === s.me.id;
-    return html`
-      <${L.PageHead} title=${mine ? "Mis horas" : "Horas de " + L.first(q.name(who))} sub=${`Semana ${L.isoWeek(week)} · ${L.fmtShort(days[0])} a ${L.fmtShort(days[6])} · ${L.hours(total)}`}>
-        ${people.length > 1 && html`<select class="select" value=${who} onChange=${(e) => setWho(e.target.value)} aria-label="Persona">${people.map((u) => html`<option key=${u.id} value=${u.id}>${u.name}</option>`)}</select>`}
-        <button type="button" class="btn icon" aria-label="Semana anterior" onClick=${() => setWeek(L.addDays(week, -7))}><${Icon} name="left" /></button>
-        <button type="button" class="btn" onClick=${() => setWeek(L.monday(L.today()))}>Hoy</button>
-        <button type="button" class="btn icon" aria-label="Semana siguiente" onClick=${() => setWeek(L.addDays(week, 7))}><${Icon} name="right" /></button>
-        ${mine && html`<button type="button" class="btn primary" onClick=${() => openTool("horas", null, {})}><${Icon} name="plus" size=${12} /> Registrar horas</button>`}
-      <//>
-      <div class="glass hours-grid">
-        <div class="hg-row head"><div>Proyecto</div>${days.map((d) => html`<div key=${d} class=${d === today() ? "today" : ""}>${L.DIAS_C[L.parse(d).getDay()]} ${L.parse(d).getDate()}</div>`)}<div>Total</div></div>
-        ${[...byProject.entries()].map(([pid, m]) => { const p = q.project(pid); const sum = Object.values(m).reduce((a, b) => a + b, 0); return html`
-          <div class="hg-row" key=${pid}><div class="t">${p ? html`<a href=${"#proyecto/" + pid}>${p.code ? p.code + " · " : ""}${p.name}</a>` : "Proyecto eliminado"}</div>${days.map((d) => html`<div key=${d} class="mono">${m[d] ? L.hours(m[d]) : ""}</div>`)}<div class="mono"><b>${L.hours(sum)}</b></div></div>`; })}
-        ${!byProject.size && html`<p class="note">Sin horas registradas esta semana. ${mine ? "Regístralas aquí o desde el panel de cada tarea." : ""}</p>`}
-        <div class="hg-row foot"><div>Total del día</div>${days.map((d) => html`<div key=${d} class="mono">${dayTotal(d) ? L.hours(dayTotal(d)) : ""}</div>`)}<div class="mono"><b>${L.hours(total)}</b></div></div>
-      </div>
-      ${rows.length > 0 && html`<${Panel} title="Detalle" cls="span-12"><div class="rows">${[...rows].sort((a, b) => b.fecha.localeCompare(a.fecha)).map((h) => { const t = h.task && q.task(h.task); const p = q.project(h.project); return html`
-        <div class="row" key=${h.id} onClick=${mine ? () => openTool("horas", h.id) : null}><${Icon} name="clock" /><div class="row-main"><div class="row-title">${t ? t.title : p ? p.name : ""}</div><div class="row-meta"><span>${L.cap(L.fmtLong(h.fecha))}</span>${h.nota && html`<span>${h.nota}</span>`}</div></div><div class="row-side"><b class="mono">${L.hours(h.horas)}</b></div></div>`; })}</div><//>`}`;
-  }
-
   /* ---------- ausencias ---------- */
   function Ausencias() {
     const s = L.useStore();
@@ -181,32 +121,12 @@
   }
 
   /* ---------- finanzas del estudio ---------- */
-  function Tarifas() {
-    const s = L.useStore();
-    const [draft, setDraft] = useState({});
-    const save = async (u) => {
-      const v = Number(String(draft[u.id] ?? "").replace(/[^\d]/g, ""));
-      const cur = s.tarifas.find((t) => t.user === u.id);
-      if (!v && cur) { await act.remove("tarifas", cur.id); }
-      else if (v) { await act.save("tarifas", cur ? cur.id : null, { user: u.id, valorHora: v }); }
-      setDraft({ ...draft, [u.id]: undefined });
-      L.toast("Tarifa guardada");
-    };
-    return html`<${Panel} title="Tarifas por hora" cls="span-5" action=${html`<span class="tag">Solo Dirección y Administración</span>`}>
-      <p class="note">El costo interno de una hora de cada persona. Con esto se calcula el margen de cada proyecto.</p>
-      <div class="rows">${q.staff().map((u) => { const cur = s.tarifas.find((t) => t.user === u.id); const v = draft[u.id] ?? (cur ? String(cur.valorHora) : ""); return html`
-        <div class="row static" key=${u.id}><${Avatar} id=${u.id} /><div class="row-main"><div class="row-title">${u.name}</div></div>
-          <input class="rate mono" inputmode="numeric" value=${v} placeholder="$ / hora" onInput=${(e) => setDraft({ ...draft, [u.id]: e.target.value })} onKeyDown=${(e) => { if (e.key === "Enter") save(u); }} aria-label=${"Tarifa de " + u.name} />
-          ${draft[u.id] !== undefined && html`<button type="button" class="btn sm primary" onClick=${() => save(u)}>Guardar</button>`}</div>`; })}</div>
-    <//>`;
-  }
-
   function Finanzas() {
     const s = L.useStore();
     if (!q.isFin()) return html`<div class="glass"><${Empty} title="Solo para Dirección y Administración" text="Quien lidera un proyecto ve sus finanzas en la pestaña Finanzas del proyecto." /></div>`;
     const t0 = today();
     const projects = s.proyectos.filter((p) => p.status !== "cerrado" || s.cobros.some((c) => c.project === p.id && c.estado !== "pagado"));
-    const data = projects.map((p) => ({ p, m: L.projectMoney(p.id) })).filter((x) => x.m.contratado || x.m.totalHoras).sort((a, b) => b.m.contratado - a.m.contratado);
+    const data = projects.map((p) => ({ p, m: L.projectMoney(p.id) })).filter((x) => x.m.contratado).sort((a, b) => b.m.contratado - a.m.contratado);
     const sum = (k) => data.reduce((a, x) => a + x.m[k], 0);
     const vencidos = s.cobros.filter((c) => c.estado !== "pagado" && c.fechaEsperada && c.fechaEsperada < t0).sort((a, b) => a.fechaEsperada.localeCompare(b.fechaEsperada));
     const proximos = s.cobros.filter((c) => c.estado !== "pagado" && c.fechaEsperada && c.fechaEsperada >= t0 && c.fechaEsperada <= L.iso(L.addDays(L.today(), 30))).sort((a, b) => a.fechaEsperada.localeCompare(b.fechaEsperada));
@@ -214,7 +134,7 @@
       <div class="row-main"><div class="row-title">${c.concepto}</div><div class="row-meta"><span>${p ? (p.code ? p.code + " · " : "") + p.name : ""}</span><span>${label(L.COBRO_ESTADOS, c.estado)}</span></div></div>
       <div class="row-side"><b class="mono">${L.money(c.valor)}</b><span class=${L.cx("due", c.fechaEsperada < t0 && "late")}>${L.relDay(c.fechaEsperada)}</span></div></div>`; };
     return html`
-      <${L.PageHead} title="Finanzas" sub="Honorarios, cobros y rentabilidad de los proyectos. Solo lo ven Dirección y Administración." />
+      <${L.PageHead} title="Finanzas" sub="Honorarios y cobros de los proyectos. Solo lo ven Dirección y Administración." />
       <div class="grid">
         <div class="glass metrics span-12 money" role="list">
           <div class="metric" role="listitem"><b>${L.money(sum("contratado"))}</b><span>Honorarios activos</span></div>
@@ -224,19 +144,18 @@
         </div>
         <${Panel} title="Cobros vencidos" cls="span-6" action=${html`<span class="tag">${vencidos.length}</span>`}><div class="rows">${vencidos.length ? vencidos.map(cobroRow) : html`<p class="note">Nada vencido.</p>`}</div><//>
         <${Panel} title="Próximos 30 días" cls="span-6" action=${html`<span class="tag">${proximos.length}</span>`}><div class="rows">${proximos.length ? proximos.map(cobroRow) : html`<p class="note">Sin cobros esperados en el próximo mes.</p>`}</div><//>
-        <${Panel} title="Proyectos" cls="span-7">
+        <${Panel} title="Proyectos" cls="span-12">
           ${data.length ? html`<div class="fin-table">
-            <div class="fin-row head"><div>Proyecto</div><div>Honorarios</div><div>Cobrado</div><div>Horas</div><div>Margen</div></div>
+            <div class="fin-row head"><div>Proyecto</div><div>Honorarios</div><div>Pagado</div><div>Por cobrar</div><div>Avance de cobro</div></div>
             ${data.map(({ p, m }) => html`<a class="fin-row" key=${p.id} href=${"#proyecto/" + p.id + "/finanzas"}>
               <div class="t">${p.code ? html`<span class="mono">${p.code}</span> ` : ""}${p.name} <${L.HealthDot} p=${p} /></div>
               <div class="mono">${L.money(m.contratado)}</div>
+              <div class="mono">${L.money(m.pagado)}</div>
+              <div class="mono">${L.money(m.contratado - m.pagado)}</div>
               <div><span class="bar-track" data-s="terminado"><i style=${{ width: (m.contratado ? Math.min(100, (m.pagado / m.contratado) * 100) : 0) + "%" }}></i></span></div>
-              <div class="mono">${L.hours(m.totalHoras)}</div>
-              <div class=${L.cx("mono", m.conTarifas && m.margen < 0 && "neg")}>${m.conTarifas ? L.money(m.margen) : "—"}</div>
             </a>`)}
           </div>` : html`<p class="note">Registra los cobros de cada proyecto en su pestaña Finanzas.</p>`}
         <//>
-        <${Tarifas} />
       </div>`;
   }
 
@@ -261,5 +180,5 @@
     <//>`;
   }
 
-  Object.assign(L, { Solicitudes, Directorio, Materiales, Horas, Ausencias, Finanzas, Carga });
+  Object.assign(L, { Solicitudes, Directorio, Ausencias, Finanzas, Carga });
 })();
