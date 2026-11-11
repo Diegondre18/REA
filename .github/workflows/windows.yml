@@ -52,6 +52,16 @@ jobs:
             if (-not (Test-Path "$dir/$f")) { Write-Error "Falta $f dentro de la app"; exit 1 }
           }
           & "$dir/pocketbase.exe" --version
+      - name: Comprobar que la app lleva todos sus archivos
+        shell: pwsh
+        run: |
+          $list = npx --yes @electron/asar@3.2.17 list dist/win-unpacked/resources/app.asar
+          # Cada archivo que main.js carga con require("./…") tiene que ir dentro del paquete.
+          $locales = Select-String -Path main.js -Pattern 'require\("\./([\w-]+)"\)' -AllMatches | ForEach-Object { $_.Matches } | ForEach-Object { $_.Groups[1].Value }
+          foreach ($f in @("main.js", "preload.js", "src/index.html", "node_modules/electron-updater/out/main.js") + ($locales | ForEach-Object { "$_.js" })) {
+            if (-not ($list -contains "\$($f -replace '/', '\')")) { Write-Error "Falta $f dentro de la app"; exit 1 }
+          }
+          Write-Output "Archivos de la app completos"
       - uses: actions/upload-artifact@v4
         with:
           name: LAP-Cerebro-Setup

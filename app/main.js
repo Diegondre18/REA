@@ -5,7 +5,8 @@ const path = require("path");
 const fs = require("fs/promises");
 const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
-const { createHost, discover } = require("./host");
+// El servidor integrado se carga solo cuando se usa: si algo faltara, la app igual abre y se puede actualizar.
+const hostModule = () => require("./host");
 
 if (!app.requestSingleInstanceLock()) app.quit();
 app.setAppUserModelId("com.laparq.cerebro");
@@ -29,7 +30,7 @@ function getHost() {
   if (!host) {
     const dir = serverDir();
     const data = path.join(app.getPath("userData"), "servidor");
-    host = createHost({
+    host = hostModule().createHost({
       bin: path.join(dir, process.platform === "win32" ? "pocketbase.exe" : "pocketbase"),
       dataDir: path.join(data, "pb_data"),
       migrationsDir: path.join(dir, "pb_migrations"),
@@ -95,7 +96,7 @@ ipcMain.handle("host-maestro", async (_e, email, password, name) => {
   if (!(await isHosting())) return { ok: false, message: "El perfil maestro solo se crea desde el PC que es el servidor." };
   return getHost().maestro(String(email || ""), String(password || ""), String(name || ""));
 });
-ipcMain.handle("discover", () => discover());
+ipcMain.handle("discover", () => { try { return hostModule().discover(); } catch (e) { return []; } });
 
 const colors = () => (nativeTheme.shouldUseDarkColors
   ? { color: "#0a0f1c", symbolColor: "#eceeef", height: 40 }
