@@ -5,12 +5,15 @@
   "use strict";
   const L = LAP;
   const { html, hooks, q } = L;
-  const { useState, useEffect, useRef } = hooks;
+  const { useEffect, useRef } = hooks;
 
   /* ================= geometría isométrica (pixeles reales, sin suavizado) ================= */
   const TW = 16, TH = 8;
-  let OX = 0, OY = 0;
-  const P = (x, y, z = 0) => [Math.round(OX + (x - y) * (TW / 2)), Math.round(OY + (x + y) * (TH / 2) - z)];
+  // U = pixeles de pantalla por cada pixel del dibujo base: se dibuja a la resolución real de la
+  // pantalla, así los muebles quedan nítidos y los muñecos conservan sus pixeles.
+  let OX = 0, OY = 0, U = 3;
+  const P = (x, y, z = 0) => [Math.round(OX + (x - y) * (TW / 2) * U), Math.round(OY + ((x + y) * (TH / 2) - z) * U)];
+  const px = (n) => Math.max(1, Math.round(n * U));
 
   // Relleno de polígonos convexos por filas: bordes nítidos, sin antialias.
   function fillPoly(ctx, pts, color) {
@@ -144,7 +147,13 @@
   function drawPlant(ctx, x, y, tall) {
     box(ctx, x + 0.3, y + 0.3, 0, 0.4, 0.4, 5, C.pot, "#d6cdc3", "#c7bdb2");
     const [cx, cy] = P(x + 0.5, y + 0.5, tall ? 14 : 9);
-    const blob = (dx, dy, r, col) => { ctx.fillStyle = col; for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) if (i * i + j * j <= r * r + 1) ctx.fillRect(cx + dx + i, cy + dy + j, 1, 1); };
+    // Hojas en "medio pixel": más detalle sin perder el estilo.
+    const b = Math.ceil(U / 2) + 1;
+    const blob = (dx, dy, r, col) => {
+      ctx.fillStyle = col;
+      const R2 = r * 2;
+      for (let i = -R2; i <= R2; i++) for (let j = -R2; j <= R2; j++) if (i * i + j * j <= R2 * R2 + 2) ctx.fillRect(cx + Math.round((dx + i / 2) * U), cy + Math.round((dy + j / 2) * U), b, b);
+    };
     blob(0, 0, tall ? 5 : 4, INK);
     if (tall) blob(-1, -6, 4, INK);
     blob(0, 0, tall ? 4 : 3, C.leaf2); blob(-2, -2, 2, C.leaf); blob(2, 1, 2, C.leaf3); blob(1, -3, 1, C.leaf);
@@ -229,11 +238,12 @@
   // Robot del laboratorio: pixel art propio, con el color de cada agente.
   function drawRobot(ctx, sx, sy, a, t, alert) {
     const bob = Math.round(Math.sin(t / 380 + a.color.length) * 1);
-    const x = sx - 6, y = sy - 19 + bob, c = a.color, cS = sh(c, 0.25);
+    const k = Math.max(1, Math.round(U)), ow = Math.max(1, Math.round(k * 0.4));
+    const x = sx - 6 * k, y = sy - (19 - bob) * k, c = a.color, cS = sh(c, 0.25);
     const R = [[5, 0, 1, 3, c], [4, -1, 3, 1, alert ? "#ff3b55" : "#ffe27a"], [1, 3, 10, 7, c], [2, 4, 8, 4, "#f2f5f8"], [4, 5, 1, 2, INK], [7, 5, 1, 2, INK], [10, 4, 1, 5, cS], [2, 10, 8, 5, cS], [3, 11, 6, 3, c], [0, 11, 1, 4, cS], [11, 11, 1, 4, cS], [3, 15, 2, 3, "#3b3f4a"], [7, 15, 2, 3, "#3b3f4a"]];
     ctx.fillStyle = INK;
-    for (const [px, py, w, h] of R) ctx.fillRect(x + px - 1, y + py - 1, w + 2, h + 2);
-    for (const [px, py, w, h, col] of R) { ctx.fillStyle = col; ctx.fillRect(x + px, y + py, w, h); }
+    for (const [rx, ry, w, h] of R) ctx.fillRect(x + rx * k - ow, y + ry * k - ow, w * k + 2 * ow, h * k + 2 * ow);
+    for (const [rx, ry, w, h, col] of R) { ctx.fillStyle = col; ctx.fillRect(x + rx * k, y + ry * k, w * k, h * k); }
   }
 
   /* ================= fondo: piso y paredes ================= */
@@ -266,7 +276,7 @@
       fillPoly(ctx, onWallY(x + 0.3, x + 2.2, 18, 34), INK); fillPoly(ctx, onWallY(x + 0.4, x + 2.1, 19, 33), C.paper);
       for (let k = 0; k < 4; k++) line(ctx, P(x + 0.6 + k * 0.35, 0, 21 + k * 2), P(x + 0.6 + k * 0.35, 0, 30), "#8e9aa6");
       line(ctx, P(x + 0.6, 0, 21), P(x + 1.9, 0, 21), "#8e9aa6");
-      const [lx, ly] = P(x + 1.25, 0, 40); ctx.fillStyle = INK; ctx.fillRect(lx - 1, ly - 1, 3, 2); ctx.fillStyle = "#ffe9a6"; ctx.fillRect(lx, ly + 1, 1, 2);
+      const [lx, ly] = P(x + 1.25, 0, 40); ctx.fillStyle = INK; ctx.fillRect(lx - px(1), ly - px(1), px(3), px(2)); ctx.fillStyle = "#ffe9a6"; ctx.fillRect(lx, ly + px(1), px(1), px(2));
     }
     fillPoly(ctx, onWallX(1.2, 4.6, 18, 34), INK); fillPoly(ctx, onWallX(1.3, 4.5, 19, 33), C.paper);
     for (let k = 0; k < 5; k++) line(ctx, P(0, 1.6 + k * 0.6, 21), P(0, 1.6 + k * 0.6, 22 + k * 2), "#8e9aa6");
@@ -286,23 +296,27 @@
   /* ================= motor: dibujo, movimiento y clics ================= */
   function createEngine(canvas, overlay) {
     const ctx = canvas.getContext("2d");
-    let map = null, zoom = 3, raf = 0, last = 0, dirty = true, mapKey = "";
+    let map = null, raf = 0, last = 0, dirty = true, mapKey = "", box0 = { w: 1000, h: 600 }, DPR = 1;
     const actors = new Map(); // uid → { x, y, path, dir, frame, flip, user, state }
     let me = null, data = { findings: {}, meet: null };
     let sendAt = 0, lastSig = "";
     const labels = new Map();
 
-    function setMap(m) {
-      map = m;
-      OX = m.D * (TW / 2) + 24; OY = 76;
-      canvas.width = (m.W + m.D) * (TW / 2) + 48; canvas.height = (m.W + m.D) * (TH / 2) + 92;
-      fit(); dirty = true;
-    }
+    function setMap(m) { map = m; fit(); }
+    // La oficina completa cabe en el recuadro, centrada; el lienzo tiene la resolución de la pantalla.
     function fit() {
       if (!map) return;
-      canvas.style.width = canvas.width * zoom + "px"; canvas.style.height = canvas.height * zoom + "px";
-      overlay.style.setProperty("--z", zoom);
-      overlay.style.width = canvas.style.width; overlay.style.height = canvas.style.height;
+      DPR = window.devicePixelRatio || 1;
+      const cw = Math.max(320, box0.w), ch = Math.max(240, box0.h);
+      canvas.width = Math.round(cw * DPR); canvas.height = Math.round(ch * DPR);
+      canvas.style.width = cw + "px"; canvas.style.height = ch + "px";
+      const loW = (map.W + map.D) * (TW / 2) + 16, loH = (map.W + map.D) * (TH / 2) + 46 + 5 + 22;
+      U = Math.min(canvas.width / loW, canvas.height / loH);
+      OX = Math.round((canvas.width - (map.W + map.D) * (TW / 2) * U) / 2 + map.D * (TW / 2) * U);
+      OY = Math.round((canvas.height - loH * U) / 2 + (46 + 16) * U);
+      overlay.style.setProperty("--z", U / DPR);
+      overlay.style.width = cw + "px"; overlay.style.height = ch + "px";
+      dirty = true;
     }
     const seatOf = (uid) => map && map.seats[uid];
     const isSeatTile = (x, y) => Object.values(map.seats).some((s) => Math.floor(s.x) === x && Math.floor(s.y) === y);
@@ -437,9 +451,10 @@
         add(a.x + a.y + 0.1, () => {
           const [px, py] = P(a.x, a.y);
           const cfg = L.PIX.config(a.user);
-          ctx.fillStyle = "rgba(40,30,35,0.22)"; ctx.fillRect(px - 4, py - 1, 9, 2);
-          if (a.seated) L.PIX.drawFigure(ctx, px - 6, py - 19, cfg, "back", 0, true);
-          else L.PIX.drawFigure(ctx, px - 6, py - 21, cfg, a.dir, a.frame, false, a.flip);
+          const k = Math.max(1, Math.round(U)), ow = Math.max(1, Math.round(k * 0.4));
+          ctx.fillStyle = "rgba(40,30,35,0.22)"; ctx.fillRect(px - 4 * k, py - k, 9 * k, 2 * k);
+          if (a.seated) L.PIX.drawFigure(ctx, px - 6 * k, py - 19 * k, cfg, "back", 0, true, false, k, ow);
+          else L.PIX.drawFigure(ctx, px - 6 * k, py - 21 * k, cfg, a.dir, a.frame, false, a.flip, k, ow);
         });
       }
       list.sort((A, B) => A.key - B.key);
@@ -455,28 +470,28 @@
         const u = a.user, isMe = me && id === me.id;
         const task = a.state === "working" && a.seated ? q.task(u.taskId) : null;
         const p = task && q.project(task.project);
-        want.set("u" + id, { x: px, y: py - 23, cls: L.cx("o-name", isMe && "me", a.state === "away" && "away"), text: (isMe ? "Tú" : L.first(u.name)) + (a.state === "away" ? " · fuera" : "") });
-        if (task) want.set("b" + id, { x: px, y: py - 33, cls: "o-bubble", text: (p && p.code ? p.code + " · " : "") + task.title });
+        want.set("u" + id, { x: px, y: py - 23 * U, cls: L.cx("o-name", isMe && "me", a.state === "away" && "away"), text: (isMe ? "Tú" : L.first(u.name)) + (a.state === "away" ? " · fuera" : "") });
+        if (task) want.set("b" + id, { x: px, y: py - 33 * U, cls: "o-bubble", text: (p && p.code ? p.code + " · " : "") + task.title });
       }
       for (const sp of map.labSpots) {
         const [px, py] = P(sp.x, sp.y);
         const c = data.findings[sp.a.id] || { total: 0, alta: 0 };
-        want.set("a" + sp.a.id, { x: px, y: py + 5, cls: "o-agent", text: sp.a.name });
-        if (c.total) want.set("c" + sp.a.id, { x: px + 8, y: py - 22, cls: L.cx("o-count", c.alta && "alta"), text: String(c.total) });
+        want.set("a" + sp.a.id, { x: px, y: py + 5 * U, cls: "o-agent", text: sp.a.name });
+        if (c.total) want.set("c" + sp.a.id, { x: px + 8 * U, y: py - 22 * U, cls: L.cx("o-count", c.alta && "alta"), text: String(c.total) });
       }
       const zl = (id, x, y, text) => want.set("z" + id, { x, y, cls: "o-zone", text });
-      for (const row of map.rows) { const [x, y] = P(map.DX + map.N, row.y + 2.68); zl(row.id, x, y + 5, row.label); }
-      { const [x, y] = P(3.5, 7.3); zl("dir", x, y + 5, "Dirección"); }
-      { const [x, y] = P(3.5, map.D); zl("lab", x, y + 6, "Laboratorio de agentes"); }
-      { const [x, y] = P(map.meet.x + 2.5, map.meet.y + 1); zl("meet", x, y - 22, data.meet ? "Reunión: " + data.meet.title : "Sala de juntas"); }
-      { const [x, y] = P(map.maq.x + 2, map.maq.y + 1); zl("maq", x, y - 34, "Maquetas"); }
-      { const [x, y] = P(map.bar.x + 1.5, map.bar.y + 0.5); zl("cafe", x, y - 18, "Cafetería"); }
+      for (const row of map.rows) { const [x, y] = P(map.DX - 0.1, row.y + 2.7); want.set("z" + row.id, { x, y: y + 4 * U, cls: "o-zone o-row", text: row.label, left: true }); }
+      { const [x, y] = P(0, 3.5, 43); zl("dir", x, y, "Dirección"); }
+      { const [x, y] = P(0, 12.3, 43); zl("lab", x, y, "Laboratorio de agentes"); }
+      { const [x, y] = P(map.meet.x + 2.5, map.meet.y + 1); zl("meet", x, y - 22 * U, data.meet ? "Reunión: " + data.meet.title : "Sala de juntas"); }
+      { const [x, y] = P(map.maq.x + 2, map.maq.y + 1); zl("maq", x, y - 34 * U, "Maquetas"); }
+      { const [x, y] = P(map.bar.x + 1.5, map.bar.y + 0.5); zl("cafe", x, y - 18 * U, "Cafetería"); }
       for (const [k, v] of want) {
         let el = labels.get(k);
         if (!el) { el = document.createElement("div"); overlay.appendChild(el); labels.set(k, el); }
         if (el.className !== v.cls) el.className = v.cls;
         if (el.textContent !== v.text) el.textContent = v.text;
-        el.style.transform = `translate(${v.x * zoom}px, ${v.y * zoom}px) translate(-50%, -100%)`;
+        el.style.transform = `translate(${v.x / DPR}px, ${v.y / DPR}px) translate(${v.left ? "0" : "-50%"}, -100%)`;
       }
       for (const [k, el] of labels) if (!want.has(k)) { el.remove(); labels.delete(k); }
     }
@@ -493,16 +508,16 @@
 
     function pick(ev) {
       const r = canvas.getBoundingClientRect();
-      const mx = (ev.clientX - r.left) / zoom, my = (ev.clientY - r.top) / zoom;
+      const mx = (ev.clientX - r.left) * DPR, my = (ev.clientY - r.top) * DPR;
       for (const [id, a] of [...actors].reverse()) {
         const [px, py] = P(a.x, a.y);
-        if (mx >= px - 7 && mx <= px + 7 && my >= py - 23 && my <= py + 1) return { kind: "person", id, a };
+        if (mx >= px - 7 * U && mx <= px + 7 * U && my >= py - 23 * U && my <= py + U) return { kind: "person", id, a };
       }
       for (const sp of map.labSpots) {
         const [px, py] = P(sp.x, sp.y);
-        if (mx >= px - 8 && mx <= px + 8 && my >= py - 22 && my <= py + 2) return { kind: "agent", a: sp.a };
+        if (mx >= px - 8 * U && mx <= px + 8 * U && my >= py - 22 * U && my <= py + 2 * U) return { kind: "agent", a: sp.a };
       }
-      const rx = mx - OX, ry = my - OY;
+      const rx = (mx - OX) / U, ry = (my - OY) / U;
       return { kind: "floor", x: Math.floor((ry / (TH / 2) + rx / (TW / 2)) / 2), y: Math.floor((ry / (TH / 2) - rx / (TW / 2)) / 2) };
     }
     // Clic: en una persona abre su tarea o su perfil; en un agente, su página; en el piso, camina hasta ahí.
@@ -554,16 +569,7 @@
         data = next;
         syncActors(L.state.users);
       },
-      setZoom(z) { zoom = z; fit(); dirty = true; },
-      fitTo(width) { if (!map) return zoom; zoom = Math.max(3, Math.min(5, Math.round(width / canvas.width))); fit(); dirty = true; return zoom; },
-      // Centra la vista en el muñeco propio.
-      focusMe(wrapEl) {
-        const a = me && actors.get(me.id);
-        if (!a || !wrapEl) return;
-        const [px, py] = P(a.x, a.y);
-        wrapEl.scrollLeft = Math.max(0, px * zoom - wrapEl.clientWidth / 2);
-        wrapEl.scrollTop = Math.max(0, (py - 20) * zoom - wrapEl.clientHeight / 2);
-      },
+      resize(w, h) { if (Math.abs(w - box0.w) < 2 && Math.abs(h - box0.h) < 2) return; box0 = { w, h }; fit(); },
       goToDesk,
       destroy() { cancelAnimationFrame(raf); canvas.removeEventListener("click", onClick); canvas.removeEventListener("mousemove", onMove); window.removeEventListener("keydown", onKey); },
     };
@@ -573,7 +579,6 @@
   function Oficina() {
     const s = L.useStore();
     const cv = useRef(null), ov = useRef(null), wrap = useRef(null), eng = useRef(null);
-    const [zoom, setZoom] = useState(0);
     const meetNow = () => {
       const now = new Date(), t = L.todayIso(), mins = now.getHours() * 60 + now.getMinutes();
       const mm = (h) => { const [a, b] = String(h || "").split(":").map(Number); return (a || 0) * 60 + (b || 0); };
@@ -581,27 +586,33 @@
     };
     useEffect(() => {
       eng.current = createEngine(cv.current, ov.current);
-      return () => eng.current && eng.current.destroy();
+      // El recuadro ocupa el alto disponible de la ventana; la oficina se ajusta y no se desplaza.
+      const size = () => {
+        const el = wrap.current; if (!el || !eng.current) return;
+        const top = el.getBoundingClientRect().top;
+        const h = Math.max(320, window.innerHeight - top - 56);
+        el.style.height = h + "px";
+        eng.current.resize(el.clientWidth - 16, h - 16);
+      };
+      const ro = new ResizeObserver(size);
+      ro.observe(wrap.current);
+      window.addEventListener("resize", size);
+      setTimeout(size, 0);
+      return () => { ro.disconnect(); window.removeEventListener("resize", size); eng.current && eng.current.destroy(); };
     }, []);
     useEffect(() => {
       if (!eng.current) return;
       const findings = L.agentCounts ? L.agentCounts(L.myFindings()) : {};
       eng.current.update({ findings, meet: meetNow() });
-      if (!zoom && wrap.current) { setZoom(eng.current.fitTo(wrap.current.clientWidth - 16)); setTimeout(() => eng.current && eng.current.focusMe(wrap.current), 60); }
     });
-    useEffect(() => { if (eng.current && zoom) eng.current.setZoom(zoom); }, [zoom]);
     const staff = q.staff();
     const online = staff.filter((u) => q.online(u) && !q.absent(u.id));
     const away = online.filter((u) => !q.atDesk(u));
     const hasDoll = !!(s.me.muneco && s.me.muneco.ropa);
     return html`
       <${L.PageHead} title="Oficina" sub=${`${L.plural(online.length, "persona conectada", "personas conectadas")}${away.length ? ` · ${away.length} fuera del puesto` : ""} · camina con las flechas o con clic en el piso`}>
-        <button type="button" class="btn" onClick=${() => { if (eng.current) { eng.current.goToDesk(); eng.current.focusMe(wrap.current); } }}>Volver a mi puesto</button>
+        <button type="button" class="btn" onClick=${() => eng.current && eng.current.goToDesk()}>Volver a mi puesto</button>
         <button type="button" class="btn" onClick=${() => L.openSheet("muneco")}>${hasDoll ? "Mi muñeco" : "Crear mi muñeco"}</button>
-        <div class="seg" role="group" aria-label="Zoom">
-          <button type="button" aria-label="Alejar" onClick=${() => setZoom(Math.max(2, zoom - 1))}>−</button>
-          <button type="button" aria-label="Acercar" onClick=${() => setZoom(Math.min(6, zoom + 1))}>+</button>
-        </div>
       <//>
       ${!hasDoll && html`<div class="banner glass"><p><strong>Arma tu muñeco.</strong> Elige peinado, color de pelo, piel y un color de ropa que nadie más tenga. Mientras tanto apareces con ropa gris.</p><button type="button" class="btn sm primary" onClick=${() => L.openSheet("muneco")}>Crear mi muñeco</button></div>`}
       <div class="glass office-wrap pix" ref=${wrap}>

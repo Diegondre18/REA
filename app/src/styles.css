@@ -833,19 +833,19 @@ a.fin-row:hover { background: var(--lo); border-radius: 8px; }
 .absence-note p { margin: 0; font-size: 12.5px; }
 
 /* ---------- Oficina en pixel art ---------- */
-.office-wrap.pix { padding: 8px; overflow: auto; max-height: calc(100vh - 240px); background: color-mix(in srgb, #8d8086 18%, var(--glass)); }
+.office-wrap.pix { padding: 8px; overflow: hidden; overscroll-behavior: contain; background: color-mix(in srgb, #8d8086 18%, var(--glass)); }
 .office-stage { position: relative; width: max-content; margin: 0 auto; }
-.office-canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.office-canvas { display: block; touch-action: none; }
 .office-overlay { position: absolute; left: 0; top: 0; pointer-events: none; }
 .office-overlay > div { position: absolute; left: 0; top: 0; white-space: nowrap; font-family: var(--font-ui); will-change: transform; }
-.o-name { font-size: calc(var(--z, 3) * 3.6px); font-weight: 600; color: #fff; background: rgba(42, 34, 40, 0.78); padding: 1px 6px; border-radius: 6px; }
+.o-name { font-size: max(10.5px, calc(var(--z, 3) * 3.6px)); font-weight: 600; color: #fff; background: rgba(42, 34, 40, 0.78); padding: 1px 6px; border-radius: 6px; }
 .o-name.me { background: var(--blue); }
 .o-name.away { background: rgba(120, 110, 115, 0.85); }
-.o-bubble { font-size: calc(var(--z, 3) * 3.7px); font-weight: 500; color: #1d1a22; background: #fff; border: 2px solid #2a2228; padding: 3px 8px; border-radius: 8px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
-.o-agent { font-size: calc(var(--z, 3) * 3.3px); font-weight: 700; color: #2a2228; background: rgba(255,255,255,0.85); padding: 0 5px; border-radius: 5px; transform-origin: center; }
-.o-count { font-size: calc(var(--z, 3) * 3.5px); font-weight: 700; color: #fff; background: var(--blue); min-width: 18px; text-align: center; padding: 1px 5px; border-radius: 9px; border: 2px solid #fff; }
+.o-bubble { font-size: max(11px, calc(var(--z, 3) * 3.7px)); font-weight: 500; color: #1d1a22; background: #fff; border: 2px solid #2a2228; padding: 3px 8px; border-radius: 8px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 2px 0 rgba(0,0,0,0.15); }
+.o-agent { font-size: max(10px, calc(var(--z, 3) * 3.3px)); font-weight: 700; color: #2a2228; background: rgba(255,255,255,0.85); padding: 0 5px; border-radius: 5px; transform-origin: center; }
+.o-count { font-size: max(10.5px, calc(var(--z, 3) * 3.5px)); font-weight: 700; color: #fff; background: var(--blue); min-width: 18px; text-align: center; padding: 1px 5px; border-radius: 9px; border: 2px solid #fff; }
 .o-count.alta { background: var(--red); }
-.o-zone { font-size: calc(var(--z, 3) * 3px); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #5d5158; background: rgba(255,255,255,0.5); padding: 1px 6px; border-radius: 4px; }
+.o-zone { font-size: max(9px, calc(var(--z, 3) * 3px)); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #5d5158; background: rgba(255,255,255,0.5); padding: 1px 6px; border-radius: 4px; }
 .pix-preview { image-rendering: pixelated; background: var(--lo); border-radius: 12px; }
 .pix-stage { display: flex; gap: 12px; justify-content: center; }
 .pix-mini .pix-preview { width: 40px; height: 62px; border-radius: 8px; }
@@ -854,3 +854,4 @@ a.fin-row:hover { background: var(--lo); border-radius: 8px; }
 .swatch[aria-pressed="true"] { outline: 3px solid var(--blue); outline-offset: 2px; }
 .swatch:disabled { cursor: not-allowed; opacity: 0.45; }
 .swatch i { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal; font-weight: 700; color: #fff; text-shadow: 0 0 3px #000; }
+.o-zone.o-row { background: #fbf9f6; color: #4a4046; box-shadow: 0 0 0 1px rgba(60,50,55,0.18); }

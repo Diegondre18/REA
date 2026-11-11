@@ -75,12 +75,20 @@
     return out;
   }
   // Dibuja con contorno de 1 pixel: primero la silueta oscura, luego los colores.
-  function drawFigure(ctx, x, y, cfg, view = "front", frame = 0, seated = false, flip = false) {
+  // k = tamaño de cada pixel del muñeco; ow = grosor del contorno (más fino que el pixel = más definición).
+  function drawFigure(ctx, x, y, cfg, view = "front", frame = 0, seated = false, flip = false, k = 1, ow = 1) {
     const ps = parts(cfg, view, frame, seated);
-    const X = (px, w) => (flip ? x + 12 - px - w : x + px);
+    const X = (px, w) => x + (flip ? 12 - px - w : px) * k;
     ctx.fillStyle = OUT;
-    for (const [px, py, w, hh] of ps) ctx.fillRect(X(px, w) - 1, y + py - 1, w + 2, hh + 2);
-    for (const [px, py, w, hh, col] of ps) { ctx.fillStyle = col; ctx.fillRect(X(px, w), y + py, w, hh); }
+    for (const [px, py, w, hh] of ps) ctx.fillRect(X(px, w) - ow, y + py * k - ow, w * k + 2 * ow, hh * k + 2 * ow);
+    for (const [px, py, w, hh, col] of ps) { ctx.fillStyle = col; ctx.fillRect(X(px, w), y + py * k, w * k, hh * k); }
+    // Brillo sutil en el pelo y la ropa para dar volumen sin perder el pixel.
+    if (k >= 3) {
+      const hl = Math.max(1, Math.round(k / 3));
+      ctx.fillStyle = "rgba(255,255,255,0.22)";
+      if (view === "front") { ctx.fillRect(X(4, 2), y + 2 * k, 2 * k, hl); ctx.fillRect(X(3, 1), y + 10 * k, 3 * k, hl); }
+      else ctx.fillRect(X(4, 3), y + 3 * k, 3 * k, hl);
+    }
   }
 
   // Cara del muñeco para usar como foto de perfil (cabeza y hombros), en caché por configuración.
