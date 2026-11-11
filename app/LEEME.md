@@ -27,6 +27,16 @@ En la sección **Estudio**: solicitudes entre áreas (al aceptarlas se vuelven t
 
 El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sistema.
 
+## Oficina y agentes
+
+**Oficina** muestra el estudio en vista isométrica: cada persona tiene su puesto en la zona de su área. Se ve quién está conectado, en qué tarea trabaja (con la burbuja encima; clic para abrirla), quién está en la sala de reuniones y qué puestos están vacíos por ausencia.
+
+**Agentes** son seis muñequitos que revisan el estudio con reglas fijas: Vigía (atrasos y tareas bloqueadas), Agenda (reuniones, actas y avances de comité), Plan (planes y vistos buenos), Equipo (carga y ausencias), Trámites (licencias, planos y revisiones de imagen) y Cuentas (cobros, horas y márgenes; solo Dirección y Administración). No usan inteligencia artificial ni internet ni consumo de ningún servicio: corren en cada PC con los datos que ya están sincronizados. Viven en la sala de agentes de la oficina y lo urgente aparece en Inicio.
+
+## Actualizaciones
+
+En tu perfil, abajo, está la versión instalada y el botón **Buscar actualizaciones**, que muestra si está buscando, el porcentaje de descarga o el error si algo falla. Los errores también quedan en `%APPDATA%\LAP Cerebro\actualizaciones.log`.
+
 ## Instalar en cada PC
 
 1. Descarga `LAP-Cerebro-Setup-x.y.z.exe` desde *Releases* (o desde la ejecución más reciente de *Actions* → artefacto `LAP-Cerebro-Setup`).

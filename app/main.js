@@ -196,23 +196,66 @@ async function setAutostartOnce() {
   await fs.writeFile(flag, new Date().toISOString()).catch(() => {});
 }
 
-// Actualizaciones: busca versiones nuevas en GitHub Releases al abrir y cada 4 horas, las descarga
-// en segundo plano y avisa en la app. Se instalan al reiniciar desde el aviso o al salir.
+// Actualizaciones: busca versiones nuevas en GitHub Releases al abrir, cada 4 horas y cuando la persona
+// lo pide desde su perfil. Las descarga en segundo plano y avisa en la app; se instalan al reiniciar
+// desde el aviso o al salir. El estado (buscando, descargando, error…) se muestra en el perfil.
 let updateReady = null;
+let updateState = { state: "idle" };
+function setUpdateState(next) {
+  updateState = { ...updateState, ...next, at: new Date().toISOString() };
+  if (win && !win.isDestroyed()) win.webContents.send("update-state-changed", updateState);
+  if (next.state === "error") {
+    const line = `${updateState.at} ${next.error}\n`;
+    fs.appendFile(path.join(app.getPath("userData"), "actualizaciones.log"), line).catch(() => {});
+  }
+}
+let checking = null;
+function checkUpdates() {
+  if (!app.isPackaged) { setUpdateState({ state: "dev" }); return Promise.resolve(updateState); }
+  if (updateReady) return Promise.resolve(updateState);
+  if (checking) return checking;
+  setUpdateState({ state: "checking", error: "" });
+  // Si en 60 s no hubo respuesta, se dice; nunca se queda "buscando" para siempre.
+  const guard = setTimeout(() => { if (updateState.state === "checking") setUpdateState({ state: "error", error: "GitHub no respondió a tiempo. Inténtalo de nuevo en unos minutos." }); }, 60000);
+  checking = autoUpdater.checkForUpdates()
+    .then((r) => {
+      if (updateState.state !== "checking") return;
+      if (!r || !r.updateInfo) setUpdateState({ state: "error", error: "Esta instalación no puede actualizarse sola. Descarga el instalador de la página de versiones." });
+      else if (r.updateInfo.version === app.getVersion()) setUpdateState({ state: "latest", version: app.getVersion() });
+    })
+    .catch((err) => setUpdateState({ state: "error", error: humanUpdateError(err) }))
+    .finally(() => clearTimeout(guard))
+    .then(() => updateState)
+    .finally(() => { checking = null; });
+  return checking;
+}
+function humanUpdateError(err) {
+  const m = String((err && err.message) || err || "");
+  if (/ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|net::ERR_/i.test(m)) return "No hay conexión con GitHub desde este PC. Revisa el internet e inténtalo de nuevo.";
+  if (/ENOSPC/i.test(m)) return "No hay espacio en el disco para descargar la versión nueva.";
+  if (/sha512|checksum/i.test(m)) return "La descarga llegó dañada. Inténtalo de nuevo.";
+  if (/40[34]|rate limit/i.test(m)) return "GitHub no respondió (puede estar caído o limitando consultas). Inténtalo en unos minutos.";
+  return "No se pudo actualizar: " + m.split("\n")[0].slice(0, 160);
+}
 function startUpdates() {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.on("update-available", (info) => setUpdateState({ state: "downloading", version: info.version, percent: 0 }));
+  autoUpdater.on("update-not-available", () => setUpdateState({ state: "latest", version: app.getVersion() }));
+  autoUpdater.on("download-progress", (p) => setUpdateState({ state: "downloading", percent: Math.round(p.percent || 0) }));
   autoUpdater.on("update-downloaded", (info) => {
     updateReady = info.version;
+    setUpdateState({ state: "ready", version: info.version, percent: 100 });
     if (win) win.webContents.send("update-ready", info.version);
     if (tray) tray.setToolTip("LAP Cerebro · versión " + info.version + " lista para instalar");
   });
-  autoUpdater.on("error", (err) => console.log("actualización:", err && err.message));
-  const check = () => autoUpdater.checkForUpdates().catch(() => {});
-  setTimeout(check, 15000);
-  setInterval(check, 4 * 3600 * 1000);
+  autoUpdater.on("error", (err) => setUpdateState({ state: "error", error: humanUpdateError(err) }));
+  setTimeout(checkUpdates, 15000);
+  setInterval(checkUpdates, 4 * 3600 * 1000);
 }
 ipcMain.handle("update-status", () => updateReady);
+ipcMain.handle("update-state", () => updateState);
+ipcMain.handle("update-check", () => checkUpdates());
 ipcMain.on("update-install", () => {
   if (!updateReady) return;
   quitting = true;

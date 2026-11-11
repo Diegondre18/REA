@@ -574,7 +574,7 @@
 
   /* ---------- rutas ---------- */
   const VIEWS = ["inicio", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
-    "solicitudes", "directorio", "materiales", "horas", "ausencias", "finanzas", "revision"];
+    "solicitudes", "directorio", "materiales", "horas", "ausencias", "finanzas", "revision", "oficina", "agentes"];
   function parseRoute() {
     const [name, id, tab] = location.hash.replace(/^#/, "").split("/");
     if (name === "tarea" && id) {
@@ -598,6 +598,10 @@
   if (desk && desk.onUpdateReady) {
     desk.onUpdateReady((v) => set({ update: v }));
     desk.updateStatus().then((v) => { if (v) set({ update: v }); }).catch(() => {});
+    if (desk.onUpdateState) {
+      desk.onUpdateState((st) => set({ updateState: st }));
+      desk.updateState().then((st) => set({ updateState: st })).catch(() => {});
+    }
   }
 
   Object.assign(L, { state, useStore, set, toast, q, act, auth, boot, go, openSheet, closeSheet, parseRoute, desk, errMsg, THEMES, setTheme });

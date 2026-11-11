@@ -281,9 +281,35 @@
               </div>` : html`
               <div class="fld"><span class="lbl">Servidor</span><p class="mono">${s.serverUrl.replace(/^https?:\/\//, "")}</p></div>`}
             <div class="inline">${!hosting && html`<button type="button" class="btn sm" onClick=${() => { L.closeSheet(); L.auth.changeServer(); }}>Cambiar de servidor</button>`}<button type="button" class="btn sm" onClick=${L.auth.logout}>Cerrar sesión</button></div>
-            ${version && html`<p class="meta-line">LAP Cerebro ${version}</p>`}
+            ${L.desk && L.desk.checkUpdates ? html`<${UpdateBox} version=${version} />` : version && html`<p class="meta-line">LAP Cerebro ${version}</p>`}
           </div>`}
       <//>`;
+  }
+
+  // Actualizaciones: versión instalada, botón para buscar y lo que está pasando (buscando, descargando, error).
+  function UpdateBox({ version }) {
+    const s = L.useStore();
+    const u = s.updateState || { state: "idle" };
+    const busy = u.state === "checking" || u.state === "downloading";
+    const text = {
+      idle: "",
+      checking: "Buscando una versión nueva…",
+      latest: "Tienes la versión más reciente.",
+      downloading: `Descargando la versión ${u.version || "nueva"}… ${u.percent ? u.percent + "%" : ""}`,
+      ready: `La versión ${u.version} está lista. Se instala al reiniciar la app.`,
+      error: u.error || "No se pudo buscar la actualización.",
+      dev: "En modo de desarrollo las actualizaciones no se buscan.",
+    }[u.state] || "";
+    return html`<div class="update-box">
+      <span class="lbl">Actualizaciones</span>
+      <p>LAP Cerebro <b class="mono">${version || "…"}</b>${u.state === "latest" && u.at ? html` <span class="muted">· revisado ${L.relTime(u.at)}</span>` : ""}</p>
+      ${text && html`<p class=${L.cx(u.state === "error" ? "err" : "muted", "upd-msg")}>${text}</p>`}
+      ${u.state === "downloading" && html`<span class="bar-track wide" data-s="en_curso"><i style=${{ width: (u.percent || 2) + "%" }}></i></span>`}
+      <div class="inline">
+        ${u.state === "ready" ? html`<button type="button" class="btn sm primary" onClick=${() => L.desk.installUpdate()}>Reiniciar y actualizar</button>`
+          : html`<button type="button" class="btn sm" disabled=${busy} onClick=${() => L.desk.checkUpdates()}>${u.state === "downloading" ? "Descargando…" : u.state === "checking" ? "Buscando…" : "Buscar actualizaciones"}</button>`}
+      </div>
+    </div>`;
   }
 
   function SheetHost() {

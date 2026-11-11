@@ -736,8 +736,83 @@ a.fin-row:hover { background: var(--lo); border-radius: 8px; }
   .arch-row.planos { grid-template-columns: 1fr 1fr; }
 }
 
+/* ---------- Oficina isométrica ---------- */
+.office-wrap { padding: 8px; overflow: auto; max-height: calc(100vh - 220px); }
+.office { display: block; margin: 0 auto; font-family: var(--font-ui); }
+.zone-floor { fill: color-mix(in srgb, var(--zc) 9%, var(--glass-strong)); stroke: color-mix(in srgb, var(--zc) 40%, var(--line)); stroke-width: 1; }
+.zone-grid line { stroke: color-mix(in srgb, var(--zc) 16%, transparent); stroke-width: 0.6; }
+.zone-wall.l { fill: color-mix(in srgb, var(--zc) 22%, var(--glass-strong)); }
+.zone-wall.r { fill: color-mix(in srgb, var(--zc) 12%, var(--glass-strong)); }
+.zone-wall { stroke: color-mix(in srgb, var(--zc) 45%, var(--line)); stroke-width: 0.8; }
+.zone-rim { fill: none; stroke: color-mix(in srgb, var(--zc) 55%, transparent); stroke-width: 1.2; }
+.zone-label text { font-size: 10px; letter-spacing: 0.14em; fill: var(--muted); font-weight: 600; }
+.zone-label .zone-extra { font-size: 10px; letter-spacing: 0; font-weight: 400; fill: var(--faint); }
+.f-top { fill: var(--glass-strong); stroke: var(--line-strong); stroke-width: 0.7; }
+.f-left { fill: color-mix(in srgb, var(--fg) 10%, var(--glass-strong)); stroke: var(--line-strong); stroke-width: 0.7; }
+.f-right { fill: color-mix(in srgb, var(--fg) 18%, var(--glass-strong)); stroke: var(--line-strong); stroke-width: 0.7; }
+.desk-box .f-top { fill: color-mix(in srgb, #c8a27a 35%, var(--glass-strong)); }
+.table-box .f-top { fill: color-mix(in srgb, var(--blue) 10%, var(--glass-strong)); }
+.monitor .f-top, .monitor .f-left, .monitor .f-right { fill: #2a2f3a; stroke: #1a1d24; }
+.monitor.on .f-top { fill: var(--blue); }
+.monitor.on { filter: drop-shadow(0 -4px 6px color-mix(in srgb, var(--blue) 70%, transparent)); }
+.chair .f-top { fill: color-mix(in srgb, var(--fg) 25%, var(--glass-strong)); }
+.pad .f-top { fill: color-mix(in srgb, var(--fg) 6%, var(--glass-strong)); }
+.nameplate text { font-size: 10px; fill: var(--muted); font-weight: 500; cursor: pointer; }
+.nameplate .np-note { font-size: 9px; fill: var(--faint); font-weight: 400; }
+.desk.offline .nameplate text:first-child, .desk.absent .nameplate text:first-child { fill: var(--faint); }
+.person { cursor: pointer; outline: none; }
+.p-shadow, .agent-shadow { fill: rgba(0, 0, 0, 0.16); }
+.p-torso { stroke: rgba(0, 0, 0, 0.12); stroke-width: 0.8; }
+.p-head { fill: var(--glass-strong); stroke: var(--line-strong); stroke-width: 1; }
+.p-ini { font-size: 8.5px; font-weight: 700; fill: var(--fg); }
+.p-dot { fill: var(--red); stroke: var(--glass-strong); stroke-width: 1.5; }
+.person:hover .p-head, .person:focus-visible .p-head { stroke: var(--blue); stroke-width: 2; }
+.p-bubble rect, .p-bubble path { fill: var(--glass-strong); stroke: var(--line-strong); stroke-width: 0.8; }
+.p-bubble path { stroke: none; }
+.p-bubble text { font-size: 9.5px; fill: var(--fg); font-weight: 500; }
+.person.working .p-bubble rect { stroke: var(--blue); }
+.agent-b rect.alta, .agent-b path.alta { fill: var(--red); stroke: var(--red); }
+.agent-b rect.alta + path + text, .agent-b rect.alta ~ text { fill: #fff; }
+.agent-spot { cursor: pointer; outline: none; }
+.agent-name { font-size: 9.5px; fill: var(--muted); font-weight: 600; }
+.agent-spot:hover .agent-name, .agent-spot:focus-visible .agent-name { fill: var(--blue-text); }
+.office-legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.office-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.lg { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.lg.on { background: var(--red); }
+.lg.work { background: var(--blue); }
+.lg.off { background: var(--line-strong); }
+@keyframes bob { 50% { transform: translateY(-2px); } }
+.person.working .p-body, .bob { animation: bob 2.6s ease-in-out infinite; }
+
+/* ---------- Agentes ---------- */
+.agent-visor { fill: rgba(255, 255, 255, 0.92); }
+.agent-eye { fill: #1a1d24; }
+.agent-mouth { fill: none; stroke: rgba(255, 255, 255, 0.95); stroke-width: 1.4; stroke-linecap: round; }
+.agent-prop { fill: none; stroke: #fff; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.agent-count { fill: var(--blue); }
+.agent-count.alta { fill: var(--red); }
+.agent-count-t { font-size: 9px; font-weight: 700; fill: #fff; }
+.agents-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.agent-card { display: grid; justify-items: center; gap: 4px; padding: 14px 10px 16px; text-align: center; text-decoration: none; color: var(--fg); }
+.agent-card b { font-weight: 600; }
+.agent-card small { color: var(--muted); font-size: 12px; line-height: 1.35; }
+.agent-card:hover { border-color: var(--line-strong); }
+.agent-card.on { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+.agent-intro { margin: 0; color: var(--muted); font-size: 14px; }
+.agent-intro b { color: var(--fg); font-weight: 600; }
+.finding .lvl { width: 4px; align-self: stretch; border-radius: 4px; background: var(--line-strong); flex: none; }
+.finding .lvl.alta { background: var(--red); }
+.finding .lvl.media { background: #e8a400; }
+.agent-mini { flex: none; }
+.agent-strip { display: flex; align-items: center; gap: 14px; padding: 12px 16px; text-decoration: none; color: var(--fg); }
+.agent-strip:hover { border-color: var(--line-strong); }
+.agent-faces { display: flex; gap: 0; flex: none; }
+.agent-strip .row-meta { flex-wrap: wrap; }
+.agent-strip .row-meta span + span::before { content: "· "; }
+
 @media (prefers-reduced-motion: reduce) {
-  .field i, .glyph.live, .sheet { animation: none; }
+  .field i, .glyph.live, .sheet, .person.working .p-body, .bob { animation: none; }
 }
 .sub input[type="checkbox"] { width: auto; flex: none; margin: 0; }
 .sub a { text-align: left; }
@@ -745,3 +820,8 @@ a.fin-row:hover { background: var(--lo); border-radius: 8px; }
 .pin-head { flex-wrap: wrap; min-width: 0; }
 .reply-form { flex-wrap: wrap; }
 .reply-form input { flex: 1 1 140px; }
+.update-box { display: grid; gap: 6px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.update-box p { margin: 0; font-size: 13px; }
+.upd-msg { font-size: 12.5px !important; }
+.row.finding { grid-template-columns: 4px 26px minmax(0, 1fr) auto; }
+.row.finding .row-side { display: flex; align-items: center; gap: 10px; }

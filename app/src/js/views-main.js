@@ -102,6 +102,7 @@
         sub=${`${para ? `Tienes ${L.plural(para, "tarea", "tareas")} para hoy` : "No tienes entregas para hoy"}${estaSemana ? ` y ${L.plural(estaSemana, "reunión", "reuniones")} esta semana` : ""}.`} />
       <div class="grid">
         <${Pending} pend=${pend} />
+        ${L.AgentStrip && html`<${L.AgentStrip} />`}
         <${Panel} title="Mis tareas" cls="span-7" action=${html`<a class="link" href="#agenda">Mi cronograma</a>`}>
           <div class="rows">${mine.length ? html`${group("Atrasadas", late, "late")}${group("Hoy", hoy)}${group("Esta semana", semana)}${group("Después", luego.slice(0, 6))}` : html`<p class="note">No tienes tareas abiertas. Las que te asignen o lleguen de un plan aprobado aparecen aquí.</p>`}</div>
         <//>

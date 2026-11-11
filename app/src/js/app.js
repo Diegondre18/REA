@@ -105,6 +105,8 @@
         <nav class="side-nav" aria-label="Principal">
           ${item("#inicio", "home", "Inicio", r.name === "inicio", nPend || null)}
           ${item("#agenda", "calendar", "Mi cronograma", r.name === "agenda")}
+          ${item("#oficina", "office", "Oficina", r.name === "oficina")}
+          ${item("#agentes", "bot", "Agentes", r.name === "agentes", L.myFindings ? L.myFindings().filter((f) => f.level === "alta").length || null : null)}
           ${item("#proyectos", "folder", "Proyectos", r.name === "proyectos")}
           ${item("#reuniones", "meet", "Reuniones", r.name === "reuniones" || r.name === "evento")}
           ${item("#equipo", "users", "Equipo", r.name === "equipo")}
@@ -234,6 +236,8 @@
       case "horas": return html`<${L.Horas} />`;
       case "ausencias": return html`<${L.Ausencias} />`;
       case "finanzas": return html`<${L.Finanzas} />`;
+      case "oficina": return html`<${L.Oficina} />`;
+      case "agentes": return html`<${L.Agentes} key=${r.id} id=${r.id} />`;
       case "revision": return html`<${L.RevisionView} key=${r.id} id=${r.id} />`;
       default: return html`<${L.Inicio} />`;
     }

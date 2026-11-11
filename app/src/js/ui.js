@@ -30,6 +30,8 @@
     sun: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1",
     moon: "M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z",
     contrast: "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM8 2v12",
+    office: "M2 6.5 8 3l6 3.5L8 10zM2 6.5V10l6 3.5 6-3.5V6.5M8 10v3.5",
+    bot: "M4 6h8a1.5 1.5 0 0 1 1.5 1.5v4A1.5 1.5 0 0 1 12 13H4a1.5 1.5 0 0 1-1.5-1.5v-4A1.5 1.5 0 0 1 4 6zM8 6V3.5M6 9.5h.01M10 9.5h.01",
     settings: "M8 10.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4zM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4",
   };
   const Icon = ({ name, size = 15 }) => html`<svg class="ic" width=${size} height=${size} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${PATHS[name] || ""} /></svg>`;
