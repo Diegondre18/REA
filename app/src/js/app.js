@@ -109,6 +109,15 @@
           ${item("#reuniones", "meet", "Reuniones", r.name === "reuniones" || r.name === "evento")}
           ${item("#equipo", "users", "Equipo", r.name === "equipo")}
         </nav>
+        <div class="side-label">Estudio</div>
+        <nav class="side-nav" aria-label="Estudio">
+          ${item("#solicitudes", "out", "Solicitudes", r.name === "solicitudes", s.solicitudes.filter((x) => x.estado === "nueva" && (s.me.areas || []).includes(x.area)).length || null)}
+          ${item("#horas", "clock", "Horas", r.name === "horas")}
+          ${item("#ausencias", "calendar", "Ausencias", r.name === "ausencias")}
+          ${item("#directorio", "users", "Directorio", r.name === "directorio")}
+          ${item("#materiales", "grid", "Materiales", r.name === "materiales")}
+          ${q.isFin() && item("#finanzas", "flag", "Finanzas", r.name === "finanzas")}
+        </nav>
         <div class="side-label">Áreas</div>
         <nav class="side-nav" aria-label="Áreas">
           ${L.AREAS.map((a) => html`<a key=${a.id} href=${"#area/" + a.id} aria-current=${r.name === "area" && r.id === a.id ? "page" : null}><i class="area-dot" data-a=${a.id}></i><span>${a.label}</span>${areaCount(a.id) ? html`<span class="count">${areaCount(a.id)}</span>` : null}</a>`)}
@@ -191,6 +200,9 @@
         <span class="spacer"></span>
         ${online.length > 0 && html`<span class="online" title=${"Conectados: " + online.map((u) => u.name).join(", ")}><${Faces} ids=${online.map((u) => u.id)} max=${5} /></span>`}
         <span class="sync" data-mode=${s.mode} title=${s.mode === "live" ? "Los cambios se comparten con todo el equipo al instante." : "Reintentando la conexión con el servidor."}><i></i><span>${label}</span></span>
+        <button type="button" class="btn icon" title=${"Modo: " + L.THEMES.find((t) => t.id === s.theme).label + ". Clic para cambiar."} aria-label="Cambiar entre modo claro, oscuro o el del sistema"
+          onClick=${() => { const i = L.THEMES.findIndex((t) => t.id === s.theme); L.setTheme(L.THEMES[(i + 1) % L.THEMES.length].id); }}>
+          <${Icon} name=${s.theme === "light" ? "sun" : s.theme === "dark" ? "moon" : "contrast"} size=${16} /></button>
         <${Bell} />
         <button type="button" class="btn primary" onClick=${() => L.openSheet("task", null, defaults)}><${Icon} name="plus" size=${12} /> Nueva tarea</button>
       </header>`;
@@ -216,6 +228,13 @@
       case "evento": return html`<${L.Evento} key=${r.id} id=${r.id} />`;
       case "area": return html`<${L.Area} key=${r.id} id=${r.id} />`;
       case "equipo": return html`<${L.Equipo} />`;
+      case "solicitudes": return html`<${L.Solicitudes} />`;
+      case "directorio": return html`<${L.Directorio} />`;
+      case "materiales": return html`<${L.Materiales} />`;
+      case "horas": return html`<${L.Horas} />`;
+      case "ausencias": return html`<${L.Ausencias} />`;
+      case "finanzas": return html`<${L.Finanzas} />`;
+      case "revision": return html`<${L.RevisionView} key=${r.id} id=${r.id} />`;
       default: return html`<${L.Inicio} />`;
     }
   }

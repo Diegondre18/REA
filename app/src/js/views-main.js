@@ -212,7 +212,7 @@
   function Acta({ ev }) {
     const [text, setText] = useState(ev.acta || "");
     const dirty = text !== (ev.acta || "");
-    return html`<${Panel} title="Acta y compromisos" cls="span-12" action=${dirty ? html`<button type="button" class="btn sm primary" onClick=${async () => { if (await act.saveEvent(ev.id, { acta: text })) L.toast("Acta guardada"); }}>Guardar acta</button>` : null}>
+    return html`<${Panel} title="Acta" cls="span-12" action=${dirty ? html`<button type="button" class="btn sm primary" onClick=${async () => { if (await act.saveEvent(ev.id, { acta: text })) L.toast("Acta guardada"); }}>Guardar acta</button>` : null}>
       <textarea class="acta" value=${text} onInput=${(e) => setText(e.target.value)} placeholder="Decisiones, compromisos y responsables. Lo ve todo el equipo del proyecto."></textarea>
     <//>`;
   }
@@ -267,6 +267,7 @@
           })}</div>
         <//>`}
         <${Acta} key=${ev.id} ev=${ev} />
+        <${L.Commitments} origen=${"evento:" + ev.id} project=${ev.project || ""} people=${ev.attendees || []} title="Compromisos de la reunión" />
       </div>`;
   }
 
@@ -309,6 +310,7 @@
       const late = open.filter((x) => x.due && x.due < t).length;
       return html`<div class="member" key=${u.id}>
         <${PersonCard} u=${u} />
+        ${q.absent(u.id) && html`<span class="tag warn absent">${L.labelOf(L.AUSENCIA_TIPOS, q.absent(u.id).tipo)} hasta el ${L.fmtShort(q.absent(u.id).hasta)}</span>`}
         <div class="load"><span><b>${open.length}</b> abiertas</span><span><b>${week}</b> esta semana</span>${late > 0 && html`<span class="late"><b>${late}</b> atrasadas</span>`}
           <button type="button" class="btn icon ghost sm" title="Ver perfil" aria-label="Ver perfil" onClick=${() => L.openSheet("profile", u.id)}><${Icon} name="settings" /></button></div>
       </div>`;
@@ -318,6 +320,7 @@
         <button type="button" class="btn" onClick=${() => L.openSheet("profile", s.me.id)}><${Icon} name="edit" /> Mi perfil</button>
       <//>
       <div class="grid">
+        <${L.Carga} />
         ${sections.filter((x) => x.people.length).map(({ a, people }) => html`<${Panel} key=${a.id} title=${a.label} cls="span-12" action=${html`<span class="tag">${people.length}</span>`}><div class="members">${sortPeople(people).map(card)}</div><//>`)}
         ${none.length > 0 && html`<${Panel} title="Sin área asignada" cls="span-12" action=${q.isDirector() ? html`<span class="tag">Ábreles el perfil para asignarla</span>` : null}><div class="members">${sortPeople(none).map(card)}</div><//>`}
       </div>`;

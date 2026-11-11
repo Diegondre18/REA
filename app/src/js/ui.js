@@ -27,6 +27,9 @@
     grid: "M2.5 2.5h4.5v4.5H2.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5H2.5zM9 9h4.5v4.5H9z",
     plan: "M3 2.5h10v11H3zM5.5 5.5h5M5.5 8h5M5.5 10.5h3",
     flag: "M3.5 14V2.5M3.5 3h8l-1.5 2.5L11.5 8h-8",
+    sun: "M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1",
+    moon: "M13 9.5A5.5 5.5 0 1 1 6.5 3a4.5 4.5 0 0 0 6.5 6.5z",
+    contrast: "M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12zM8 2v12",
     settings: "M8 10.2a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4zM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4",
   };
   const Icon = ({ name, size = 15 }) => html`<svg class="ic" width=${size} height=${size} viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d=${PATHS[name] || ""} /></svg>`;
@@ -72,7 +75,7 @@
   function copyText(text) {
     try {
       const p = navigator.clipboard && navigator.clipboard.writeText(text);
-      if (p) p.then(() => L.toast("Ruta copiada"), () => L.toast("No se pudo copiar. Selecciona la ruta y usa Ctrl+C."));
+      if (p) p.then(() => L.toast("Copiado"), () => L.toast("No se pudo copiar. Selecciona la ruta y usa Ctrl+C."));
     } catch (e) { L.toast("No se pudo copiar. Selecciona la ruta y usa Ctrl+C."); }
   }
   function openPath(path) {

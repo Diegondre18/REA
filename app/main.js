@@ -242,6 +242,19 @@ ipcMain.handle("path-exists", async (_e, p) => {
   return { exists: !!s, isDir: !!(s && s.isDirectory()) };
 });
 
+// Elegir un archivo (imagen para revisar, ficha técnica): solo se devuelve su ruta, nunca se abre ni se sube.
+ipcMain.handle("pick-file", async (_e, start) => {
+  const s = await stat(start);
+  const dir = s ? (s.isDirectory() ? start.trim() : path.dirname(start.trim())) : undefined;
+  const r = await dialog.showOpenDialog(win, {
+    title: "Elegir el archivo",
+    properties: ["openFile"],
+    defaultPath: dir,
+    filters: [{ name: "Imágenes y documentos", extensions: ["jpg", "jpeg", "png", "webp", "gif", "bmp", "tif", "tiff", "pdf"] }, { name: "Todos los archivos", extensions: ["*"] }],
+  });
+  return r.canceled || !r.filePaths.length ? null : r.filePaths[0];
+});
+
 ipcMain.handle("pick-folder", async (_e, start) => {
   const s = await stat(start);
   const r = await dialog.showOpenDialog(win, {
@@ -253,6 +266,11 @@ ipcMain.handle("pick-folder", async (_e, start) => {
 });
 
 ipcMain.handle("app-info", () => ({ version: app.getVersion(), platform: process.platform }));
+
+// Modo claro u oscuro elegido en la app ("system", "light" o "dark"); también cambia la barra de título de Windows.
+ipcMain.on("set-theme", (_e, mode) => {
+  if (["system", "light", "dark"].includes(mode)) nativeTheme.themeSource = mode;
+});
 
 // Sesión: se guarda cifrada con la protección de datos de Windows (DPAPI), atada a esta cuenta de Windows.
 const sessionFile = () => path.join(app.getPath("userData"), "sesion.bin");

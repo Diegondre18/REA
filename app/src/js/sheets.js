@@ -65,7 +65,9 @@
         title: f.title.trim(), project: f.project || "", area: f.area || "", kind: f.kind || "", status: f.status, stage: f.status === "en_curso" && viz ? f.stage || "" : "",
         progress: Number(f.progress) || 0, assignees: f.assignees || [], start: start || "", due: due || "", meeting: meeting || "",
         path: (f.path || "").trim(), version: (f.version || "").trim(), engine: (f.engine || "").trim(), resolution: (f.resolution || "").trim(), notes: f.notes || "",
+        dependsOn: (f.dependsOn || []).filter((d) => d !== id), parent: f.parent || "",
       };
+      if (!id && f.origen) body.origen = f.origen;
       const rec = await act.saveTask(id, body);
       setSaving(false);
       if (rec) { L.toast(id ? "Cambios guardados" : "Tarea creada"); L.closeSheet(); }
@@ -117,7 +119,11 @@
           ${viz && html`<${Field} label="Motor" id="t-engine"><input id="t-engine" list="dl-engine" value=${f.engine} onInput=${set("engine")} placeholder="V-Ray, Corona…" /><//>`}
           ${viz && html`<${Field} label="Resolución" id="t-res"><input id="t-res" class="mono" list="dl-res" value=${f.resolution} onInput=${set("resolution")} placeholder="3840×2160" /><//>`}
         </div>
+        ${f.project && html`<${L.DependsField} id=${id} project=${f.project} value=${f.dependsOn || []} onChange=${(v) => setF((p) => ({ ...p, dependsOn: v }))} />`}
         <${Field} label="Notas" id="t-notes"><textarea id="t-notes" value=${f.notes} onInput=${set("notes")} placeholder="Comentarios del cliente, referencias, pendientes"></textarea><//>
+        ${task && html`<${L.TaskExtras} task=${task} />`}
+        ${task && task.parent && q.task(task.parent) && html`<p class="meta-line">Subtarea de <a href="#" onClick=${(e) => { e.preventDefault(); L.openTask(task.parent); }}>${q.task(task.parent).title}</a></p>`}
+        ${task && task.origen && html`<p class="meta-line">${L.originLabel(task.origen)}</p>`}
         ${plan && html`<p class="meta-line">Viene del plan de entregables v${plan.version} del proyecto.</p>`}
         ${task && task.updated && html`<p class="meta-line">Última edición ${task.updatedBy ? "de " + q.first(task.updatedBy) + " " : ""}${L.relTime(task.updated)}</p>`}
         <datalist id="dl-engine">${L.ENGINES.map((x) => html`<option key=${x} value=${x}></option>`)}</datalist>
@@ -257,6 +263,7 @@
           <select id="u-role" value=${f.role} onChange=${set("role")}>${roleOptions.map((o) => html`<option key=${o.id} value=${o.id}>${o.label}</option>`)}</select><//>`}
         ${isMe && html`
           <div class="settings">
+            <div class="fld"><span class="lbl">Apariencia</span><${L.Seg} label="Apariencia" value=${s.theme} onChange=${L.setTheme} options=${L.THEMES} /></div>
             ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}
             ${hosting ? html`
               <div class="host-box">
@@ -288,6 +295,7 @@
     if (sh.type === "event") return html`<${EventSheet} key=${k} id=${sh.id} defaults=${sh.defaults} />`;
     if (sh.type === "project") return html`<${ProjectSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "profile") return html`<${ProfileSheet} key=${k} id=${sh.id} />`;
+    if (sh.type === "tool") { const { col, ...d } = sh.defaults; return html`<${L.ToolSheet} key=${k + col} col=${col} id=${sh.id} defaults=${d} />`; }
     return null;
   }
 

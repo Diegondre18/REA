@@ -10,6 +10,23 @@ App de escritorio del estudio. Reúne los proyectos de Arquitectura, Diseño Int
 4. Solo entonces cada entregable pasa al cronograma personal de sus responsables, y a cada uno le llega un aviso.
 5. Para cambiar un plan aprobado se crea una versión nueva, que vuelve a pedir visto bueno. Al aprobarla se actualizan las tareas sin perder su avance.
 
+## Herramientas del estudio
+
+Cada proyecto tiene, además de su plan y sus tareas:
+
+- **Semáforo** (verde, amarillo, rojo) con una nota de por qué, que ve todo el estudio.
+- **Licencias**: trámites de curaduría con radicado, estado, plazo para responder observaciones y vigencia. La app avisa antes de que se venza un plazo.
+- **Planos**: listado con su revisión vigente (A, B, C…) y la ruta del archivo; **Envíos** registra qué planos, en qué revisión, se enviaron a quién.
+- **Obra**: bitácora de visitas con avance, carpeta de fotos y pendientes que se vuelven tareas.
+- **Finanzas** (solo quien lidera, Dirección y Administración): cobros por hitos, horas del equipo y margen.
+- **Plantillas** para arrancar el plan de entregables de cada fase.
+
+En el panel de cada tarea: subtareas, dependencias, registro de horas y **revisión de imágenes**: se elige la imagen desde su carpeta (no se sube a ningún lado) y el equipo deja comentarios con pines sobre ella. Las actas de reuniones y comités tienen compromisos que se vuelven tareas.
+
+En la sección **Estudio**: solicitudes entre áreas (al aceptarlas se vuelven tarea), horas, ausencias (se ven en Equipo y en la carga de trabajo), directorio de clientes y proveedores, biblioteca de materiales y finanzas del estudio con tarifas por hora.
+
+El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sistema.
+
 ## Instalar en cada PC
 
 1. Descarga `LAP-Cerebro-Setup-x.y.z.exe` desde *Releases* (o desde la ejecución más reciente de *Actions* → artefacto `LAP-Cerebro-Setup`).

@@ -11,13 +11,18 @@
   const COLS = {
     users: "users", proyectos: "proyectos", tareas: "tareas", eventos: "eventos", planes: "planes",
     plan_items: "planItems", vistos: "vistos", reportes: "reportes", notificaciones: "notifs", actividad: "actividad",
+    // herramientas del estudio
+    tramites: "tramites", planos: "planos", envios: "envios", visitas: "visitas", contactos: "contactos", materiales: "materiales",
+    horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones",
   };
+  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "materiales", "horas", "cobros", "tarifas", "ausencias", "solicitudes", "revisiones"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
     gate: null, // { mode: server|login|register, error }
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
+    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
@@ -129,6 +134,9 @@
       full("users"), full("proyectos"), full("tareas"), full("eventos"), full("planes"), full("plan_items"), full("vistos"), full("reportes"),
       full("notificaciones", { sort: "-created" }), pb.collection("actividad").getList(1, 80, { sort: "-created" }),
     ]);
+    // Las herramientas se cargan aparte: lo que una persona no tiene permiso de ver (cobros, tarifas) llega vacío.
+    const tools = await Promise.all(TOOL_COLS.map((c) => full(c).catch(() => [])));
+    TOOL_COLS.forEach((c, i) => { state[COLS[c]] = tools[i]; });
     Object.assign(state, { users, proyectos, tareas, eventos, planes, planItems, vistos, reportes, notifs, actividad: act.items, mode: "live" });
     state.me = users.find((u) => u.id === pb.authStore.record.id) || pb.authStore.record;
     emit();
@@ -284,6 +292,15 @@
     canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || q.isDirector()),
     // El equipo del estudio, sin el perfil maestro de soporte.
     staff: () => state.users.filter((u) => u.role !== "maestro"),
+    // Finanzas: Dirección, perfil maestro y el área de Administración (el líder ve los cobros de su proyecto).
+    isFin: () => q.isDirector() || ((state.me && state.me.areas) || []).includes("administracion"),
+    canSeeMoney: (p) => q.isFin() || (!!p && !!state.me && p.leader === state.me.id),
+    contacto: (id) => state.contactos.find((c) => c.id === id) || null,
+    revision: (id) => state.revisiones.find((r) => r.id === id) || null,
+    // Ausencia vigente de una persona en una fecha (hoy si no se dice).
+    absent: (uid, day) => { const d = day || LAP.todayIso(); return state.ausencias.find((a) => a.user === uid && a.desde <= d && a.hasta >= d) || null; },
+    subtasks: (taskId) => state.tareas.filter((t) => t.parent === taskId),
+    fromOrigin: (origen) => state.tareas.filter((t) => t.origen === origen),
     roleLabel: (u) => (!u ? "" : u.role === "maestro" ? "Perfil maestro" : u.role === "director" ? "Director creativo" : "Integrante"),
     isMember: (p) => !!p && !!state.me && (p.members || []).includes(state.me.id),
     online: (u) => !!u && ((state.me && u.id === state.me.id) || (!!u.lastSeen && Date.now() - Date.parse(u.lastSeen) < ONLINE_MS)),
@@ -469,6 +486,30 @@
     },
     reconnect() { if (pb) loadAll().catch(fail); },
 
+    // ---- herramientas: guardado genérico (colección del servidor, id o null para crear, datos) ----
+    async save(col, id, data) {
+      return run(async () => {
+        const rec = id ? await pb.collection(col).update(id, data) : await pb.collection(col).create(data);
+        upsert(COLS[col], rec); emit();
+        return rec;
+      });
+    },
+    async remove(col, id) {
+      return run(async () => { await pb.collection(col).delete(id); remove(COLS[col], id); emit(); return true; });
+    },
+    // Crea varias tareas de una vez (compromisos de un acta, pendientes de obra, plantillas).
+    async createTasks(list) {
+      return run(async () => {
+        const out = [];
+        for (const t of list) {
+          const rec = await pb.collection("tareas").create({ status: "pendiente", progress: 0, updatedBy: state.me.id, ...t });
+          upsert("tareas", rec); out.push(rec);
+        }
+        emit();
+        return out;
+      });
+    },
+
     // ---- datos de ejemplo: solo a pedido, marcados, y se borran de un golpe ----
     async loadSample() {
       return run(async () => {
@@ -515,8 +556,25 @@
     },
   };
 
+  /* ---------- modo claro u oscuro ---------- */
+  const THEME_KEY = "lap-cerebro-tema";
+  const THEMES = [{ id: "system", label: "Sistema" }, { id: "light", label: "Claro" }, { id: "dark", label: "Oscuro" }];
+  function applyTheme(mode) {
+    const root = document.documentElement;
+    if (mode === "light" || mode === "dark") root.setAttribute("data-theme", mode); else root.removeAttribute("data-theme");
+    if (desk && desk.setTheme) desk.setTheme(mode);
+  }
+  function setTheme(mode) {
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* bloqueado */ }
+    applyTheme(mode);
+    set({ theme: mode });
+  }
+  state.theme = (() => { try { return localStorage.getItem(THEME_KEY) || "system"; } catch (e) { return "system"; } })();
+  applyTheme(state.theme);
+
   /* ---------- rutas ---------- */
-  const VIEWS = ["inicio", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo"];
+  const VIEWS = ["inicio", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
+    "solicitudes", "directorio", "materiales", "horas", "ausencias", "finanzas", "revision"];
   function parseRoute() {
     const [name, id, tab] = location.hash.replace(/^#/, "").split("/");
     if (name === "tarea" && id) {
@@ -542,5 +600,5 @@
     desk.updateStatus().then((v) => { if (v) set({ update: v }); }).catch(() => {});
   }
 
-  Object.assign(L, { state, useStore, set, toast, q, act, auth, boot, go, openSheet, closeSheet, parseRoute, desk, errMsg });
+  Object.assign(L, { state, useStore, set, toast, q, act, auth, boot, go, openSheet, closeSheet, parseRoute, desk, errMsg, THEMES, setTheme });
 })();

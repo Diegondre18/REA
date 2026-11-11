@@ -319,6 +319,39 @@ function recordatorios(app) {
     if (!titulo) continue;
     for (const u of arr(t.getStringSlice("assignees"))) notificar(app, u, "vence", titulo, "", "#tarea/" + t.id);
   }
+  recordatoriosTramites(app);
+}
+
+// Licencias: observaciones por responder en los próximos 3 días y licencias que vencen en 30 días.
+function recordatoriosTramites(app) {
+  const h = hoy(0);
+  const tramites = arr(app.findRecordsByFilter("tramites", "estado = 'observaciones' && fechaLimite != '' && fechaLimite <= {:l}", "fechaLimite", 500, 0, { l: hoy(3) }));
+  for (const t of tramites) {
+    const p = app.findRecordById("proyectos", t.getString("project"));
+    const vencido = t.getString("fechaLimite") < h;
+    const titulo = (vencido ? "Venció el plazo de observaciones: " : "Responder observaciones antes del " + fechaCorta(t.getString("fechaLimite")) + ": ") + p.getString("name");
+    const destino = {};
+    for (const u of [t.getString("responsable"), p.getString("leader")]) if (u) destino[u] = true;
+    for (const u in destino) notificar(app, u, "tramite", titulo, t.getString("entidad") + (t.getString("radicado") ? " · radicado " + t.getString("radicado") : ""), "#proyecto/" + p.id + "/licencias");
+  }
+  // Una sola vez: exactamente a 30 días del vencimiento de la licencia.
+  const vencen = arr(app.findRecordsByFilter("tramites", "estado = 'aprobado' && vigenciaHasta = {:d}", "", 500, 0, { d: hoy(30) }));
+  for (const t of vencen) {
+    const p = app.findRecordById("proyectos", t.getString("project"));
+    const destino = {};
+    for (const u of [t.getString("responsable"), p.getString("leader")]) if (u) destino[u] = true;
+    for (const u in destino) notificar(app, u, "tramite", "La licencia de " + p.getString("name") + " vence en 30 días", "Vigente hasta el " + fechaCorta(t.getString("vigenciaHasta")) + ".", "#proyecto/" + p.id + "/licencias");
+  }
+}
+
+function avisarRevision(e, nueva) {
+  const r = e.record;
+  const t = e.app.findRecordById("tareas", r.getString("task"));
+  const yo = e.auth ? e.auth.id : "";
+  const titulo = nueva ? "Revisión nueva: " + r.getString("titulo") : "Comentarios en " + r.getString("titulo");
+  for (const u of arr(t.getStringSlice("assignees"))) {
+    if (u !== yo) notificar(e.app, u, "revision", titulo, primerNombre(e.auth) + " " + (nueva ? "pidió revisar esta imagen." : "dejó comentarios."), "#revision/" + r.id);
+  }
 }
 
 function limpiar(app) {
@@ -330,7 +363,7 @@ function limpiar(app) {
 }
 
 module.exports = {
-  validarPersona, avisarVisto, recordatorios, limpiar,
+  avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
   DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,
 };

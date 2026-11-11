@@ -53,6 +53,64 @@ window.LAP = {};
   const ENGINES = ["V-Ray", "Corona", "D5 Render", "Lumion", "Enscape", "Twinmotion", "Unreal Engine", "Blender Cycles"];
   const RESOLUTIONS = ["1920×1080", "3840×2160", "5000×2813", "6000×4000", "7680×4320"];
 
+  /* ---------- herramientas del estudio ---------- */
+  const list = (pairs) => pairs.map(([id, label]) => ({ id, label }));
+  const byId = (arr) => Object.fromEntries(arr.map((x) => [x.id, x]));
+  const TRAMITE_TIPOS = list([["construccion", "Licencia de construcción"], ["modificacion", "Modificación de licencia"], ["reconocimiento", "Reconocimiento"], ["demolicion", "Demolición"], ["propiedad_horizontal", "Propiedad horizontal"], ["urbanismo", "Urbanismo"], ["otro", "Otro trámite"]]);
+  const TRAMITE_ESTADOS = list([["preparacion", "En preparación"], ["radicado", "Radicado"], ["observaciones", "Con observaciones"], ["respuesta", "Respuesta enviada"], ["aprobado", "Aprobado"], ["negado", "Negado"], ["desistido", "Desistido"]]);
+  const DISCIPLINAS = list([["arquitectura", "Arquitectura"], ["estructura", "Estructura"], ["hidrosanitario", "Hidrosanitario"], ["electrico", "Eléctrico"], ["interiores", "Interiores"], ["paisajismo", "Paisajismo"], ["otro", "Otra"]]);
+  const PLANO_ESTADOS = list([["en_proceso", "En proceso"], ["para_revision", "Para revisión"], ["aprobado", "Aprobado"], ["emitido", "Emitido"]]);
+  const ENVIO_MEDIOS = list([["correo", "Correo"], ["dropbox", "Dropbox"], ["impreso", "Impreso"], ["otro", "Otro"]]);
+  const ENVIO_PROPOSITOS = list([["aprobacion", "Para aprobación"], ["informacion", "Para información"], ["construccion", "Para construcción"], ["licencia", "Para licencia"], ["cotizacion", "Para cotización"]]);
+  const CONTACTO_TIPOS = list([["cliente", "Cliente"], ["proveedor", "Proveedor"], ["contratista", "Contratista"], ["consultor", "Consultor"], ["entidad", "Entidad"], ["otro", "Otro"]]);
+  const MATERIAL_CATS = list([["piso", "Pisos"], ["muro", "Muros"], ["cielo", "Cielos"], ["carpinteria", "Carpintería"], ["mobiliario", "Mobiliario"], ["iluminacion", "Iluminación"], ["sanitario", "Baños"], ["cocina", "Cocina"], ["fachada", "Fachada"], ["otro", "Otros"]]);
+  const AUSENCIA_TIPOS = list([["vacaciones", "Vacaciones"], ["incapacidad", "Incapacidad"], ["permiso", "Permiso"], ["fuera", "Fuera de la oficina"], ["otro", "Otro"]]);
+  const SOLICITUD_TIPOS = list([["render", "Render"], ["modelado", "Modelado 3D"], ["planos", "Planos"], ["impresion", "Impresión o plotter"], ["compra", "Compra"], ["cotizacion", "Cotización"], ["otro", "Otra"]]);
+  const SOLICITUD_ESTADOS = list([["nueva", "Nueva"], ["aceptada", "Aceptada"], ["lista", "Lista"], ["rechazada", "No se tomó"]]);
+  const COBRO_ESTADOS = list([["pendiente", "Pendiente"], ["facturado", "Facturado"], ["pagado", "Pagado"]]);
+  const SALUD = list([["verde", "En orden"], ["amarillo", "En riesgo"], ["rojo", "Atrasado"]]);
+  const money = (n) => (Number(n) || 0).toLocaleString("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
+  const hours = (n) => { const v = Math.round((Number(n) || 0) * 4) / 4; return (v % 1 ? v.toLocaleString("es-CO") : String(v)) + " h"; };
+
+  // Plantillas de plan de entregables por fase. Días contados desde la fecha de inicio que se elija.
+  const PLAN_TEMPLATES = [
+    { id: "anteproyecto", label: "Anteproyecto", items: [
+      [0, 3, "Visita, levantamiento y programa de necesidades", "arquitectura", "diseno"],
+      [3, 10, "Esquema básico: plantas y zonificación", "arquitectura", "diseno"],
+      [8, 14, "Modelo volumétrico 3D", "visualizacion", "modelado"],
+      [10, 14, "Concepto de interiores y moodboard", "interior", "presentacion"],
+      [13, 16, "Vistas del anteproyecto", "visualizacion", "render"],
+      [15, 17, "Presentación del anteproyecto al cliente", "arquitectura", "presentacion"],
+    ] },
+    { id: "basico", label: "Proyecto básico", items: [
+      [0, 15, "Plantas, cortes y fachadas", "arquitectura", "planos"],
+      [5, 15, "Modelo 3D completo", "visualizacion", "modelado"],
+      [5, 18, "Propuesta de interiores y acabados", "interior", "diseno"],
+      [14, 20, "Renders de presentación", "visualizacion", "render"],
+      [18, 21, "Presentación del proyecto básico", "arquitectura", "presentacion"],
+    ] },
+    { id: "licencia", label: "Licencia", items: [
+      [0, 12, "Planos arquitectónicos para licencia", "arquitectura", "planos"],
+      [0, 10, "Coordinación con estructura y redes", "arquitectura", "gestion"],
+      [5, 12, "Formularios, memorias y documentos", "administracion", "documento"],
+      [13, 13, "Radicación en curaduría", "administracion", "gestion"],
+    ] },
+    { id: "ejecucion", label: "Proyecto de ejecución", items: [
+      [0, 25, "Planos constructivos", "arquitectura", "planos"],
+      [10, 30, "Detalles constructivos", "arquitectura", "planos"],
+      [10, 25, "Especificaciones de acabados y mobiliario", "interior", "documento"],
+      [20, 30, "Cantidades y presupuesto", "administracion", "gestion"],
+      [28, 30, "Entrega del proyecto de ejecución", "arquitectura", "presentacion"],
+    ] },
+    { id: "obra", label: "Obra (primer mes)", items: [
+      [0, 0, "Visita de inicio de obra", "arquitectura", "obra"],
+      [7, 7, "Visita de obra semanal", "arquitectura", "obra"],
+      [14, 14, "Visita de obra semanal", "arquitectura", "obra"],
+      [21, 21, "Visita de obra semanal", "arquitectura", "obra"],
+      [28, 28, "Informe mensual de obra", "arquitectura", "documento"],
+    ] },
+  ];
+
   /* ---------- fechas (todas como "AAAA-MM-DD" en hora local) ---------- */
   const DAY = 864e5;
   const pad = (n) => String(n).padStart(2, "0");
@@ -133,5 +191,7 @@ window.LAP = {};
     AREAS, AREA, TEAMS, STATUSES, STATUS, STAGES, STAGE, KINDS, KIND, KIND_AREA, PHASES, PHASE, EVENT_KINDS, EVENT_KIND, PLAN_STATUS, ENGINES, RESOLUTIONS,
     iso, parse, today, todayIso, addDays, diff, monday, isoWeek, MES, MES_L, DIAS, DIAS_C, INI, fmtShort, fmtDay, fmtLong, cap, relDay, relTime,
     dueClass, plural, initials, first, key, byDue, cx, greeting, eventStamp, calendarLink,
+    byId, TRAMITE_TIPOS, TRAMITE_ESTADOS, DISCIPLINAS, PLANO_ESTADOS, ENVIO_MEDIOS, ENVIO_PROPOSITOS, CONTACTO_TIPOS, MATERIAL_CATS,
+    AUSENCIA_TIPOS, SOLICITUD_TIPOS, SOLICITUD_ESTADOS, COBRO_ESTADOS, SALUD, money, hours, PLAN_TEMPLATES,
   });
 })();

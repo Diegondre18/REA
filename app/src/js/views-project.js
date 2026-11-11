@@ -22,7 +22,7 @@
     return html`
       <div class="row" tabindex="0" onClick=${() => L.go("#proyecto/" + p.id)} onKeyDown=${(e) => { if (e.key === "Enter") L.go("#proyecto/" + p.id); }}>
         <${Icon} name="folder" />
-        <div class="row-main"><div class="row-title">${p.name}</div><div class="row-meta"><span>${[p.code, p.client, L.PHASE[p.phase] && L.PHASE[p.phase].label].filter(Boolean).join(" · ")}</span></div></div>
+        <div class="row-main"><div class="row-title">${p.name} <${L.HealthDot} p=${p} /></div><div class="row-meta"><span>${[p.code, p.client, L.PHASE[p.phase] && L.PHASE[p.phase].label].filter(Boolean).join(" · ")}</span></div></div>
         <div class="row-side"><div class="inline"><${Faces} ids=${p.members || []} max=${4} /></div>
           <div class="inline">${pr.total > 0 && html`<span class="bar-track" data-s="en_curso"><i style=${{ width: (pr.done / pr.total) * 100 + "%" }}></i></span>`}<span class="due">${next ? "Cliente: " + L.relDay(next.date).toLowerCase() : pr.total ? `${pr.done}/${pr.total}` : ""}</span></div></div>
       </div>`;
@@ -43,7 +43,7 @@
         const plan = planLabel(p.id);
         return html`
           <a class="glass pcard" key=${p.id} href=${"#proyecto/" + p.id}>
-            <div class="pcard-top"><span class="mono">${p.code || "—"}</span>${p.sample && html`<span class="chip plain sample">Ejemplo</span>`}${p.status !== "activo" && html`<span class="tag">${p.status === "pausado" ? "En pausa" : "Cerrado"}</span>`}</div>
+            <div class="pcard-top"><span class="mono">${p.code || "—"}</span><${L.HealthDot} p=${p} />${p.sample && html`<span class="chip plain sample">Ejemplo</span>`}${p.status !== "activo" && html`<span class="tag">${p.status === "pausado" ? "En pausa" : "Cerrado"}</span>`}</div>
             <h3>${p.name}</h3>
             <p class="muted">${[p.client, L.PHASE[p.phase] && L.PHASE[p.phase].label].filter(Boolean).join(" · ") || "Sin cliente"}</p>
             <div class="pcard-areas">${(p.areas || []).map((a) => html`<${AreaTag} key=${a} id=${a} />`)}</div>
@@ -163,7 +163,8 @@
                   <div class="plan-who">${(it.assignees || []).length ? html`<${Faces} ids=${it.assignees} max=${4} /><span class="muted">${it.assignees.map((a) => L.first(q.name(a))).join(", ")}</span>` : html`<span class="tag warn">Sin responsable</span>`}</div>
                 </div>`)}
             </div>`)}
-          ${!items.length && editing !== "new" && html`<p class="note">El plan está vacío. Agrega el primer entregable.</p>`}
+          ${!items.length && editable && html`<${L.PlanTemplate} plan=${plan} project=${project} />`}
+          ${!items.length && !editable && editing !== "new" && html`<p class="note">El plan está vacío.</p>`}
           ${editable && (editing === "new" ? html`<${ItemEditor} plan=${plan} project=${project} onDone=${() => setEditing("")} />` : html`<button type="button" class="btn add" onClick=${() => setEditing("new")}><${Icon} name="plus" size=${12} /> Agregar entregable</button>`)}
         </article>
 
@@ -204,6 +205,7 @@
           ${L.STATUSES.map((st) => html`<div class=${L.cx("metric", !count(st.id) && "zero")} role="listitem" key=${st.id}><b>${count(st.id)}</b><span>${st.label}</span></div>`)}
           <div class=${L.cx("metric", open.some((t) => L.dueClass(t) === "late") ? "alert" : "zero")} role="listitem"><b>${open.filter((t) => L.dueClass(t) === "late").length}</b><span>Atrasadas</span></div>
         </div>
+        <${Panel} title="¿Cómo va el proyecto?" cls="span-12">${html`<${L.Health} project=${project} />`}<//>
         <${Panel} title="Próxima reunión con el cliente" cls="span-6" action=${next ? html`<a class="link" href=${"#evento/" + next.id}>Abrir</a>` : html`<button type="button" class="btn sm" onClick=${() => L.openSheet("event", null, { kind: "cliente", project: project.id })}>Agendar</button>`}>
           ${next ? html`<div class="next-meeting"><div class="count"><b>${Math.max(0, L.diff(L.today(), L.parse(next.date)))}</b><span>días</span></div><div><div class="row-title">${next.title}</div><div class="row-meta">${L.cap(L.fmtLong(next.date))}${next.time ? " · " + next.time : ""}</div>
             <div class="row-meta">${forNext.length ? `${forNext.filter((t) => t.status === "terminado").length} de ${forNext.length} contenidos listos` : "Sin contenido asignado todavía"}</div></div></div>`
@@ -238,6 +240,10 @@
     const tabs = [
       { id: "resumen", label: "Resumen" }, { id: "plan", label: "Plan", count: open ? "•" : null }, { id: "tareas", label: "Tareas", count: tasks.filter((t) => t.status !== "terminado").length || null },
       { id: "cronograma", label: "Cronograma" }, { id: "reuniones", label: "Reuniones", count: events.filter((e) => e.date >= L.todayIso()).length || null }, { id: "archivo", label: "Archivo", count: tasks.filter((t) => t.status === "terminado").length || null },
+      { id: "licencias", label: "Licencias", count: s.tramites.filter((x) => x.project === id && x.estado === "observaciones").length || null },
+      { id: "planos", label: "Planos", count: s.planos.filter((x) => x.project === id).length || null },
+      { id: "obra", label: "Obra", count: s.visitas.filter((x) => x.project === id).length || null },
+      ...(q.canSeeMoney(p) ? [{ id: "finanzas", label: "Finanzas" }] : []),
     ];
     const groups = () => {
       const m = new Map();
@@ -267,7 +273,11 @@
           <${Panel} title="Próximas" cls="span-12"><div class="rows">${events.filter((e) => e.date >= t).length ? events.filter((e) => e.date >= t).map((e) => html`<${EventRow} key=${e.id} ev=${e} showProject=${false} />`) : html`<p class="note">Nada agendado. Registra la reunión con el cliente y los comités internos del proyecto.</p>`}</div><//>
           ${events.some((e) => e.date < t) && html`<${Panel} title="Anteriores" cls="span-12"><div class="rows">${events.filter((e) => e.date < t).reverse().map((e) => html`<${EventRow} key=${e.id} ev=${e} showProject=${false} />`)}</div><//>`}
         </div>`}
-      ${cur === "archivo" && html`<${Archive} tasks=${tasks} showProject=${false} />`}`;
+      ${cur === "archivo" && html`<${Archive} tasks=${tasks} showProject=${false} />`}
+      ${cur === "licencias" && html`<${L.LicenciasTab} project=${p} />`}
+      ${cur === "planos" && html`<${L.PlanosTab} project=${p} />`}
+      ${cur === "obra" && html`<${L.ObraTab} project=${p} />`}
+      ${cur === "finanzas" && (q.canSeeMoney(p) ? html`<${L.FinanzasTab} project=${p} />` : html`<div class="glass"><${Empty} small title="Solo para quien lidera, Dirección y Administración" /></div>`)}`;
   }
 
   Object.assign(L, { ProjectRow, Proyectos, Proyecto, PlanTab });

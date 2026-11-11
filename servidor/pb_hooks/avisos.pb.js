@@ -122,3 +122,65 @@ onRecordUpdateRequest((e) => {
   e.next();
   try { require(`${__hooks}/lib.js`).avisarVisto(e.app, e.record, e.auth); } catch (err) { console.log("aviso visto:", err); }
 }, "vistos");
+
+// Solicitudes entre áreas: avisa al área que la recibe y, cuando cambia de estado, a quien la pidió.
+onRecordCreateRequest((e) => {
+  e.next();
+  try {
+    const lib = require(`${__hooks}/lib.js`);
+    const r = e.record;
+    const area = r.getString("area");
+    const gente = lib.arr(e.app.findRecordsByFilter("users", "areas ~ {:a}", "", 200, 0, { a: area }));
+    const urgente = r.getString("prioridad") === "urgente" ? "Urgente: " : "";
+    for (const u of gente) {
+      if (u.id === r.getString("solicitante")) continue;
+      lib.notificar(e.app, u.id, "solicitud", urgente + "Nueva solicitud: " + r.getString("titulo"),
+        lib.primerNombre(e.auth) + " la pidió" + (r.getString("fechaNecesaria") ? " para el " + lib.fechaCorta(r.getString("fechaNecesaria")) : "") + ".", "#solicitudes");
+    }
+  } catch (err) { console.log("aviso solicitud:", err); }
+}, "solicitudes");
+
+onRecordUpdateRequest((e) => {
+  const antes = e.record.original().getString("estado");
+  e.next();
+  try {
+    const lib = require(`${__hooks}/lib.js`);
+    const r = e.record;
+    const estado = r.getString("estado");
+    const quien = r.getString("solicitante");
+    if (estado === antes || !quien || (e.auth && quien === e.auth.id)) return;
+    const textos = { aceptada: "aceptó", lista: "terminó", rechazada: "no pudo tomar" };
+    if (!textos[estado]) return;
+    lib.notificar(e.app, quien, "solicitud", lib.primerNombre(e.auth) + " " + textos[estado] + " tu solicitud: " + r.getString("titulo"), r.getString("respuesta"), "#solicitudes");
+  } catch (err) { console.log("aviso solicitud:", err); }
+}, "solicitudes");
+
+// Licencias y curaduría: cuando cambia el estado, avisa a quien responde por el trámite y a quien lidera el proyecto.
+onRecordUpdateRequest((e) => {
+  const antes = e.record.original().getString("estado");
+  e.next();
+  try {
+    const lib = require(`${__hooks}/lib.js`);
+    const r = e.record;
+    if (r.getString("estado") === antes) return;
+    const p = e.app.findRecordById("proyectos", r.getString("project"));
+    const NOMBRES = { preparacion: "En preparación", radicado: "Radicado", observaciones: "Con observaciones", respuesta: "Respuesta enviada", aprobado: "Aprobado", negado: "Negado", desistido: "Desistido" };
+    const destino = {};
+    for (const u of [r.getString("responsable"), p.getString("leader")]) if (u && (!e.auth || u !== e.auth.id)) destino[u] = true;
+    for (const u in destino) {
+      lib.notificar(e.app, u, "tramite", "Licencia de " + p.getString("name") + ": " + (NOMBRES[r.getString("estado")] || r.getString("estado")),
+        r.getString("estado") === "observaciones" && r.getString("fechaLimite") ? "Hay que responder antes del " + lib.fechaCorta(r.getString("fechaLimite")) + "." : "", "#proyecto/" + p.id + "/licencias");
+    }
+  } catch (err) { console.log("aviso trámite:", err); }
+}, "tramites");
+
+// Revisión de imágenes: avisa a los responsables de la tarea cuando alguien abre una revisión o deja comentarios.
+onRecordCreateRequest((e) => {
+  e.next();
+  try { require(`${__hooks}/lib.js`).avisarRevision(e, true); } catch (err) { console.log("aviso revisión:", err); }
+}, "revisiones");
+onRecordUpdateRequest((e) => {
+  const antes = JSON.stringify(e.record.original().get("pins") || []).length;
+  e.next();
+  try { if (JSON.stringify(e.record.get("pins") || []).length > antes) require(`${__hooks}/lib.js`).avisarRevision(e, false); } catch (err) { console.log("aviso revisión:", err); }
+}, "revisiones");
