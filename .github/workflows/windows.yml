@@ -44,6 +44,14 @@ jobs:
           Expand-Archive pb.zip -DestinationPath pbtmp
           Copy-Item pbtmp/pocketbase.exe server-bundle/pocketbase.exe
       - run: npx electron-builder --win nsis --x64 --publish never
+      - name: Comprobar que el servidor va dentro de la app
+        shell: pwsh
+        run: |
+          $dir = "dist/win-unpacked/resources/servidor"
+          foreach ($f in @("pocketbase.exe", "pb_hooks/lib.js", "pb_hooks/maestro.pb.js", "pb_migrations/1763100000_copias.js")) {
+            if (-not (Test-Path "$dir/$f")) { Write-Error "Falta $f dentro de la app"; exit 1 }
+          }
+          & "$dir/pocketbase.exe" --version
       - uses: actions/upload-artifact@v4
         with:
           name: LAP-Cerebro-Setup
