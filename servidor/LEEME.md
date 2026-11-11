@@ -49,7 +49,7 @@ Es una cuenta de soporte por si algo falla: puede cambiar roles (incluida la Dir
 
 Para crearlo, o para recuperarlo si se olvida la contraseña, en el PC del servidor haz doble clic en `crear-perfil-maestro.bat` y escribe correo, contraseña (mínimo 10 caracteres) y nombre. Después se entra con ese correo desde la app, como cualquier persona. Solo lo puede crear quien tiene acceso al PC o NAS del servidor.
 
-En Docker: `docker exec -it lap-cerebro /pb/pocketbase maestro correo contraseña "Soporte LAP" --dir=/pb/pb_data --hooksDir=/pb/pb_hooks`
+En el NAS: ver [`nas/LEEME.md`](nas/LEEME.md), paso 3.
 
 ## Actualizar un servidor aparte
 
