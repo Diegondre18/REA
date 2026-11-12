@@ -22,7 +22,7 @@
     ctx.fillStyle = shade(cfg.ropa, -0.75); ctx.fillRect(0, 0, cv.width, cv.height);
     // Cara y hombros, más grandes en la foto de perfil.
     const k = 10.5, size = cv.width;
-    drawFigure(ctx, (size - 12 * k) / 2, 3, cfg, "front", 0, true, false, k);
+    drawFigure(ctx, (size - 12 * k) / 2, 3, cfg, "frontal", 0, true, false, k);
     const url = cv.toDataURL("image/png");
     faces.set(key, url);
     return url;
