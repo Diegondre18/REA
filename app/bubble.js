@@ -8,7 +8,7 @@ const { spawn } = require("child_process");
 
 const W = 380, H = 440; // ventana transparente; el muñeco ocupa una esquina
 const D = { w: 84, h: 120 }; // caja del muñeco dentro de la ventana
-const MARGIN = 6;
+const MARGIN = 0; // pegada al borde: el muñeco se asoma desde ahí
 
 function createBubble({ app, onAction }) {
   const file = () => path.join(app.getPath("userData"), "burbuja.json");

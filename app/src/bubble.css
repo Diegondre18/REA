@@ -63,3 +63,7 @@ body { font: 13px/1.35 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-ser
 .card.fiesta { border-left-color: #e8c100; }
 .card.shake { animation: shake 0.5s ease; }
 @keyframes shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+
+/* Se asoma por el borde: sin sombra de piso. */
+#doll::before { display: none; }
+#count { top: 2px; right: auto; left: 6px; }

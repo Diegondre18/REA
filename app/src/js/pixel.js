@@ -20,8 +20,8 @@
     const ctx = cv.getContext("2d");
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = shade(cfg.ropa, -0.75); ctx.fillRect(0, 0, cv.width, cv.height);
-    ctx.scale(scale, scale);
-    drawFigure(ctx, 1, 1, cfg, "front", 0, true);
+    // Cara y hombros, más grandes en la foto de perfil.
+    drawFigure(ctx, -1 * scale, 1.5 * scale, cfg, "front", 0, true, false, scale * 1.35, 3);
     const url = cv.toDataURL("image/png");
     faces.set(key, url);
     return url;
@@ -37,9 +37,8 @@
         const ctx = cv.getContext("2d");
         ctx.imageSmoothingEnabled = false;
         ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
-        ctx.setTransform(6, 0, 0, 6, 0, 0);
-        ctx.fillStyle = "rgba(0,0,0,0.16)"; ctx.fillRect(3, 23, 10, 1);
-        drawFigure(ctx, 2, 2, cfg, view, walk ? frame : 0);
+        ctx.fillStyle = "rgba(0,0,0,0.16)"; ctx.fillRect(3 * 6, 23 * 6, 10 * 6, 6);
+        drawFigure(ctx, 2 * 6, 2 * 6, cfg, view, walk ? frame : 0, false, false, 6, 2);
       };
       paint();
       if (walk) id = setInterval(() => { frame = (frame + 1) % 4; paint(); }, 220);

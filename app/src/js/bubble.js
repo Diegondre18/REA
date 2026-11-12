@@ -22,18 +22,40 @@
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.imageSmoothingEnabled = false;
     if (!state || !state.me) return;
-    const k = Math.max(3, Math.round(3.6 * dpr)), ow = Math.max(1, Math.round(k * 0.35));
+    // Se asoma por el borde de la pantalla: solo la cabeza y las manos agarrando el borde.
+    const k = Math.max(5, Math.round(8 * dpr)), u = k / 2, ow = Math.max(1, Math.round(k * 0.28));
+    const W = cv.width, H = cv.height;
     const pres = state.presencia || "disponible";
-    const cfg = PX.withExtra(PX.config(state.me), pres, state.premios, t);
-    // Salta al llegar un aviso; si no, respira de vez en cuando.
-    let lift = 0, frame = 0, flip = false;
-    if (hop > 0) {
-      const p = (t % 400) / 400;
-      lift = Math.round(Math.sin(p * Math.PI) * 4);
-      frame = p < 0.5 ? 1 : 3; flip = Math.floor(t / 400) % 2 === 1;
-    } else if (Math.floor(t / 3000) % 3 === 0 && (t % 3000) < 500) lift = 1;
-    const x = Math.round((w * dpr - 12 * k) / 2), y = Math.round(h * dpr - 22 * k - 14 * dpr) - lift * Math.round(dpr);
-    PX.drawFigure(ctx, x, y, cfg, "front", frame, false, flip, k, ow);
+    const side = place.side || "right";
+    const blink = (t % 4600) < 140;
+    const cfg = { ...PX.withExtra(PX.config(state.me), pres, state.premios, t), pose: "", blink, look: side === "top" || side === "bottom" ? 0 : -1 };
+    // Cuánto se asoma: al llegar un aviso sale más (y vuelve); en reposo se mece apenas.
+    let peek = 0.64 + Math.sin(t / 1400) * 0.015;
+    if (hop > 0) peek = 0.64 + Math.abs(Math.sin(((hop - t) / 1600) * Math.PI * 2)) * 0.26;
+    const skin = cfg.piel, skinS = PX.shade(cfg.piel, 0.18);
+    const hand = (x, y, w2, h2, vertical) => {
+      const X = Math.round(x), Y = Math.round(y), WW = Math.round(w2), HH = Math.round(h2);
+      ctx.fillStyle = PX.OUT; ctx.fillRect(X - ow, Y - ow, WW + 2 * ow, HH + 2 * ow);
+      ctx.fillStyle = skin; ctx.fillRect(X, Y, WW, HH);
+      ctx.fillStyle = skinS;
+      if (vertical) { ctx.fillRect(X + Math.round(WW / 3), Y, Math.max(1, Math.round(u / 3)), Math.round(HH * 0.7)); ctx.fillRect(X + Math.round((2 * WW) / 3), Y, Math.max(1, Math.round(u / 3)), Math.round(HH * 0.7)); }
+      else { ctx.fillRect(X, Y + Math.round(HH / 3), Math.round(WW * 0.7), Math.max(1, Math.round(u / 3))); ctx.fillRect(X, Y + Math.round((2 * HH) / 3), Math.round(WW * 0.7), Math.max(1, Math.round(u / 3))); }
+    };
+    ctx.save();
+    if (side === "left" || side === "right") {
+      if (side === "left") { ctx.translate(W, 0); ctx.scale(-1, 1); }
+      const x0 = W - peek * 20 * u - 2 * u, y0 = Math.round(H * 0.4 - 8 * u);
+      PX.drawHead(ctx, Math.round(x0), y0, cfg, k, ow);
+      hand(W - 3.2 * u, y0 - 3.5 * u, 3.4 * u, 4.2 * u, false);
+      hand(W - 3.2 * u, y0 + 15.5 * u, 3.4 * u, 4.2 * u, false);
+    } else {
+      if (side === "top") { ctx.translate(W, H); ctx.rotate(Math.PI); }
+      const x0 = Math.round((W - 24 * u) / 2), y0 = Math.round(H - Math.min(1, peek + 0.18) * 16 * u);
+      PX.drawHead(ctx, x0, y0, cfg, k, ow);
+      hand(x0 + 0.5 * u, H - 3.2 * u, 4.2 * u, 3.4 * u, true);
+      hand(x0 + 19.3 * u, H - 3.2 * u, 4.2 * u, 3.4 * u, true);
+    }
+    ctx.restore();
     // Vaso de agua que se llena durante el día.
     if (state.agua) {
       const u = Math.max(2, Math.round(2 * dpr)), gx = Math.round(4 * dpr), gh = 9 * u, gw = 6 * u, gy = Math.round(h * dpr - 18 * dpr) - gh;
