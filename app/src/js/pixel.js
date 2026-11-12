@@ -38,8 +38,10 @@
         const ctx = cv.getContext("2d");
         ctx.imageSmoothingEnabled = false;
         ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
-        ctx.fillStyle = "rgba(0,0,0,0.16)"; ctx.fillRect(3 * 6, 23 * 6, 10 * 6, 6);
-        drawFigure(ctx, 2 * 6, 2 * 6, cfg, view, walk ? frame : 0, false, false, 6, 2);
+        // k = 112/21: cada pixel del dibujo grande ocupa justo un pixel del lienzo (nítido, sin desenfoque).
+        const k = 112 / 21;
+        ctx.fillStyle = "rgba(0,0,0,0.16)"; ctx.fillRect(24, 132, 48, 6);
+        drawFigure(ctx, (cv.width - 12 * k) / 2, 24, cfg, view, walk ? frame : 0, false, false, k, 2);
       };
       paint();
       if (walk) id = setInterval(() => { frame = (frame + 1) % 4; paint(); }, 220);

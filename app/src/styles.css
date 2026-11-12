@@ -848,7 +848,7 @@ a.fin-row:hover { background: var(--lo); border-radius: 8px; }
 .o-zone { font-size: clamp(9px, calc(var(--z, 3) * 3px), 13px); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #5d5158; background: rgba(255,255,255,0.5); padding: 1px 6px; border-radius: 4px; }
 .pix-preview { image-rendering: pixelated; background: var(--lo); border-radius: 12px; }
 .pix-stage { display: flex; gap: 12px; justify-content: center; }
-.pix-mini .pix-preview { width: 40px; height: 62px; border-radius: 8px; }
+.pix-mini .pix-preview { width: 40px; height: 62px; border-radius: 8px; image-rendering: auto; }
 .swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .swatch { width: 30px; height: 30px; border-radius: 8px; background: var(--sw); border: 2px solid var(--line-strong); cursor: pointer; position: relative; padding: 0; }
 .swatch[aria-pressed="true"] { outline: 3px solid var(--blue); outline-offset: 2px; }
