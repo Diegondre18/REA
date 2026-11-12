@@ -394,6 +394,7 @@ ipcMain.on("bubble-notify", (e, n) => {
   if (n.id && win.isVisible() && !win.isMinimized() && win.isFocused()) return;
   bubble.notify(n);
 });
+ipcMain.on("show-window", (e) => { if (win && e.sender === win.webContents) showWindow(); });
 ipcMain.handle("bubble-visible", () => !!(bubble && bubble.visible()));
 ipcMain.handle("bubble-set-visible", (_e, on) => setBubbleVisible(on));
 ipcMain.handle("screen-busy", () => !!(bubble && bubble.busy()));

@@ -46,8 +46,8 @@
     }
     const narrow = cfg.genero === "mujer";
     r(narrow ? 3 : 2, 10, narrow ? 6 : 8, 2, c); r(3, 12, 6, 4, c); r(8, 11, 1, 5, cS);
-    r(2, 12 - step2, 1, 3, c); r(9, 12 - step, 1, 3, c);
-    r(2, 15 - step2, 1, 1, s); r(9, 15 - step, 1, 1, s);
+    if (cfg.pose === "estira") { r(2, 6, 1, 5, c); r(9, 6, 1, 5, c); r(2, 5, 1, 1, s); r(9, 5, 1, 1, s); }
+    else { r(2, 12 - step2, 1, 3, c); r(9, 12 - step, 1, 3, c); r(2, 15 - step2, 1, 1, s); r(9, 15 - step, 1, 1, s); }
     r(5, 9, 2, 1, sS);
     r(3, 3, 6, 6, s);
     const st = cfg.peinado;
@@ -69,6 +69,8 @@
     }
     // Accesorios según el estado: audífonos (no molestar), taza (almuerzo), libreta (reunión).
     const ex = cfg.extra;
+    // Gorra: premio del muñeco (los audífonos van por encima si está en No molestar).
+    if (cfg.gorra && ex !== "audifonos") { r(3, 1, 6, 2, "#ea0029"); r(view === "front" ? (cfg.flipCap ? 1 : 7) : 3, 3, view === "front" ? 4 : 6, 1, view === "front" ? "#b8001f" : "#ea0029"); }
     if (ex === "audifonos") { r(3, 1, 6, 1, "#2d2f36"); r(2, 2, 1, 2, "#2d2f36"); r(9, 2, 1, 2, "#2d2f36"); r(1, 4, 2, 3, "#3a3d46"); r(9, 4, 2, 3, "#3a3d46"); r(1, 5, 1, 1, "#ff5a6e"); r(10, 5, 1, 1, "#ff5a6e"); }
     else if (ex === "taza" && view === "front") { r(9, 12, 2, 3, "#f4f1ea"); r(11, 13, 1, 1, "#f4f1ea"); r(9, 12, 2, 1, "#8b5a2b"); }
     else if (ex === "libreta" && view === "front") { r(9, 12, 2, 3, "#5c7fb8"); r(9, 12, 2, 1, "#f4f1ea"); }
@@ -76,7 +78,14 @@
   }
   // Accesorio que lleva cada estado.
   const EXTRA = { no_molestar: "audifonos", almuerzo: "taza", reunion: "libreta" };
-  const withExtra = (cfg, presencia) => (EXTRA[presencia] ? { ...cfg, extra: EXTRA[presencia] } : cfg);
+  // Accesorio del estado, gorra si la ganó y, en pausa, alterna estirarse (t = tiempo en ms).
+  const withExtra = (cfg, presencia, premios, t) => {
+    const out = { ...cfg };
+    if (EXTRA[presencia]) out.extra = EXTRA[presencia];
+    if (Array.isArray(premios) && premios.includes("gorra")) out.gorra = true;
+    if (presencia === "pausa" && t !== undefined && Math.floor(t / 900) % 2 === 0) out.pose = "estira";
+    return out;
+  };
   // Dibuja con contorno de 1 pixel: primero la silueta oscura, luego los colores.
   // k = tamaño de cada pixel del muñeco; ow = grosor del contorno (más fino que el pixel = más definición).
   function drawFigure(ctx, x, y, cfg, view = "front", frame = 0, seated = false, flip = false, k = 1, ow = 1) {
@@ -100,6 +109,7 @@
     { id: "no_molestar", label: "No molestar", color: "#e5484d", hint: "Sin globitos ni sonido. Lo urgente pasa igual." },
     { id: "reunion", label: "En reunión", color: "#7c4dff", hint: "Tu muñeco va a la sala de juntas." },
     { id: "almuerzo", label: "Almuerzo", color: "#f08c00", hint: "Tu muñeco va a la cafetería." },
+    { id: "pausa", label: "En pausa", color: "#0e9aa7", hint: "Pausa activa o descanso. Sin globitos ni sonido salvo lo urgente." },
     { id: "fuera", label: "Fuera", color: "#8a8f98", hint: "No apareces en la oficina." },
   ];
   window.PIXCORE = { PRESENCIAS, GENEROS, PEINADOS, PELO, PIEL, ROPA, OUT, shade, defaults, config, parts, drawFigure, withExtra, EXTRA };

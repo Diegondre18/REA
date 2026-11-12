@@ -13,3 +13,14 @@ routerAdd("POST", "/api/lap/resumen-semana", (e) => {
   require(`${__hooks}/lib.js`).resumenSemana(e.app);
   return e.json(200, { ok: true });
 }, $apis.requireSuperuserAuth());
+
+// Cumpleaños: 8:15 a. m. en Bogotá (13:15 UTC).
+cronAdd("cumpleanos", "15 13 * * *", () => {
+  require(`${__hooks}/lib.js`).cumpleanos($app);
+});
+
+// Para probar los cumpleaños a mano (solo administrador).
+routerAdd("POST", "/api/lap/cumpleanos", (e) => {
+  require(`${__hooks}/lib.js`).cumpleanos(e.app);
+  return e.json(200, { ok: true });
+}, $apis.requireSuperuserAuth());

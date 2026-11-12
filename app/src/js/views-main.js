@@ -199,6 +199,7 @@
     const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
     const save = async () => { if (await act.saveReport(ev.id, f)) { L.toast("Avance guardado"); setOpen(false); } };
     if (!open) return html`<button type="button" class="btn sm" onClick=${() => setOpen(true)}>Editar mi avance</button>`;
+    const fromCierres = L.cierresParaComite ? L.cierresParaComite(ev.date) : null;
     return html`
       <form class="report-form" onSubmit=${(e) => { e.preventDefault(); save(); }}>
         <div class="fld"><label for="r-done">Qué hice</label><textarea id="r-done" value=${f.done} onInput=${set("done")} placeholder="Lo que avanzaste desde el último comité"></textarea></div>
@@ -206,6 +207,7 @@
           <div class="fld"><label for="r-next">Qué sigue</label><textarea id="r-next" value=${f.next} onInput=${set("next")}></textarea></div>
           <div class="fld"><label for="r-block">Qué me bloquea</label><textarea id="r-block" value=${f.blockers} onInput=${set("blockers")} placeholder="Decisiones, archivos o personas que necesitas"></textarea></div>
         </div>
+        ${fromCierres && html`<button type="button" class="btn sm" onClick=${() => setF({ ...f, done: f.done.trim() ? f.done + "\n\n" + fromCierres.done : fromCierres.done, next: f.next.trim() ? f.next : fromCierres.next })}>Traer mis ${L.plural(fromCierres.n, "cierre del día", "cierres del día")}</button>`}
         <div class="inline"><button type="submit" class="btn primary sm">Guardar mi avance</button>${mine && html`<button type="button" class="btn ghost sm" onClick=${() => setOpen(false)}>Cancelar</button>`}</div>
       </form>`;
   }

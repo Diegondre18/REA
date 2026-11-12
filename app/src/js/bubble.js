@@ -24,7 +24,7 @@
     if (!state || !state.me) return;
     const k = Math.max(3, Math.round(3.6 * dpr)), ow = Math.max(1, Math.round(k * 0.35));
     const pres = state.presencia || "disponible";
-    const cfg = PX.withExtra(PX.config(state.me), pres);
+    const cfg = PX.withExtra(PX.config(state.me), pres, state.premios, t);
     // Salta al llegar un aviso; si no, respira de vez en cuando.
     let lift = 0, frame = 0, flip = false;
     if (hop > 0) {
@@ -41,11 +41,47 @@
     if (hop > 0 || t - lastPaint > 100) {
       lastPaint = t;
       paint(t);
+      timerPill();
+      drawConfetti(t);
       if (hop > 0 && t > hop) hop = 0;
     }
     requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
+
+  // Cuenta regresiva del Pomodoro bajo el muñeco (reemplaza la etiqueta del estado).
+  function timerPill() {
+    const tm = state && state.timer;
+    if (!tm) { if (pill.dataset.timer) { pill.dataset.timer = ""; pill.classList.remove("blink"); render(); } return; }
+    pill.dataset.timer = "1";
+    pill.hidden = false;
+    pill.style.background = tm.color || "";
+    pill.classList.toggle("blink", !!tm.blink);
+    const left = tm.endsAt ? Math.max(0, Math.round((tm.endsAt - Date.now()) / 1000)) : -1;
+    const txt = left >= 0 ? `${tm.label} ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : tm.label;
+    if (pill.textContent !== txt) pill.textContent = txt;
+  }
+
+  /* ---------- confeti (celebraciones) ---------- */
+  const fx = document.createElement("canvas");
+  fx.id = "fx"; document.body.appendChild(fx);
+  let parts = [], fxUntil = 0;
+  function burst(big) {
+    const dpr = window.devicePixelRatio || 1;
+    fx.width = place.W * dpr; fx.height = place.H * dpr;
+    const cx = (place.dx + place.D.w / 2) * dpr, cy = (place.dy + 20) * dpr;
+    const cols = ["#0057ff", "#ea0029", "#e8c100", "#1f9d55", "#7c4dff", "#f08c00"];
+    parts = Array.from({ length: big ? 90 : 45 }, () => ({ x: cx, y: cy, vx: (Math.random() - 0.5) * 7 * dpr, vy: (-Math.random() * 7 - 2) * dpr, c: cols[(Math.random() * cols.length) | 0], s: Math.round((2 + Math.random() * 3) * dpr) }));
+    fxUntil = performance.now() + 2400;
+  }
+  function drawConfetti(t) {
+    const ctx = fx.getContext("2d");
+    if (!parts.length) return;
+    ctx.clearRect(0, 0, fx.width, fx.height);
+    if (t > fxUntil) { parts = []; return; }
+    const dpr = window.devicePixelRatio || 1;
+    for (const p of parts) { p.vy += 0.28 * dpr; p.x += p.vx; p.y += p.vy; ctx.fillStyle = p.c; ctx.fillRect(Math.round(p.x), Math.round(p.y), p.s, p.s); }
+  }
 
   function render() {
     if (!state) return;
@@ -54,8 +90,7 @@
     const pres = PRES[state.presencia] || PRES.disponible;
     doll.style.setProperty("--ring", pres.color);
     doll.classList.toggle("away", state.presencia === "fuera");
-    pill.hidden = pres.id === "disponible";
-    pill.textContent = pres.label;
+    if (!state.timer) { pill.hidden = pres.id === "disponible"; pill.textContent = pres.label; pill.style.background = ""; }
     const n = state.unread || 0;
     count.hidden = !n;
     count.textContent = n > 99 ? "99+" : String(n);
@@ -102,23 +137,27 @@
   }
   function arm(c) {
     clearTimeout(c.timer);
-    if (c.n.urgente) return; // lo urgente se queda hasta que se atiende
+    if (c.n.urgente || c.n.sticky) return; // lo urgente y los descansos se quedan hasta que se atienden
     c.timer = setTimeout(() => dismiss(c), c.n.kind === "toque" ? 45000 : 10000);
   }
   function addCard(n) {
     if (cards.some((c) => c.n.id === n.id)) return;
     const el = document.createElement("div");
-    el.className = "card" + (n.urgente ? " urgente" : "");
+    el.className = "card" + (n.urgente ? " urgente" : "") + (n.kind === "bienestar" ? " bienestar" : "") + (n.kind === "fiesta" ? " fiesta" : "");
     el.setAttribute("data-hit", "");
     el.setAttribute("role", "button");
     const acts = n.kind === "toque" && !n.respuesta
-      ? `<div class="acts"><button type="button" data-r="voy">Voy</button><button type="button" data-r="10">En 10 min</button><button type="button" data-r="no">Ahora no</button></div>` : "";
+      ? `<div class="acts"><button type="button" data-r="voy">Voy</button><button type="button" data-r="10">En 10 min</button><button type="button" data-r="no">Ahora no</button></div>`
+      : n.actions && n.actions.length ? `<div class="acts">${n.actions.map((x) => `<button type="button" data-c="${esc(x.a)}">${esc(x.label)}</button>`).join("")}</div>` : "";
     el.innerHTML = `${n.urgente ? `<span class="tag">${n.kind === "toque" ? "Dirección" : "Importante"}</span>` : ""}<b>${esc(n.title)}</b>${n.body ? `<small>${esc(n.body)}</small>` : ""}${acts}<button type="button" class="x" aria-label="Cerrar">×</button>`;
     const c = { n, el, timer: 0 };
     el.addEventListener("click", (ev) => {
       const r = ev.target.closest("[data-r]");
       if (ev.target.closest(".x")) { B.action({ type: "seen", id: n.id }); dismiss(c); return; }
       if (r) { B.action({ type: "reply", id: n.id, respuesta: r.dataset.r }); dismiss(c); return; }
+      const cc = ev.target.closest("[data-c]");
+      if (cc) { B.action({ type: "custom", id: n.id, act: cc.dataset.c }); dismiss(c); return; }
+      if (n.kind === "bienestar" || n.kind === "fiesta") { if (n.kind === "fiesta") dismiss(c); return; }
       B.action({ type: "open", id: n.id, route: n.route || "" });
       dismiss(c);
     });
@@ -138,6 +177,9 @@
     const n = state.unread || 0;
     menu.innerHTML = `<div class="head"><b>${esc(state.me ? state.me.name : "")}</b><small>${esc((PRES[pres] || PRES.disponible).label)}</small></div>
       ${n ? `<button type="button" class="unread" data-a="bell">Ver ${n === 1 ? "1 aviso sin leer" : n + " avisos sin leer"}</button><div class="sep"></div>` : ""}
+      ${state.timer ? `<button type="button" data-c="pomo-stop">Terminar el Pomodoro</button>` : `<button type="button" data-c="pomo-start">Empezar Pomodoro</button>`}
+      <button type="button" data-c="pausa-ahora">Pausa activa ahora</button>
+      <div class="sep"></div>
       ${PX.PRESENCIAS.map((p) => `<button type="button" role="menuitemradio" aria-checked="${p.id === pres}" data-p="${p.id}"><i class="dot" style="background:${p.color}"></i>${p.label}</button>${p.id === pres && p.hint ? `<div class="hint">${esc(p.hint)}</div>` : ""}`).join("")}
       <div class="sep"></div>
       <button type="button" data-a="open">Abrir LAP Cerebro</button>
@@ -159,7 +201,8 @@
   function closeMenu() { menuOpen = false; menu.hidden = true; balloons.hidden = false; }
   menu.addEventListener("click", (ev) => {
     const b = ev.target.closest("button"); if (!b) return;
-    if (b.dataset.p) B.action({ type: "presence", value: b.dataset.p });
+    if (b.dataset.c) B.action({ type: "custom", act: b.dataset.c });
+    else if (b.dataset.p) B.action({ type: "presence", value: b.dataset.p });
     else if (b.dataset.a === "mute") B.action({ type: "mute", value: !state.muted });
     else if (b.dataset.a) B.action({ type: b.dataset.a });
     closeMenu();
@@ -198,6 +241,12 @@
   B.onState((s) => { state = s; render(); });
   B.onNotify((n) => {
     if (n && n.clearAll) { for (const c of [...cards]) dismiss(c); return; }
+    if (n && n.nag) { hop = performance.now() + 2000; const c = cards.find((x) => x.n.id === n.nag); if (c) { c.el.classList.remove("shake"); void c.el.offsetWidth; c.el.classList.add("shake"); } return; }
+    if (n && n.celebrate) {
+      burst(n.big); hop = performance.now() + 2400;
+      addCard({ id: "fiesta-" + Date.now(), kind: "fiesta", title: n.celebrate });
+      return;
+    }
     if (n && n.clear) { const c = cards.find((x) => x.n.id === n.clear); if (c) dismiss(c); return; }
     if (n && n.id) addCard(n);
   });

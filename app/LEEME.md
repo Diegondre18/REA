@@ -45,6 +45,22 @@ El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sist
 
 **Tocar el hombro.** Clic en otra persona en la oficina (o en su perfil) → Tocar el hombro, con un mensaje corto opcional. Le llega a su burbuja con tres botones: Voy, En 10 min, Ahora no; la respuesta vuelve a quien tocó.
 
+## Bienestar, premios y celebraciones
+
+**Pomodoro.** Desde la burbuja o el botón *Pomodoro* de arriba: bloques de 25/5, 50/10 o 90/20 (cada 4 bloques, un descanso largo). Mientras trabajas quedas en No molestar y la burbuja muestra la cuenta regresiva. **El descanso es clave:** suena aunque el sonido esté silenciado, su globito no se cierra solo e insiste cada 2 minutos; se puede pedir 5 minutos más una sola vez. En el descanso quedas "En pausa" y tu muñeco va a la cafetería.
+
+**Pausas activas.** Dirección fija las horas para todo el estudio (Tu perfil → Pausas activas de todo el estudio) y cada quien puede sumar las suyas. A esa hora (lunes a viernes) llega el aviso; si estás en una reunión, espera a que termine. "Empezar" abre seis ejercicios guiados con tu muñeco (cuello, brazos, hombros, espalda, vista 20-20-20 y caminar).
+
+**Cierre del día.** A la hora que elijas (por defecto 6 p. m.) se pregunta cuánto avanzaste en tus tareas y qué sigue mañana. Actualiza las tareas y queda guardado; en el comité, el botón *Traer mis cierres del día* llena tu avance.
+
+**Racha de bienestar (privada).** En Mi semana: pausas y descansos de la semana, meta de 8 y semanas seguidas cumpliéndola. Solo la ves tú.
+
+**Premios del muñeco.** Planta (5 entregas a tiempo), taza (10 pausas activas), trofeo de la semana (meta de bienestar), cuadro (20 entregas a tiempo), lámpara (3 semanas con la meta) y gorra (40 entregas a tiempo). Se ven en tu puesto de la oficina.
+
+**Celebraciones y cumpleaños.** Confeti en la app y en la burbuja al terminar una tarea a tiempo o cuando se aprueba un plan; en la oficina sale confeti sobre quien termina una tarea. Cada quien pone su cumpleaños (día y mes) en el perfil: ese día tiene globos en su puesto, el equipo recibe un aviso y la app lo celebra al abrir.
+
+**Pantalla de la oficina (TV).** Oficina → *Pantalla de la oficina*: la oficina en grande, la hora, las reuniones de hoy, las entregas de la semana, quién está y los cumpleaños. Para una TV fija, crea una cuenta y que Dirección le ponga el rol *Pantalla de la oficina*: abre siempre así y no aparece como persona.
+
 ## Respaldo del estudio
 
 En el PC servidor, **Tu perfil → Respaldo del estudio**: se elige una carpeta en un disco externo o en el NAS y una vez al día se guarda ahí una copia completa (las últimas 30). Hay botones para respaldar ahora, abrir la carpeta y restaurar cualquier respaldo; al restaurar, los datos de ese momento quedan guardados aparte en el PC servidor. Si el respaldo falla o lleva más de 2 días sin hacerse, Dirección recibe un aviso y ve un letrero arriba en la app.

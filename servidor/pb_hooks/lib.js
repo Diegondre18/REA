@@ -442,7 +442,7 @@ function responderToque(e) {
 // Lunes por la mañana: a cada persona, un resumen de su semana (vence, atrasado, reuniones).
 function resumenSemana(app) {
   const lunes = hoy(0), domingo = hoy(6);
-  const gente = arr(app.findRecordsByFilter("users", "role != 'maestro'", "", 500, 0));
+  const gente = arr(app.findRecordsByFilter("users", "role != 'maestro' && role != 'pantalla'", "", 500, 0));
   for (const u of gente) {
     const tareas = arr(app.findRecordsByFilter("tareas", "status != 'terminado' && due != '' && assignees ~ {:u} && due <= {:d}", "due", 500, 0, { u: u.id, d: domingo }));
     const atrasadas = tareas.filter((t) => t.getString("due") < lunes).length;
@@ -457,8 +457,18 @@ function resumenSemana(app) {
   }
 }
 
+// Cumpleaños: a las 8:15 a. m. se avisa al equipo (menos a quien cumple, que lo celebra al abrir la app).
+function cumpleanos(app) {
+  const md = hoy(0).slice(5);
+  const gente = arr(app.findRecordsByFilter("users", "role != 'maestro' && role != 'pantalla'", "", 500, 0));
+  for (const c of gente.filter((u) => u.getString("cumple") === md)) {
+    const nombre = c.getString("name").split(" ")[0];
+    for (const u of gente) if (u.id !== c.id) notificar(app, u.id, "cumple", "Hoy es el cumpleaños de " + nombre, "Pásale a saludar: tiene globos en su puesto de la oficina.", "#oficina", { de: c.id });
+  }
+}
+
 module.exports = {
-  conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
+  cumpleanos, conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
   avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
   DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,

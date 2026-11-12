@@ -14,15 +14,16 @@
     // herramientas del estudio
     tramites: "tramites", planos: "planos", envios: "envios", visitas: "visitas", contactos: "contactos", materiales: "materiales",
     horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones", respaldos: "respaldos",
+    bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes",
   };
-  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos"];
+  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
     gate: null, // { mode: server|login|register, error }
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
-    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [],
+    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
@@ -162,6 +163,10 @@
     for (const col of Object.keys(COLS)) {
       const k = COLS[col];
       pb.collection(col).subscribe("*", (ev) => {
+        if (k === "tareas" && ev.action === "update" && ev.record.status === "terminado" && L.onTaskFinished) {
+          const was = state.tareas.find((x) => x.id === ev.record.id);
+          if (was && was.status !== "terminado") L.onTaskFinished(ev.record);
+        }
         if (ev.action === "delete") remove(k, ev.record.id);
         else if (k === "actividad") { if (ev.action === "create") state.actividad = [ev.record, ...state.actividad].slice(0, 80); }
         else if (k === "notifs") {
@@ -182,7 +187,7 @@
     // Al abrir la app, cada quien llega a su puesto en la oficina.
     // Si la app estuvo cerrada más de 3 horas, el estado de ayer (almuerzo, reunión, fuera) no sigue.
     const stale = !state.me.lastSeen || Date.now() - Date.parse(String(state.me.lastSeen).replace(" ", "T")) > 3 * 3600e3;
-    const fresh = stale && ["reunion", "almuerzo", "fuera"].includes(q.presence(state.me)) ? { presencia: "disponible", presenciaRef: "" } : {};
+    const fresh = stale && ["reunion", "almuerzo", "pausa", "fuera"].includes(q.presence(state.me)) ? { presencia: "disponible", presenciaRef: "" } : {};
     pb.collection("users").update(state.me.id, { lastSeen: new Date().toISOString(), puesto: true, pos: null, ...fresh })
       .then((rec) => { upsert("users", rec); state.me = rec; emit(); }).catch(() => {});
     beatTimer = setInterval(beat, 60000);
@@ -193,10 +198,11 @@
   // (cambios de fecha y lo que dice Dirección), que suena y aparece igual.
   function announce(n) {
     const pres = q.presence(state.me);
-    const quiet = (pres === "no_molestar" || pres === "reunion") && !n.urgente;
+    const quiet = (pres === "no_molestar" || pres === "reunion" || pres === "pausa") && !n.urgente;
     if (quiet) { syncBubble(); return; }
     toast(n.title);
-    if (!(state.muted && !n.urgente) && !(state.screenBusy && !n.urgente)) sound(!!n.urgente);
+    if (!(state.muted && !n.urgente) && !(state.screenBusy && !n.urgente)) sound(n.urgente ? "urgente" : "normal");
+    if (L.onNotif) L.onNotif(n);
     if (desk && desk.notify) desk.notify(n.title, n.body || "", n.route || "", !!n.urgente);
     if (desk && desk.bubbleNotify) {
       desk.bubbleNotify({ id: n.id, title: n.title, body: n.body || "", route: n.route || "", kind: n.kind || "", urgente: !!n.urgente, respuesta: n.respuesta || "" });
@@ -205,17 +211,25 @@
 
   // Sonidos propios, sin archivos: uno suave para lo normal y otro más notorio para lo urgente.
   let audio = null;
-  function sound(urgent) {
+  // kind: normal | urgente | descanso (llamado a descansar) | vuelta (fin del descanso) | fiesta
+  const MELODIES = {
+    normal: { type: "sine", v: 0.12, len: 0.22, notes: [[660, 0], [990, 0.12]] },
+    urgente: { type: "triangle", v: 0.22, len: 0.16, notes: [[880, 0], [1175, 0.13], [880, 0.32], [1175, 0.45]] },
+    descanso: { type: "sine", v: 0.16, len: 0.5, notes: [[523, 0], [659, 0.22], [784, 0.44], [1047, 0.7]] },
+    vuelta: { type: "sine", v: 0.13, len: 0.3, notes: [[784, 0], [659, 0.18], [784, 0.36]] },
+    fiesta: { type: "triangle", v: 0.14, len: 0.14, notes: [[784, 0], [988, 0.1], [1175, 0.2], [1568, 0.32], [1175, 0.46], [1568, 0.56]] },
+  };
+  function sound(kind) {
     try {
+      const m = MELODIES[kind === true ? "urgente" : kind === false ? "normal" : kind] || MELODIES.normal;
       audio = audio || new (window.AudioContext || window.webkitAudioContext)();
       if (audio.state === "suspended") audio.resume();
       const t0 = audio.currentTime + 0.02;
-      const notes = urgent ? [[880, 0], [1175, 0.13], [880, 0.32], [1175, 0.45]] : [[660, 0], [990, 0.12]];
-      for (const [f, at] of notes) {
+      for (const [f, at] of m.notes) {
         const o = audio.createOscillator(), g = audio.createGain();
-        o.type = urgent ? "triangle" : "sine";
+        o.type = m.type;
         o.frequency.value = f;
-        const v = urgent ? 0.22 : 0.12, start = t0 + at, end = start + (urgent ? 0.16 : 0.22);
+        const v = m.v, start = t0 + at, end = start + m.len;
         g.gain.setValueAtTime(0.0001, start);
         g.gain.exponentialRampToValueAtTime(v, start + 0.015);
         g.gain.exponentialRampToValueAtTime(0.0001, end);
@@ -229,9 +243,10 @@
   let bubbleSig = "";
   function syncBubble() {
     if (!desk || !desk.bubbleSync) return;
-    const live = !!state.me && (state.mode === "live" || state.mode === "offline");
+    const live = !!state.me && (state.mode === "live" || state.mode === "offline") && state.me.role !== "pantalla";
     const me = live ? { id: state.me.id, name: state.me.name, muneco: state.me.muneco || null } : null;
-    const st = { me, presencia: live ? q.presence(state.me) : "", unread: live ? q.unread() : 0, muted: !!state.muted, theme: state.theme || "system" };
+    const st = { me, presencia: live ? q.presence(state.me) : "", unread: live ? q.unread() : 0, muted: !!state.muted, theme: state.theme || "system",
+      premios: live ? state.me.premios || [] : [], timer: live && L.bubbleTimer ? L.bubbleTimer() : null };
     const sig = JSON.stringify(st);
     if (sig === bubbleSig) return;
     const prev = bubbleSig ? JSON.parse(bubbleSig).unread : -1;
@@ -385,7 +400,7 @@
     isMaestro: () => !!state.me && state.me.role === "maestro",
     canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || q.isDirector()),
     // El equipo del estudio, sin el perfil maestro de soporte.
-    staff: () => state.users.filter((u) => u.role !== "maestro"),
+    staff: () => state.users.filter((u) => u.role !== "maestro" && u.role !== "pantalla"),
     // Finanzas: Dirección, perfil maestro y el área de Administración (el líder ve los cobros de su proyecto).
     isFin: () => q.isDirector() || ((state.me && state.me.areas) || []).includes("administracion"),
     canSeeMoney: (p) => q.isFin() || (!!p && !!state.me && p.leader === state.me.id),
@@ -413,7 +428,7 @@
       return out;
     },
     fromOrigin: (origen) => state.tareas.filter((t) => t.origen === origen),
-    roleLabel: (u) => (!u ? "" : u.role === "maestro" ? "Perfil maestro" : u.role === "director" ? "Director creativo" : "Integrante"),
+    roleLabel: (u) => (!u ? "" : u.role === "maestro" ? "Perfil maestro" : u.role === "director" ? "Director creativo" : u.role === "pantalla" ? "Pantalla de la oficina" : "Integrante"),
     isMember: (p) => !!p && !!state.me && (p.members || []).includes(state.me.id),
     // En su puesto: si se paró del escritorio en la oficina, está "fuera" (almuerzo, una vuelta).
     atDesk: (u) => !!u && u.puesto !== false,
@@ -490,6 +505,7 @@
           log(rec.status === "terminado" ? "done" : "stage", rec.title, rec.id, rec.project, rec.status);
           // Al terminar, quien la tenía como trabajo actual queda libre.
           if (rec.status === "terminado" && state.me.taskId === rec.id) act.setWorking(null);
+          if (rec.status === "terminado" && L.onTaskDone) L.onTaskDone(rec);
         }
         return rec;
       });
@@ -620,6 +636,7 @@
       // Si la persona cambia el estado durante una reunión automática, no se vuelve a poner solo.
       if (me.presenciaRef && !ref) { try { localStorage.setItem(AUTO_SKIP, me.presenciaRef); } catch (e) { /* bloqueado */ } }
       const body = { presencia: value, presenciaRef: ref || "", pos: null, puesto: value === "disponible" || value === "no_molestar" };
+      if (L.onPresence) L.onPresence(value, ref);
       upsert("users", { ...me, ...body }); state.me = { ...me, ...body }; emit();
       return run(async () => {
         const rec = await pb.collection("users").update(me.id, { ...body, lastSeen: now() });
@@ -652,7 +669,7 @@
     movePresence(data) {
       if (!pb || !state.me) return Promise.resolve(null);
       // Volver caminando al puesto termina el almuerzo, la reunión o el "fuera".
-      if (data.puesto === true && ["reunion", "almuerzo", "fuera"].includes(q.presence(state.me))) {
+      if (data.puesto === true && ["reunion", "almuerzo", "pausa", "fuera"].includes(q.presence(state.me))) {
         if (state.me.presenciaRef) { try { localStorage.setItem(AUTO_SKIP, state.me.presenciaRef); } catch (e) { /* bloqueado */ } }
         data = { ...data, presencia: "disponible", presenciaRef: "" };
       }
@@ -749,7 +766,7 @@
   applyTheme(state.theme);
 
   /* ---------- rutas ---------- */
-  const VIEWS = ["inicio", "semana", "linea", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
+  const VIEWS = ["inicio", "semana", "linea", "pausa", "cierre", "pantalla", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
     "solicitudes", "directorio", "ausencias", "finanzas", "revision", "oficina", "agentes"];
   function parseRoute() {
     const [name, id, tab] = location.hash.replace(/^#/, "").split("/");
@@ -783,6 +800,7 @@
       else if (a.type === "reply" && n) act.replyToque(n, a.respuesta);
       else if (a.type === "bell") set({ bellOpen: true });
       else if (a.type === "open") { if (n) act.readNotif(n); if (a.route) go(a.route); }
+      else if (a.type === "custom" && L.onBubbleCustom) L.onBubbleCustom(a);
     });
     if (desk.bubbleVisible) desk.bubbleVisible().then((v) => set({ bubbleVisible: !!v })).catch(() => {});
     if (desk.screenBusy) desk.screenBusy().then((v) => set({ screenBusy: !!v })).catch(() => {});
@@ -797,5 +815,5 @@
     }
   }
 
-  Object.assign(L, { state, useStore, set, toast, q, act, auth, boot, go, openSheet, closeSheet, parseRoute, desk, errMsg, THEMES, setTheme });
+  Object.assign(L, { state, useStore, set, toast, q, act, auth, boot, go, openSheet, closeSheet, parseRoute, desk, errMsg, THEMES, setTheme, sound, syncBubble });
 })();

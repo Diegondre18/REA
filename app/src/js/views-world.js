@@ -178,12 +178,40 @@
     box(ctx, x + 0.75, y + 0.35, 11, 0.12, 0.12, 2, C.metal);
     box(ctx, x + 0.45, y + 0.3, 13, 0.75, 0.12, 6, "#3d3e48", scr, "#2f3039");
     box(ctx, x + 0.5, y + 0.6, 11, 0.6, 0.18, 1, "#d9d9de", "#bdbdc4", "#a9a9b0", null);
-    const v = (dk.i || 0) % 4;
+    const v = dk.u && Array.isArray(dk.u.premios) && dk.u.premios.some((p) => ["trofeo", "cuadro", "taza"].includes(p)) ? 3 : (dk.i || 0) % 4;
     if (v === 0) box(ctx, x + 1.55, y + 0.3, 11, 0.12, 0.35, 5, "#c0503f", "#a84434", "#8f3a2c");
     if (v === 1) box(ctx, x + 1.55, y + 0.5, 11, 0.18, 0.18, 3, "#f4f1ea", "#dcd7cf", "#c7c1b8");
     if (v === 2) { box(ctx, x + 1.45, y + 0.3, 11, 0.4, 0.3, 2, "#5c7fb8"); box(ctx, x + 1.45, y + 0.3, 13, 0.4, 0.3, 2, "#e0c46c"); }
     // Nota amarilla en el puesto de quien está ausente.
     if (st === "absent") box(ctx, x + 0.15, y + 0.55, 11, 0.3, 0.25, 3, "#f6e27a", "#e4cc5c", "#d1b94a", null);
+    // Premios del muñeco sobre el escritorio.
+    const pr = (dk.u && Array.isArray(dk.u.premios)) ? dk.u.premios : [];
+    const left = [[0.1, 0.22], [0.1, 0.6]], right = [[1.45, 0.25], [1.68, 0.58]];
+    for (const id of ["lampara", "planta", "trofeo", "cuadro", "taza"]) {
+      if (!pr.includes(id)) continue;
+      const slot = (id === "lampara" || id === "planta" ? left : right).shift();
+      if (!slot) continue;
+      const sx = x + slot[0], sy = y + slot[1];
+      if (id === "lampara") { box(ctx, sx + 0.1, sy + 0.1, 11, 0.1, 0.1, 9, C.metal); box(ctx, sx, sy, 20, 0.3, 0.3, 3, "#fbe7a8", "#f3d77f", "#e9c968"); }
+      else if (id === "planta") { box(ctx, sx + 0.04, sy + 0.04, 11, 0.22, 0.22, 3, C.pot, "#d6cdc3", "#c7bdb2"); box(ctx, sx, sy, 14, 0.3, 0.3, 4, C.leaf, C.leaf2, C.leaf3); }
+      else if (id === "trofeo") { box(ctx, sx + 0.06, sy + 0.06, 11, 0.16, 0.16, 1, "#c08f12"); box(ctx, sx, sy, 12, 0.28, 0.28, 4, "#f2c94c", "#d9a925", "#c08f12"); }
+      else if (id === "cuadro") { box(ctx, sx, sy, 11, 0.36, 0.07, 5, "#8b5a2b", "#5fb4ff", "#6e4a2e"); }
+      else if (id === "taza") { box(ctx, sx, sy, 11, 0.17, 0.17, 2, "#ea0029", "#c4001f", "#a3001a"); }
+    }
+    if (!pr.length || pr.length < 3) { /* deja la decoración normal */ }
+    // Cumpleaños: globos sobre el puesto.
+    if (dk.u && dk.u.cumple && dk.u.cumple === L.todayIso().slice(5)) {
+      const cols = ["#ea0029", "#e8c100", "#0057ff"];
+      cols.forEach((c, i) => {
+        const [bx, by] = P(x + 1.6 + i * 0.18, y + 0.4 - i * 0.1, 30 + i * 4);
+        const [sx0, sy0] = P(x + 1.6, y + 0.45, 11);
+        line(ctx, [sx0, sy0], [bx, by], "#6e6268");
+        const r = Math.max(2, Math.round(3 * U));
+        ctx.fillStyle = INK; ctx.fillRect(bx - r - 1, by - 2 * r - 1, 2 * r + 2, 2 * r + 2);
+        ctx.fillStyle = c; ctx.fillRect(bx - r, by - 2 * r, 2 * r, 2 * r);
+        ctx.fillStyle = "rgba(255,255,255,0.45)"; ctx.fillRect(bx - r + Math.round(r / 3), by - 2 * r + Math.round(r / 3), Math.max(1, Math.round(r / 2)), Math.max(1, Math.round(r / 2)));
+      });
+    }
   }
   function drawChairSeat(ctx, sx, sy) { box(ctx, sx - 0.05, sy - 0.05, 0, 0.1, 0.1, 4, C.metal); box(ctx, sx - 0.22, sy - 0.22, 4, 0.44, 0.44, 2, "#5a5560", "#4a4650", "#3e3a44"); }
   function drawChairBack(ctx, sx, sy) { box(ctx, sx - 0.22, sy + 0.18, 6, 0.44, 0.08, 7, "#5a5560", "#4a4650", "#3e3a44"); }
@@ -303,12 +331,16 @@
   }
 
   /* ================= motor: dibujo, movimiento y clics ================= */
-  const PRES_TXT = { no_molestar: " · no molestar", reunion: " · en reunión", almuerzo: " · almuerzo" };
+  const PRES_TXT = { no_molestar: " · no molestar", reunion: " · en reunión", almuerzo: " · almuerzo", pausa: " · en pausa" };
+  // Motores abiertos (oficina y pantalla de la TV): celebran cuando alguien termina una tarea.
+  const engines = new Set();
+  L.onTaskFinished = (t) => { for (const e of engines) for (const uid of t.assignees || []) e.celebrate(uid); };
   function createEngine(canvas, overlay, opts = {}) {
     const ctx = canvas.getContext("2d");
     let map = null, raf = 0, last = 0, dirty = true, mapKey = "", box0 = { w: 1000, h: 600 }, DPR = 1;
     const actors = new Map(); // uid → { x, y, path, dir, frame, flip, user, state }
     let me = null, data = { findings: {}, meet: null };
+    let sparks = [];
     let sendAt = 0, lastSig = "";
     const labels = new Map();
 
@@ -337,12 +369,12 @@
       const seen = new Set();
       // Quien está en reunión o almorzando ocupa un lugar fijo de la sala o la cafetería (mismo orden en todos los PC).
       const spotOf = {};
-      for (const [pres, list] of [["reunion", map.meetSpots], ["almuerzo", map.cafeSpots]]) {
-        users.filter((u) => u.role !== "maestro" && q.presence(u) === pres && personState(u) !== "offline" && personState(u) !== "absent")
+      for (const [pres, list] of [[["reunion"], map.meetSpots], [["almuerzo", "pausa"], map.cafeSpots]]) {
+        users.filter((u) => u.role !== "maestro" && u.role !== "pantalla" && pres.includes(q.presence(u)) && personState(u) !== "offline" && personState(u) !== "absent")
           .sort((x, y) => x.id.localeCompare(y.id)).forEach((u, i) => { spotOf[u.id] = list[i % list.length]; });
       }
       for (const u of users) {
-        if (u.role === "maestro") continue;
+        if (u.role === "maestro" || u.role === "pantalla") continue;
         const st = personState(u);
         if (st === "offline" || st === "absent") { actors.delete(u.id); continue; }
         seen.add(u.id);
@@ -481,7 +513,7 @@
         const atSpot = a.spot && !a.path.length && Math.hypot(a.x - a.spot.x, a.y - a.spot.y) < 0.3 ? a.spot : null;
         add(atSpot && atSpot.key ? atSpot.key + a.x * 0.001 : a.x + a.y + 0.1, () => {
           const [px, py] = P(a.x, a.y);
-          const cfg = L.PIX.withExtra(L.PIX.config(a.user), q.presence(a.user));
+          const cfg = L.PIX.withExtra(L.PIX.config(a.user), q.presence(a.user), a.user.premios, t);
           const k = Math.max(1, Math.round(U)), ow = Math.max(1, Math.round(k * 0.4));
           ctx.fillStyle = "rgba(40,30,35,0.22)"; ctx.fillRect(px - 4 * k, py - k, 9 * k, 2 * k);
           if (a.seated) L.PIX.drawFigure(ctx, px - 6 * k, py - 19 * k, cfg, "back", 0, true, false, k, ow);
@@ -491,6 +523,18 @@
       }
       list.sort((A, B) => A.key - B.key);
       for (const it of list) it.fn();
+      // Confeti sobre quien terminó una tarea.
+      if (sparks.length) {
+        const now = performance.now();
+        sparks = sparks.filter((p) => now - p.t0 < 2200);
+        for (const p of sparks) {
+          const dt = (now - p.t0) / 1000;
+          const a = actors.get(p.uid); if (!a) continue;
+          const [ax, ay] = P(a.x, a.y);
+          ctx.fillStyle = p.c;
+          ctx.fillRect(Math.round(ax + p.vx * dt * U), Math.round(ay - 24 * U + (p.vy * dt + 30 * dt * dt) * U), Math.max(1, Math.round(U)), Math.max(1, Math.round(U)));
+        }
+      }
       placeLabels();
     }
 
@@ -504,7 +548,8 @@
         const p = task && q.project(task.project);
         const pres = q.presence(u);
         const extra = PRES_TXT[pres] || (a.state === "away" ? " · fuera" : "");
-        want.set("u" + id, { x: px, y: py - 23 * U, cls: L.cx("o-name", isMe && "me", (a.state === "away" || pres !== "disponible") && "away", pres === "no_molestar" && "dnd"), text: (isMe ? "Tú" : L.first(u.name)) + extra });
+        const bday = u.cumple && u.cumple === L.todayIso().slice(5);
+        want.set("u" + id, { x: px, y: py - 23 * U, cls: L.cx("o-name", isMe && "me", (a.state === "away" || pres !== "disponible") && "away", pres === "no_molestar" && "dnd", bday && "bday"), text: (isMe ? "Tú" : L.first(u.name)) + extra + (bday ? " · ¡cumpleaños!" : "") });
         if (task) want.set("b" + id, { x: px, y: py - 33 * U, cls: "o-bubble", text: (p && p.code ? p.code + " · " : "") + task.title });
       }
       for (const sp of map.labSpots) {
@@ -536,7 +581,7 @@
       last = ts;
       const moving = step(dt);
       // Quieto se redibuja poco (los robots respiran); en movimiento, cada cuadro.
-      if (moving || dirty || ts - lastTick > 140) { draw(ts); dirty = false; lastTick = ts; }
+      if (moving || dirty || sparks.length || ts - lastTick > 140) { draw(ts); dirty = false; lastTick = ts; }
       raf = requestAnimationFrame(loop);
     }
 
@@ -556,6 +601,7 @@
     }
     // Clic: en una persona abre su tarea o su perfil; en un agente, su página; en el piso, camina hasta ahí.
     function onClick(ev) {
+      if (opts.readOnly) return;
       const hit = pick(ev);
       if (hit.kind === "person") {
         const u = hit.a.user;
@@ -583,6 +629,7 @@
     // Flechas o WASD: arriba, abajo, izquierda y derecha tal como se ven en la pantalla.
     const KEYS = { arrowup: [-1, -1], w: [-1, -1], arrowdown: [1, 1], s: [1, 1], arrowleft: [-1, 1], a: [-1, 1], arrowright: [1, -1], d: [1, -1] };
     function onKey(ev) {
+      if (opts.readOnly) return;
       if (!me || L.state.sheet || (ev.target && ev.target.closest && ev.target.closest("input, textarea, select, [contenteditable]"))) return;
       const k = KEYS[String(ev.key).toLowerCase()];
       if (!k) return;
@@ -600,7 +647,7 @@
     window.addEventListener("keydown", onKey);
     raf = requestAnimationFrame(loop);
 
-    return {
+    const api = {
       update(next) {
         me = L.state.me;
         const key = JSON.stringify(q.staff().map((u) => [u.id, u.role, u.areas]));
@@ -610,8 +657,16 @@
       },
       resize(w, h) { if (Math.abs(w - box0.w) < 2 && Math.abs(h - box0.h) < 2) return; box0 = { w, h }; fit(); },
       goToDesk,
-      destroy() { cancelAnimationFrame(raf); canvas.removeEventListener("click", onClick); canvas.removeEventListener("mousemove", onMove); window.removeEventListener("keydown", onKey); },
+      celebrate(uid) {
+        if (!actors.has(uid)) return;
+        const cols = ["#0057ff", "#ea0029", "#e8c100", "#1f9d55", "#7c4dff", "#f08c00"];
+        const t0 = performance.now();
+        for (let i = 0; i < 28; i++) sparks.push({ uid, t0, c: cols[i % cols.length], vx: (Math.random() - 0.5) * 30, vy: -Math.random() * 30 - 8 });
+      },
+      destroy() { engines.delete(api); cancelAnimationFrame(raf); canvas.removeEventListener("click", onClick); canvas.removeEventListener("mousemove", onMove); window.removeEventListener("keydown", onKey); },
     };
+    engines.add(api);
+    return api;
   }
 
   /* ================= vista ================= */
@@ -652,6 +707,7 @@
     const hasDoll = !!(s.me.muneco && s.me.muneco.ropa);
     return html`
       <${L.PageHead} title="Oficina" sub=${`${L.plural(online.length, "persona conectada", "personas conectadas")}${away.length ? ` · ${away.length} fuera del puesto` : ""} · camina con las flechas o con clic en el piso`}>
+        <button type="button" class="btn ghost" onClick=${() => L.go("#pantalla")} title="Para una TV del estudio: oficina grande, entregas y quién está">Pantalla de la oficina</button>
         <button type="button" class="btn" onClick=${() => eng.current && eng.current.goToDesk()}>Volver a mi puesto</button>
         <button type="button" class="btn" onClick=${() => L.openSheet("muneco")}>${hasDoll ? "Mi muñeco" : "Crear mi muñeco"}</button>
       <//>
@@ -671,5 +727,5 @@
       <div class="office-legend"><span>Clic en tu muñeco sentado: abre tu tarea</span><span>Clic en otra persona: tocarle el hombro, su tarea o su perfil</span><span>En reunión van a la sala de juntas; en almuerzo, a la cafetería; con audífonos = no molestar</span><span>Fuera del puesto = almuerzo o una vuelta; el equipo lo ve en Equipo</span><span>Clic en un agente del laboratorio: lo que encontró</span></div>`;
   }
 
-  Object.assign(L, { Oficina });
+  Object.assign(L, { Oficina, createOfficeEngine: createEngine });
 })();

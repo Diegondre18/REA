@@ -54,3 +54,12 @@ body { font: 13px/1.35 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-ser
 #menu .sep { height: 1px; background: var(--line); margin: 4px 2px; }
 #menu .hint { font-size: 11px; color: var(--muted); padding: 0 8px 4px 26px; margin-top: -3px; }
 #menu .unread { color: var(--red); font-weight: 600; }
+
+#fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: pixelated; }
+#pill.blink { animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0.45; } }
+.card.bienestar { border-left-color: #0e9aa7; }
+.card.bienestar .acts button:first-child { background: #0e9aa7; border-color: #0e9aa7; }
+.card.fiesta { border-left-color: #e8c100; }
+.card.shake { animation: shake 0.5s ease; }
+@keyframes shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }

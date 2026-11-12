@@ -21,7 +21,7 @@
     const mon = L.addDays(L.monday(L.today()), 7 * offset);
     const a = L.iso(mon), b = L.iso(L.addDays(mon, 6)), t = L.todayIso();
     const mine = q.myTasks(me.id).filter(open);
-    const vencen = mine.filter((x) => x.due && x.due >= a && x.due <= b).sort(L.byDue);
+    const vencen = mine.filter((x) => x.due && x.due >= (offset ? a : t) && x.due <= b).sort(L.byDue);
     const late = offset === 0 ? mine.filter((x) => x.due && x.due < t).sort(L.byDue) : [];
     const blocked = mine.filter((x) => pendingDeps(x).length);
     const waiting = s.tareas.filter((x) => open(x) && !(x.assignees || []).includes(me.id) && pendingDeps(x).some((d) => (d.assignees || []).includes(me.id)));
@@ -67,6 +67,8 @@
           <div class="rows">${aus.length ? aus.map((x) => html`<div class="row" key=${x.id}><${Avatar} id=${x.user} /><span class="row-body"><b>${q.name(x.user)}</b><span class="row-meta"><span>${tipo(x.tipo)} · del ${L.fmtShort(x.desde)} al ${L.fmtShort(x.hasta)}</span></span></span></div>`)
             : html`<p class="note">Todo el equipo está ${offset ? "la próxima semana" : "esta semana"}.</p>`}</div>
         <//>
+        ${!offset && L.Premios && html`<${L.Premios} />`}
+        ${!offset && L.Bienestar && html`<${L.Bienestar} />`}
         ${director && html`<${StudioWeek} a=${a} b=${b} />`}
       </div>`;
   }

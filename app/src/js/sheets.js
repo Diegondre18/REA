@@ -253,7 +253,7 @@
       if (await act.saveUser(u.id, body)) { L.toast("Guardado"); L.closeSheet(); }
     };
     const areaOptions = L.AREAS;
-    const roleOptions = [{ id: "miembro", label: "Integrante" }, { id: "director", label: "Director creativo (un solo cupo)" }, ...(q.isMaestro() ? [{ id: "maestro", label: "Perfil maestro" }] : [])];
+    const roleOptions = [{ id: "miembro", label: "Integrante" }, { id: "director", label: "Director creativo (un solo cupo)" }, { id: "pantalla", label: "Pantalla de la oficina (TV, solo mirar)" }, ...(q.isMaestro() ? [{ id: "maestro", label: "Perfil maestro" }] : [])];
     const footer = html`<span class="spacer"></span><button type="button" class="btn ghost" onClick=${L.closeSheet}>${can ? "Cancelar" : "Cerrar"}</button>${can && html`<button type="submit" class="btn primary">Guardar</button>`}`;
     return html`
       <${Sheet} title=${isMe ? "Tu perfil" : "Persona"} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
@@ -269,6 +269,7 @@
           <div class="settings">
             <div class="fld"><span class="lbl">Muñeco de la oficina</span><div class="inline">${L.MunecoPreview && html`<span class="pix-mini"><${L.MunecoPreview} cfg=${L.PIX.config(s.me)} /></span>`}<button type="button" class="btn sm" onClick=${() => L.openSheet("muneco")}>${s.me.muneco && s.me.muneco.ropa ? "Cambiar mi muñeco" : "Crear mi muñeco"}</button></div></div>
             ${L.DeskSettings && html`<${L.DeskSettings} />`}
+            ${L.WellSettings && html`<${L.WellSettings} />`}
             <div class="fld"><span class="lbl">Apariencia</span><${L.Seg} label="Apariencia" value=${s.theme} onChange=${L.setTheme} options=${L.THEMES} /></div>
             ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}
             ${hosting ? html`

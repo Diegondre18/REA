@@ -204,6 +204,7 @@
         <${Search} />
         <span class="spacer"></span>
         ${online.length > 0 && html`<span class="online" title=${"Conectados: " + online.map((u) => u.name).join(", ")}><${Faces} ids=${online.map((u) => u.id)} max=${5} /></span>`}
+        ${L.PomodoroChip && html`<${L.PomodoroChip} />`}
         ${L.PresenceChip && html`<${L.PresenceChip} />`}
         <span class="sync" data-mode=${s.mode} title=${s.mode === "live" ? "Los cambios se comparten con todo el equipo al instante." : "Reintentando la conexión con el servidor."}><i></i><span>${label}</span></span>
         <button type="button" class="btn icon" title=${"Modo: " + L.THEMES.find((t) => t.id === s.theme).label + ". Clic para cambiar."} aria-label="Cambiar entre modo claro, oscuro o el del sistema"
@@ -223,6 +224,7 @@
     const showWeek = wk && seenWeek !== wk && s.route.name !== "semana";
     return html`
       ${s.update && html`<div class="banner glass update"><p><strong>LAP Cerebro ${s.update} está lista.</strong> Se instala al reiniciar la app; tarda unos segundos y vuelve a abrir sola.</p><button type="button" class="btn sm primary" onClick=${() => L.desk.installUpdate()}>Reiniciar y actualizar</button></div>`}
+      ${L.WellAlert && html`<${L.WellAlert} />`}
       ${L.BackupBanner && html`<${L.BackupBanner} />`}
       ${s.mode === "offline" && html`<div class="banner glass"><p><strong>Sin conexión con el servidor.</strong> Lo que ves puede estar desactualizado. La app reintenta sola cada minuto.</p><button type="button" class="btn sm" onClick=${act.reconnect}>Reintentar ahora</button></div>`}
       ${showWeek && html`<div class="banner glass wk-banner"><p><strong>Empieza la semana ${L.isoWeek(L.today())}.</strong> Mira qué vence, qué está bloqueado y quién del equipo no estará.</p><div class="inline"><button type="button" class="btn sm ghost" onClick=${markWeek}>Ahora no</button><button type="button" class="btn sm primary" onClick=${() => { markWeek(); L.go("#semana"); }}>Ver mi semana</button></div></div>`}
@@ -236,6 +238,8 @@
       case "agenda": return html`<${L.Agenda} />`;
       case "semana": return html`<${L.Semana} key=${r.id} offset=${r.id === "proxima" ? 1 : 0} />`;
       case "linea": return html`<${L.Linea} />`;
+      case "pausa": return html`<${L.PausaView} />`;
+      case "cierre": return html`<${L.CierreView} />`;
       case "proyectos": return html`<${L.Proyectos} />`;
       case "proyecto": return html`<${L.Proyecto} key=${r.id} id=${r.id} tab=${r.tab} />`;
       case "reuniones": return html`<${L.Reuniones} />`;
@@ -258,12 +262,14 @@
     const main = useRef(null);
     useEffect(() => { if (main.current) main.current.scrollTop = 0; }, [s.route.name, s.route.id]);
     const live = s.me && (s.mode === "live" || s.mode === "offline" || (s.mode === "gate" && s.gate && s.gate.back));
+    // Pantalla de la oficina (TV): sin barra lateral. La cuenta "pantalla" siempre la ve.
+    const tv = live && (s.route.name === "pantalla" || s.me.role === "pantalla");
     return html`
       <div class="titlebar">
         <${Sym} cls="tb-sym" /><b>LAP</b><span>Cerebro</span><span class="spacer"></span>
         ${s.me && html`<span class="tb-user">${s.me.name} · ${s.serverUrl.replace(/^https?:\/\//, "")}</span>`}
       </div>
-      ${live ? html`
+      ${tv ? html`<${L.Pantalla} />` : live ? html`
         <div class="app">
           <${Sidebar} />
           <main class="main" ref=${main}><${TopBar} /><${Banners} /><${View} /></main>
