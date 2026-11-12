@@ -1125,3 +1125,7 @@ input.time-in { width: 120px !important; flex: none; }
 .ba-team { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px !important; }
 .ba-acts { display: flex; gap: 10px; margin-top: 6px; }
 .ba-acts .btn { padding: 10px 20px; font-size: 14px; }
+.big-alert { grid-template-columns: auto minmax(0, 1fr); width: min(680px, calc(100vw - 48px)); max-width: none; box-sizing: border-box; }
+.ba-body { min-width: 0; }
+.ba-acts { flex-wrap: wrap; align-items: center; }
+.ba-acts .btn.ghost { padding: 8px 12px; }

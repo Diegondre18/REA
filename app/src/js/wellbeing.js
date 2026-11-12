@@ -189,7 +189,7 @@
       const c = cfg();
       const mins = pomo.ciclo % 4 === 0 ? c.largo : c.descanso;
       alertUser({ id: BREAK_ID, big: "descanso", title: "Hora de descansar", body: `Llevas ${c.trabajo} minutos concentrado. Tómate ${mins} minutos lejos de la pantalla: es parte del trabajo.`,
-        actions: [{ a: "pomo-descanso", label: "Tomar el descanso" }, { a: "pomo-omitir", label: "Omitir descanso" }] });
+        actions: [{ a: "pomo-descanso", label: "Tomar el descanso" }, { a: "pomo-mas:5", label: "+5 min" }, { a: "pomo-mas:10", label: "+10 min" }, { a: "pomo-omitir", label: "Omitir descanso" }] });
     } else if (pomo.phase === "espera" && t >= pomo.nagAt && pomo.nags < 5) {
       // Si no lo atiende, insiste cada 2 minutos (hasta 5 veces).
       pomo = { ...pomo, nagAt: t + 120e3, nags: pomo.nags + 1 };
@@ -286,6 +286,12 @@
     else if (name === "pomo-5" && pomo) { pomo = { ...pomo, phase: "trabajo", endsAt: Date.now() + 5 * 60e3, snoozed: true }; clearAlert(BREAK_ID); savePomo(); L.toast("Cinco minutos más. Después, a descansar."); }
     else if (name === "pausa-ahora") pausaStart("");
     else if (name === "pausa-empezar") pausaStart(arg);
+    else if (name === "pomo-mas" && pomo) {
+      const m = Number(arg) === 10 ? 10 : 5;
+      pomo = { ...pomo, phase: "trabajo", endsAt: Date.now() + m * 60e3, snoozed: true };
+      clearAlert(BREAK_ID); savePomo();
+      L.toast(`${m} minutos más. Después, a descansar.`);
+    }
     else if (name === "pomo-omitir") { clearAlert(BREAK_ID); pomoNext(); L.toast("Descanso omitido: no cuenta para tu racha ni el ranking."); }
     else if (name === "pausa-omitir") { const st = ls.get(pkey(arg), {}); ls.set(pkey(arg), { ...st, skip: true }); clearAlert("pausa-" + arg); L.toast("Pausa activa omitida"); }
     else if (name === "pausa-10") { ls.set(pkey(arg), { snoozeTo: nowMin() + 10 }); clearAlert("pausa-" + arg); L.toast("Te aviso en 10 minutos"); }
