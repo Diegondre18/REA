@@ -2,6 +2,10 @@
 
 App de escritorio del estudio. Reúne los proyectos de Arquitectura, Diseño Interior, Visualización y Administración: plan de entregables con vistos buenos, cronograma personal, reuniones con cliente, comités internos y quién está trabajando en qué. Todo se sincroniza en vivo con el servidor de la oficina (ver `../servidor/LEEME.md`).
 
+## A cargo de cada proyecto
+
+Cada proyecto tiene **2 personas a cargo, máximo 3**: el **Director creativo** (siempre, en todos los proyectos), la **directora o director del proyecto** (obligatorio, otra persona) y, si hace falta, un **apoyo**. Se eligen al crear o editar el proyecto. Quien dirige y el apoyo arman el plan de entregables, lo envían a visto bueno, lo aprueban y editan el proyecto; los dos quedan como integrantes y no dan visto bueno a su propio plan. Si un proyecto viejo quedó dirigido por el Director creativo, el agente Plan avisa para elegir a quien lo dirija.
+
 ## Cómo funciona el plan de entregables
 
 1. Quien lidera el proyecto arma el plan: fecha, qué se entrega, área, quién está al mando y para qué reunión es.

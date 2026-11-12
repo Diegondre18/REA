@@ -158,7 +158,7 @@
           ${head}
           ${projects.map(({ p, tasks, marks, range, late }) => html`<${L.Fragment} key=${p.id}>
             <div class="g-row g-proj tl-proj"><button type="button" class="g-label" aria-expanded=${!!openP[p.id]} onClick=${() => setOpenP({ ...openP, [p.id]: !openP[p.id] })}>
-              <b><span class="caret">${openP[p.id] ? "▾" : "▸"}</span> ${p.code ? p.code + " · " : ""}${p.name}</b><small>${L.plural(tasks.filter(open).length, "tarea abierta", "tareas abiertas")}${late ? ` · ${late} atrasada${late > 1 ? "s" : ""}` : ""}${p.leader ? " · lidera " + L.first(q.name(p.leader)) : ""}</small></button>
+              <b><span class="caret">${openP[p.id] ? "▾" : "▸"}</span> ${p.code ? p.code + " · " : ""}${p.name}</b><small>${L.plural(tasks.filter(open).length, "tarea abierta", "tareas abiertas")}${late ? ` · ${late} atrasada${late > 1 ? "s" : ""}` : ""}${p.leader ? " · dirige " + L.first(q.name(p.leader)) + (p.apoyo ? " con " + L.first(q.name(p.apoyo)) : "") : ""}</small></button>
               <div class="g-lane">
                 ${range && html`<span class="tl-span" style=${{ left: range.left + "px", width: range.width + "px" }}></span>`}
                 ${marks.map((m, i) => { const d = L.parse(m.d); return html`<button type="button" key=${i} class=${"mk " + m.k} style=${{ left: pos(d) * dayW + dayW / 2 + "px" }} title=${m.label + " · " + L.fmtDay(m.d)} aria-label=${m.label + ", " + L.fmtDay(m.d)} onClick=${m.go}></button>`; })}

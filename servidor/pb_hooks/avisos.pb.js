@@ -170,7 +170,7 @@ onRecordUpdateRequest((e) => {
     const p = e.app.findRecordById("proyectos", r.getString("project"));
     const NOMBRES = { preparacion: "En preparación", radicado: "Radicado", observaciones: "Con observaciones", respuesta: "Respuesta enviada", aprobado: "Aprobado", negado: "Negado", desistido: "Desistido" };
     const destino = {};
-    for (const u of [r.getString("responsable"), p.getString("leader")]) if (u && (!e.auth || u !== e.auth.id)) destino[u] = true;
+    for (const u of [r.getString("responsable"), p.getString("leader"), p.getString("apoyo")]) if (u && (!e.auth || u !== e.auth.id)) destino[u] = true;
     for (const u in destino) {
       lib.aviso(e, u, "tramite", "Licencia de " + p.getString("name") + ": " + (NOMBRES[r.getString("estado")] || r.getString("estado")),
         r.getString("estado") === "observaciones" && r.getString("fechaLimite") ? "Hay que responder antes del " + lib.fechaCorta(r.getString("fechaLimite")) + "." : "", "#proyecto/" + p.id + "/licencias");

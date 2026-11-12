@@ -1129,3 +1129,7 @@ input.time-in { width: 120px !important; flex: none; }
 .ba-body { min-width: 0; }
 .ba-acts { flex-wrap: wrap; align-items: center; }
 .ba-acts .btn.ghost { padding: 8px 12px; }
+.a-cargo { display: grid; gap: 8px; }
+.cargo-row { display: grid; grid-template-columns: 150px 1fr; gap: 4px 12px; align-items: center; }
+.cargo-row .cargo-rol { font-size: 13px; font-weight: 500; color: var(--fg); }
+.cargo-row .hint { grid-column: 2; margin-top: -2px; }

@@ -104,18 +104,37 @@ function registrar(app, byId, kind, title, ref, projectId, to) {
   app.save(a);
 }
 
-// Integrantes que deben dar visto bueno: todos menos el líder.
+// Integrantes que deben dar visto bueno: todos menos quienes están a cargo (dirige y apoyo).
 function integrantes(project) {
-  const leader = project.getString("leader");
-  return arr(project.getStringSlice("members")).filter((m) => m !== leader);
+  const leader = project.getString("leader"), apoyo = project.getString("apoyo");
+  return arr(project.getStringSlice("members")).filter((m) => m !== leader && m !== apoyo);
+}
+
+// A cargo del proyecto: el Director creativo siempre; además quien lo dirige (obligatorio, otra
+// persona) y un apoyo opcional. Ambos quedan como integrantes.
+function validarCargo(app, record, nuevo) {
+  const leader = record.getString("leader"), apoyo = record.getString("apoyo");
+  const antes = nuevo ? null : record.original();
+  const cambio = nuevo || leader !== antes.getString("leader") || apoyo !== antes.getString("apoyo");
+  if (!cambio) return;
+  if (!leader) throw new BadRequestError("Elige quién dirige el proyecto.");
+  const rol = (id) => { try { return app.findRecordById("users", id).getString("role"); } catch (err) { return ""; } };
+  if (rol(leader) === "director") throw new BadRequestError("El Director creativo ya está a cargo de todos los proyectos. Elige a otra persona para dirigir este proyecto.");
+  if (apoyo) {
+    if (apoyo === leader) throw new BadRequestError("El apoyo debe ser otra persona, no quien dirige el proyecto.");
+    if (rol(apoyo) === "director") throw new BadRequestError("El Director creativo ya está a cargo; el apoyo debe ser otra persona.");
+  }
+  const members = arr(record.getStringSlice("members"));
+  for (const u of [leader, apoyo]) if (u && members.indexOf(u) < 0) members.push(u);
+  record.set("members", members);
 }
 
 function cargarPlan(tx, e) {
   const plan = tx.findRecordById("planes", e.request.pathValue("id"));
   const project = tx.findRecordById("proyectos", plan.getString("project"));
-  const lider = project.getString("leader") === e.auth.id;
+  const lider = project.getString("leader") === e.auth.id || project.getString("apoyo") === e.auth.id;
   const director = esDirector(e.auth);
-  if (!lider && !director) throw new ForbiddenError("Solo quien lidera el proyecto o el director puede hacer esto.");
+  if (!lider && !director) throw new ForbiddenError("Solo quienes están a cargo del proyecto pueden hacer esto.");
   return { plan, project, lider, director };
 }
 
@@ -279,20 +298,22 @@ function nuevaVersion(e) {
 function avisarVisto(app, visto, auth) {
   const plan = app.findRecordById("planes", visto.getString("plan"));
   const project = app.findRecordById("proyectos", plan.getString("project"));
-  const lider = project.getString("leader");
+  // Le llega a quien dirige el proyecto y a su apoyo.
+  const cargo = [project.getString("leader"), project.getString("apoyo")].filter(Boolean);
+  const avisar = (title, body) => { for (const u of cargo) notificar(app, u, "plan_visto", title, body, ruta); };
   const ruta = "#proyecto/" + project.id + "/plan";
   const quien = primerNombre(auth);
   const nombre = project.getString("name");
   if (visto.getString("verdict") !== "ok") {
-    notificar(app, lider, "plan_visto", quien + " pide cambios en el plan de " + nombre, visto.getString("comment"), ruta);
+    avisar(quien + " pide cambios en el plan de " + nombre, visto.getString("comment"));
     return;
   }
   const vistos = arr(app.findRecordsByFilter("vistos", "plan = {:p} && verdict = 'ok'", "", 500, 0, { p: plan.id }));
   const ok = {};
   for (const v of vistos) ok[v.getString("user")] = true;
   const faltan = integrantes(project).filter((m) => !ok[m]).length;
-  if (faltan) notificar(app, lider, "plan_visto", quien + " dio visto bueno al plan de " + nombre, faltan === 1 ? "Falta 1 persona." : "Faltan " + faltan + " personas.", ruta);
-  else notificar(app, lider, "plan_visto", "Todos dieron visto bueno: ya puedes aprobar el plan de " + nombre, "Al aprobarlo, cada entregable pasa al cronograma de sus responsables.", ruta);
+  if (faltan) avisar(quien + " dio visto bueno al plan de " + nombre, faltan === 1 ? "Falta 1 persona." : "Faltan " + faltan + " personas.");
+  else avisar("Todos dieron visto bueno: ya puedes aprobar el plan de " + nombre, "Al aprobarlo, cada entregable pasa al cronograma de sus responsables.");
 }
 
 // Recordatorios de cada mañana: comités sin reporte, reuniones de hoy y tareas por vencer o vencidas.
@@ -340,7 +361,7 @@ function recordatoriosTramites(app) {
     const vencido = t.getString("fechaLimite") < h;
     const titulo = (vencido ? "Venció el plazo de observaciones: " : "Responder observaciones antes del " + fechaCorta(t.getString("fechaLimite")) + ": ") + p.getString("name");
     const destino = {};
-    for (const u of [t.getString("responsable"), p.getString("leader")]) if (u) destino[u] = true;
+    for (const u of [t.getString("responsable"), p.getString("leader"), p.getString("apoyo")]) if (u) destino[u] = true;
     for (const u in destino) notificar(app, u, "tramite", titulo, t.getString("entidad") + (t.getString("radicado") ? " · radicado " + t.getString("radicado") : ""), "#proyecto/" + p.id + "/licencias");
   }
   // Una sola vez: exactamente a 30 días del vencimiento de la licencia.
@@ -348,7 +369,7 @@ function recordatoriosTramites(app) {
   for (const t of vencen) {
     const p = app.findRecordById("proyectos", t.getString("project"));
     const destino = {};
-    for (const u of [t.getString("responsable"), p.getString("leader")]) if (u) destino[u] = true;
+    for (const u of [t.getString("responsable"), p.getString("leader"), p.getString("apoyo")]) if (u) destino[u] = true;
     for (const u in destino) notificar(app, u, "tramite", "La licencia de " + p.getString("name") + " vence en 30 días", "Vigente hasta el " + fechaCorta(t.getString("vigenciaHasta")) + ".", "#proyecto/" + p.id + "/licencias");
   }
 }
@@ -468,7 +489,7 @@ function cumpleanos(app) {
 }
 
 module.exports = {
-  cumpleanos, conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
+  validarCargo, cumpleanos, conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
   avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
   DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,

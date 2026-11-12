@@ -398,12 +398,19 @@
     // Dirección creativa y perfil maestro tienen los mismos permisos sobre proyectos y planes.
     isDirector: () => !!state.me && (state.me.role === "director" || state.me.role === "maestro"),
     isMaestro: () => !!state.me && state.me.role === "maestro",
-    canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || q.isDirector()),
+    canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || p.apoyo === state.me.id || q.isDirector()),
+    // A cargo del proyecto: el Director creativo (siempre), quien lo dirige y el apoyo (opcional).
+    creativeDirector: () => state.users.find((u) => u.role === "director") || null,
+    aCargo: (p) => {
+      if (!p) return [];
+      const dc = q.creativeDirector();
+      return [dc && { id: dc.id, rol: "Director creativo" }, p.leader && { id: p.leader, rol: "Dirige el proyecto" }, p.apoyo && { id: p.apoyo, rol: "Apoyo" }].filter(Boolean);
+    },
     // El equipo del estudio, sin el perfil maestro de soporte.
     staff: () => state.users.filter((u) => u.role !== "maestro" && u.role !== "pantalla"),
     // Finanzas: Dirección, perfil maestro y el área de Administración (el líder ve los cobros de su proyecto).
     isFin: () => q.isDirector() || ((state.me && state.me.areas) || []).includes("administracion"),
-    canSeeMoney: (p) => q.isFin() || (!!p && !!state.me && p.leader === state.me.id),
+    canSeeMoney: (p) => q.isFin() || (!!p && !!state.me && (p.leader === state.me.id || p.apoyo === state.me.id)),
     contacto: (id) => state.contactos.find((c) => c.id === id) || null,
     revision: (id) => state.revisiones.find((r) => r.id === id) || null,
     // Ausencia vigente de una persona en una fecha (hoy si no se dice).
@@ -446,7 +453,7 @@
     planItems: (planId) => state.planItems.filter((i) => i.plan === planId).sort((a, b) => a.date.localeCompare(b.date) || (a.order || 0) - (b.order || 0)),
     planVistos: (planId) => state.vistos.filter((v) => v.plan === planId),
     // Integrantes que deben dar visto bueno: todos menos quien lidera.
-    reviewers: (p) => (p ? (p.members || []).filter((m) => m !== p.leader) : []),
+    reviewers: (p) => (p ? (p.members || []).filter((m) => m !== p.leader && m !== p.apoyo) : []),
     // La reunión con cliente más cercana del proyecto, a partir de una fecha.
     nextClientMeeting: (pid, from) => {
       const start = from || L.todayIso();
@@ -455,7 +462,7 @@
     },
     myTasks: (uid) => state.tareas.filter((t) => (t.assignees || []).includes(uid)),
     myEvents: (uid) => state.eventos.filter((e) => (e.attendees || []).includes(uid)),
-    myProjects: (uid) => state.proyectos.filter((p) => p.status !== "cerrado" && ((p.members || []).includes(uid) || p.leader === uid)),
+    myProjects: (uid) => state.proyectos.filter((p) => p.status !== "cerrado" && ((p.members || []).includes(uid) || p.leader === uid || p.apoyo === uid)),
     unread: () => state.notifs.filter((n) => !n.read).length,
     // Lo que está esperando una acción mía.
     pending: () => {
@@ -466,7 +473,7 @@
         const p = q.project(plan.project); if (!p) continue;
         const vistos = q.planVistos(plan.id);
         if (q.reviewers(p).includes(me) && !vistos.some((v) => v.user === me)) out.vistos.push({ plan, project: p });
-        if (p.leader === me || q.isDirector()) {
+        if (p.leader === me || p.apoyo === me || q.isDirector()) {
           const ok = q.reviewers(p).filter((m) => vistos.some((v) => v.user === m && v.verdict === "ok")).length;
           out.aprobar.push({ plan, project: p, ok, total: q.reviewers(p).length, cambios: vistos.filter((v) => v.verdict === "cambios") });
         }
@@ -713,8 +720,10 @@
         const D = (n) => L.iso(L.addDays(L.today(), n));
         const mk = (c, d) => pb.collection(c).create(d);
         toast("Cargando ejemplo…");
-        const p1 = await mk("proyectos", { name: "Torre Alameda", code: "TA-24", client: "Constructora Alameda", phase: "ejecucion", status: "activo", leader: me, members: team, areas: ["arquitectura", "interior", "visualizacion"], start: D(-30), end: D(60), folder: "\\\\NAS-LAP\\Proyectos\\TA-24_TorreAlameda\\", sample: true });
-        const p2 = await mk("proyectos", { name: "Casa Encinos", code: "CE-07", client: "Familia Encinos", phase: "anteproyecto", status: "activo", leader: me, members: team.slice(0, 3), areas: ["arquitectura", "interior"], start: D(-10), end: D(45), sample: true });
+        // Quien dirige los proyectos de ejemplo: otra persona si quien los carga es el Director creativo.
+        const lead = state.me.role === "director" ? (q.staff().find((u) => u.role !== "director") || {}).id || me : me;
+        const p1 = await mk("proyectos", { name: "Torre Alameda", code: "TA-24", client: "Constructora Alameda", phase: "ejecucion", status: "activo", leader: lead, members: team, areas: ["arquitectura", "interior", "visualizacion"], start: D(-30), end: D(60), folder: "\\\\NAS-LAP\\Proyectos\\TA-24_TorreAlameda\\", sample: true });
+        const p2 = await mk("proyectos", { name: "Casa Encinos", code: "CE-07", client: "Familia Encinos", phase: "anteproyecto", status: "activo", leader: lead, members: team.slice(0, 3), areas: ["arquitectura", "interior"], start: D(-10), end: D(45), sample: true });
         const r1 = await mk("eventos", { project: p1.id, kind: "cliente", title: "Presentación de fachadas al cliente", date: D(6), time: "10:00", duration: 60, attendees: team, createdBy: me, agenda: "Fachadas, lobby y avance de planos de licencia." });
         await mk("eventos", { project: p1.id, kind: "comite", title: "Comité interno Torre Alameda", date: D(1), time: "09:00", duration: 30, attendees: team, createdBy: me });
         await mk("eventos", { project: p2.id, kind: "cliente", title: "Revisión de anteproyecto", date: D(9), time: "15:00", duration: 60, attendees: team.slice(0, 3), createdBy: me });

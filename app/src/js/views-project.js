@@ -53,7 +53,7 @@
               ${plan && html`<span class="chip" data-s=${plan.s}>${plan.label}</span>`}
               ${pr.late > 0 && html`<span class="tag warn">${L.plural(pr.late, "atrasada", "atrasadas")}</span>`}
             </div>
-            <div class="pcard-foot"><span class="inline"><${Avatar} id=${p.leader} /><span class="muted">Lidera ${L.first(q.name(p.leader))}</span></span><${Faces} ids=${(p.members || []).filter((m) => m !== p.leader)} max=${5} /></div>
+            <div class="pcard-foot"><span class="inline"><${Faces} ids=${q.aCargo(p).map((x) => x.id)} max=${3} /><span class="muted">Dirige ${L.first(q.name(p.leader))}${p.apoyo ? " · apoyo " + L.first(q.name(p.apoyo)) : ""}</span></span><${Faces} ids=${(p.members || []).filter((m) => m !== p.leader && m !== p.apoyo)} max=${5} /></div>
           </a>`;
       })}</div>` : html`<div class="glass"><${Empty} title="Sin proyectos en esta vista" text="Un proyecto reúne a su equipo, su plan de entregables, sus tareas y sus reuniones."><button type="button" class="btn primary" onClick=${() => L.openSheet("project")}>Crear proyecto</button>${!s.proyectos.length && html`<button type="button" class="btn" onClick=${act.loadSample}>Ver con datos de ejemplo</button>`}<//></div>`}`;
   }
@@ -122,7 +122,7 @@
 
     if (!plan) {
       return html`<div class="glass"><${Empty} title="Este proyecto aún no tiene plan de entregables" text="El plan dice qué se entrega cada día o semana y quién está al mando. Cuando el equipo da su visto bueno y se aprueba, cada entregable pasa al cronograma personal de sus responsables.">
-        ${lead ? html`<button type="button" class="btn primary" onClick=${async () => { const p = await act.createPlan(project.id); if (p) { setSel(p.id); setEditing("new"); } }}>Armar el plan</button>` : html`<span class="muted">Lo arma ${q.name(project.leader)}, que lidera el proyecto.</span>`}<//></div>`;
+        ${lead ? html`<button type="button" class="btn primary" onClick=${async () => { const p = await act.createPlan(project.id); if (p) { setSel(p.id); setEditing("new"); } }}>Armar el plan</button>` : html`<span class="muted">Lo arma ${q.name(project.leader)}, que dirige el proyecto${project.apoyo ? ", con apoyo de " + q.name(project.apoyo) : ""}.</span>`}<//></div>`;
     }
 
     const items = q.planItems(plan.id);
@@ -173,7 +173,7 @@
           <article class="glass panel span-4">
             <div class="panel-head"><h2><span class="sl">/</span>Vistos buenos</h2><span class="tag">${okCount} de ${reviewers.length}</span></div>
             <div class="rows">
-              <div class="row static"><${Avatar} id=${project.leader} /><div class="row-main"><div class="row-title">${q.name(project.leader)}</div><div class="row-meta">Lidera y aprueba</div></div></div>
+              ${[project.leader, project.apoyo].filter(Boolean).map((uid) => html`<div class="row static" key=${uid}><${Avatar} id=${uid} /><div class="row-main"><div class="row-title">${q.name(uid)}</div><div class="row-meta">${uid === project.leader ? "Dirige el proyecto y aprueba" : "Apoyo: arma y aprueba"}</div></div></div>`)}
               ${reviewers.map((m) => {
                 const v = vistos.find((x) => x.user === m);
                 return html`<div class="row static" key=${m}><${Avatar} id=${m} /><div class="row-main"><div class="row-title">${q.name(m)}</div>
@@ -256,7 +256,7 @@
     const t = L.todayIso();
     return html`
       <${PageHead} eyebrow=${html`<a href="#proyectos">Proyectos</a>${p.code ? " · " + p.code : ""}${p.client ? " · " + p.client : ""}`} title=${p.name}
-        sub=${[L.PHASE[p.phase] && L.PHASE[p.phase].label, "Lidera " + q.name(p.leader), p.end && "Entrega final " + L.fmtShort(p.end)].filter(Boolean).join(" · ")}>
+        sub=${[L.PHASE[p.phase] && L.PHASE[p.phase].label, q.aCargo(p).map((x) => (x.rol === "Director creativo" ? "Dirección creativa " : x.rol === "Apoyo" ? "apoyo " : "dirige ") + L.first(q.name(x.id))).join(", "), p.end && "Entrega final " + L.fmtShort(p.end)].filter(Boolean).join(" · ")}>
         <${Faces} ids=${p.members || []} max=${6} />
         ${p.folder && L.desk && html`<button type="button" class="btn" onClick=${() => L.openPath(p.folder)}><${Icon} name="folder" /> Carpeta</button>`}
         <button type="button" class="btn" onClick=${() => L.openSheet("project", p.id)}><${Icon} name="edit" /> ${q.canLead(p) ? "Editar" : "Datos"}</button>

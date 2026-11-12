@@ -78,6 +78,9 @@
     for (const p of s.proyectos.filter((x) => x.status === "activo")) {
       const go = "#proyecto/" + p.id + "/plan";
       const openPlan = q.openPlan(p.id);
+      // A cargo: el Director creativo siempre está; además debe haber otra persona que dirija el proyecto.
+      const lead = q.user(p.leader);
+      if (!lead || lead.role === "director") add("plan", "media", "cargo" + p.id, `${pname(p.id)} necesita quién lo dirija`, "El Director creativo ya está a cargo de todos; elige a la directora o director del proyecto (y un apoyo si hace falta).", (s.users.filter((u) => u.role === "director" || u.role === "maestro")).map((u) => u.id), p.id, "#proyecto/" + p.id);
       if (!openPlan && !q.approvedPlan(p.id)) add("plan", "info", "none" + p.id, `${pname(p.id)} no tiene plan de entregables`, "Sin plan aprobado, nadie tiene sus entregas en el cronograma.", [p.leader], p.id, go);
       if (openPlan && openPlan.status === "en_aprobacion") {
         const vistos = q.planVistos(openPlan.id);
@@ -134,7 +137,7 @@
   }
 
   // Lo que le toca a la persona: lo suyo, y lo de los proyectos que lidera. Dirección ve todo con "Todo el estudio".
-  const relevant = (f, me) => f.who.includes(me) || (f.project && leaderOf(f.project) === me);
+  const relevant = (f, me) => f.who.includes(me) || (f.project && (leaderOf(f.project) === me || (q.project(f.project) || {}).apoyo === me));
   function mine() { const me = L.state.me && L.state.me.id; return run().filter((f) => relevant(f, me)); }
   function counts(list) { const c = {}; for (const f of list) { c[f.agent] = c[f.agent] || { total: 0, alta: 0 }; c[f.agent].total++; if (f.level === "alta") c[f.agent].alta++; } return c; }
   const visibleAgents = () => AGENTS.filter((a) => !a.fin || q.isFin());
