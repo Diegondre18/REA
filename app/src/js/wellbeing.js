@@ -72,7 +72,7 @@
       if (!live()) return;
       const f = todayIso();
       const rec = mine().find((b) => b.fecha === f);
-      const data = rec ? { [field]: (Number(rec[field]) || 0) + 1 } : { user: L.state.me.id, fecha: f, pausas: 0, descansos: 0, bloques: 0, [field]: 1 };
+      const data = rec ? { [field]: (Number(rec[field]) || 0) + 1 } : { user: L.state.me.id, fecha: f, pausas: 0, descansos: 0, bloques: 0, agua: 0, [field]: 1 };
       await act.save("bienestar", rec ? rec.id : null, data);
     }).catch(() => {});
     return wellQueue;
@@ -100,6 +100,7 @@
     { id: "trofeo", label: "Trofeo de la semana", how: `Cumplir la meta de bienestar: ${META} pausas o descansos en la semana`, goal: META, val: () => Math.max(sumWeek(0), sumWeek(-1)), weekly: true },
     { id: "cuadro", label: "Cuadro en tu puesto", how: "20 entregas a tiempo", goal: 20, val: () => onTime(L.state.me.id) },
     { id: "lampara", label: "Lámpara de escritorio", how: "3 semanas cumpliendo la meta de bienestar", goal: 3, val: weeksOk },
+    { id: "medalla", label: "Medalla de compañerismo", how: "Recibir 5 agradecimientos del equipo", goal: 5, val: () => (L.state.reconocimientos || []).filter((r) => r.para === L.state.me.id).length },
     { id: "gorra", label: "Gorra para tu muñeco", how: "40 entregas a tiempo", goal: 40, val: () => onTime(L.state.me.id) },
   ];
   let premiosSig = "", premiosBusy = false;
@@ -276,6 +277,7 @@
     else if (name === "pausa-ahora") pausaStart("");
     else if (name === "pausa-empezar") pausaStart(arg);
     else if (name === "pausa-10") { ls.set(pkey(arg), { snoozeTo: nowMin() + 10 }); clearAlert("pausa-" + arg); L.toast("Te aviso en 10 minutos"); }
+    else if (name === "agua-tome") aguaTome();
     else if (name === "cierre-abrir") { clearAlert("cierre"); showApp(); L.go("#cierre"); }
     else if (name === "cierre-30") { ls.set(ckey(), { snoozeTo: nowMin() + 30 }); clearAlert("cierre"); L.toast("Te recuerdo el cierre en 30 minutos"); }
   }
@@ -283,7 +285,41 @@
 
   /* ================= enganches con el resto de la app ================= */
   L.onTaskDone = (t) => { if (t.due && t.doneAt && t.doneAt <= t.due) celebrate("¡Entregado a tiempo! " + t.title); };
-  L.onNotif = (n) => { if (n.kind === "plan_aprobado") celebrate("¡" + n.title + "!", true); };
+  L.onNotif = (n) => {
+    if (n.kind === "plan_aprobado") celebrate("¡" + n.title + "!", true);
+    else if (n.kind === "gracias") celebrate(n.title + ": «" + n.body + "»");
+  };
+
+  /* ================= agua ================= */
+  const AGUA_CFG = "lap-cerebro-agua", AGUA_LAST = "lap-cerebro-agua-ultimo";
+  const aguaCfg = () => ls.get(AGUA_CFG, { on: false, cada: 90, meta: 8 });
+  const aguaHoy = () => { const r = mine().find((b) => b.fecha === todayIso()); return (r && Number(r.agua)) || 0; };
+  L.bubbleAgua = () => { const c = aguaCfg(); return c.on ? { n: aguaHoy(), meta: c.meta } : null; };
+  function aguaTick() {
+    const c = aguaCfg();
+    if (!c.on || !live() || !weekday()) return;
+    const m = nowMin();
+    if (m < 8 * 60 || m > 18 * 60 + 30) return;
+    const pres = q.presence(L.state.me);
+    if (pres === "reunion" || pres === "fuera" || L.state.screenBusy) return;
+    const n = aguaHoy();
+    if (n >= c.meta) return;
+    const last = ls.get(AGUA_LAST, 0);
+    if (!last || new Date(last).toDateString() !== new Date().toDateString()) { ls.set(AGUA_LAST, Date.now()); return; }
+    if (Date.now() - last < c.cada * 60e3) return;
+    ls.set(AGUA_LAST, Date.now());
+    // Suave: sin aviso de Windows y respeta el silencio.
+    if (!L.state.muted && pres !== "no_molestar") L.sound("normal");
+    if (L.desk && L.desk.bubbleNotify) L.desk.bubbleNotify({ id: "agua-" + Date.now(), kind: "bienestar", title: "¿Un vaso de agua?", body: `Llevas ${n} de ${c.meta} hoy.`, actions: [{ a: "agua-tome", label: "Tomé un vaso" }] });
+    else L.toast(`¿Un vaso de agua? Llevas ${n} de ${c.meta} hoy.`);
+  }
+  async function aguaTome() {
+    ls.set(AGUA_LAST, Date.now());
+    await addWell("agua");
+    const n = aguaHoy(), c = aguaCfg();
+    if (n >= c.meta) celebrate(`¡Meta de agua cumplida: ${n} vasos!`); else L.toast(`Vaso ${n} de ${c.meta}`);
+    L.syncBubble();
+  }
   // Cumpleaños: la persona lo celebra al abrir la app ese día.
   function birthdayCheck() {
     if (!live()) return;
@@ -300,7 +336,7 @@
     ticks++;
     try {
       pomoTick();
-      if (ticks % 20 === 0) { pausasTick(); cierreTick(); }
+      if (ticks % 20 === 0) { pausasTick(); cierreTick(); aguaTick(); }
       if (ticks % 15 === 3) { syncPremios(); birthdayCheck(); }
     } catch (e) { /* sigue */ }
   }, 1000);
@@ -465,6 +501,7 @@
       <div class="well">
         <div class="well-top"><b class=${tot >= META ? "ok" : ""}>${tot}<small>/${META}</small></b><span>pausas y descansos esta semana${tot >= META ? " · ¡meta cumplida! Trofeo en tu puesto" : ""}</span></div>
         <div class="well-days">${days.map((d) => { const r = recs.find((x) => x.fecha === d) || {}; const v = (Number(r.pausas) || 0) + (Number(r.descansos) || 0); return html`<div key=${d} class=${L.cx("wd", d === L.todayIso() && "today")}><i style=${{ height: (v / max) * 100 + "%" }}></i><span>${L.DIAS_C[L.parse(d).getDay()]}</span><small>${v || ""}</small></div>`; })}</div>
+        ${aguaCfg().on && html`<p class="agua-line">Agua hoy: <b>${aguaHoy()} de ${aguaCfg().meta} vasos</b> <button type="button" class="link" onClick=${aguaTome}>Tomé un vaso</button></p>`}
         <p class="hint">${st ? `Racha: ${L.plural(st, "semana", "semanas")} seguidas cumpliendo la meta.` : "Haz pausas activas o usa el Pomodoro: cada descanso cuenta."} Bloques de trabajo esta semana: ${recs.filter((x) => x.fecha >= a).reduce((m, x) => m + (Number(x.bloques) || 0), 0)}.</p>
       </div>
     <//>`;
@@ -473,6 +510,7 @@
   const ICONS = {
     planta: [[3, 0, 2, 1, "#6aa34a"], [2, 1, 4, 2, "#4f8a36"], [1, 2, 6, 1, "#6aa34a"], [3, 3, 2, 1, "#3b6e2a"], [2, 4, 4, 3, "#c9a77d"], [3, 7, 2, 1, "#a98760"]],
     taza: [[1, 1, 5, 1, "#8b5a2b"], [1, 2, 5, 5, "#ea0029"], [6, 3, 2, 1, "#ea0029"], [7, 4, 1, 2, "#ea0029"], [6, 5, 1, 1, "#ea0029"], [2, 7, 3, 1, "#a3001a"]],
+    medalla: [[2, 0, 1, 3, "#0057ff"], [5, 0, 1, 3, "#ea0029"], [3, 2, 2, 1, "#e8e2da"], [2, 3, 4, 4, "#f2c94c"], [3, 4, 2, 2, "#d9a925"], [3, 7, 2, 1, "#c08f12"]],
     trofeo: [[1, 0, 6, 1, "#f2c94c"], [2, 1, 4, 3, "#f2c94c"], [0, 1, 1, 2, "#d9a925"], [7, 1, 1, 2, "#d9a925"], [3, 4, 2, 2, "#d9a925"], [2, 6, 4, 2, "#c08f12"]],
     cuadro: [[0, 1, 8, 6, "#8b5a2b"], [1, 2, 6, 4, "#5fb4ff"], [1, 4, 4, 2, "#6aa34a"], [5, 2, 1, 1, "#f2c94c"]],
     lampara: [[2, 0, 4, 2, "#f3d77f"], [1, 2, 6, 1, "#e9c968"], [3, 3, 1, 4, "#4a4650"], [2, 7, 4, 1, "#4a4650"]],
@@ -502,6 +540,8 @@
     const director = q.isDirector();
     const saveMine = (h) => { setMineH(h); ls.set(PAUSA_MINE, { horas: h }); };
     const saveCc = (c) => { setCc(c); ls.set(CIERRE_CFG, c); };
+    const [ag, setAg] = useState(aguaCfg());
+    const saveAg = (c) => { setAg(c); ls.set(AGUA_CFG, c); L.syncBubble(); };
     const saveStudio = async (h) => {
       setStH(h);
       const rec = (s.ajustes || []).find((x) => x.clave === "pausas");
@@ -530,6 +570,9 @@
           <input type="time" class="time-in" value=${stNew} onInput=${(e) => setStNew(e.target.value)} aria-label="Hora de pausa del estudio" />
           <button type="button" class="btn sm" disabled=${!stNew} onClick=${() => { if (stNew && !stH.includes(stNew)) saveStudio([...stH, stNew].sort()); setStNew(""); }}>Agregar al estudio</button></div>
         <span class="hint">Solo Dirección. Le llegan a todo el equipo.</span></div>`}
+      <label class="check"><input type="checkbox" checked=${ag.on} onChange=${(e) => saveAg({ ...ag, on: e.target.checked })} />
+        <span><b>Recordatorio de agua</b><small>De 8 a. m. a 6:30 p. m., un globito suave cada <select class="mini-sel" value=${ag.cada} onClick=${(e) => e.preventDefault()} onChange=${(e) => saveAg({ ...ag, cada: Number(e.target.value) })}>${[45, 60, 90, 120].map((m) => html`<option key=${m} value=${m}>${m} min</option>`)}</select>
+          · meta <select class="mini-sel" value=${ag.meta} onClick=${(e) => e.preventDefault()} onChange=${(e) => saveAg({ ...ag, meta: Number(e.target.value) })}>${[6, 8, 10].map((m) => html`<option key=${m} value=${m}>${m} vasos</option>`)}</select>. En la burbuja se llena tu vaso.</small></span></label>
       <label class="check"><input type="checkbox" checked=${cc.on} onChange=${(e) => saveCc({ ...cc, on: e.target.checked })} />
         <span><b>Cierre del día</b><small>A esta hora te pregunto cuánto avanzaste y qué sigue mañana: <input type="time" class="time-in" value=${cc.hora} onClick=${(e) => e.preventDefault()} onInput=${(e) => saveCc({ ...cc, hora: e.target.value || "18:00" })} /></small></span></label>
       <div class="fld"><span class="lbl">Cumpleaños</span><div class="inline">

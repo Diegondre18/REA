@@ -14,16 +14,16 @@
     // herramientas del estudio
     tramites: "tramites", planos: "planos", envios: "envios", visitas: "visitas", contactos: "contactos", materiales: "materiales",
     horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones", respaldos: "respaldos",
-    bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes",
+    bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes", reconocimientos: "reconocimientos", anuncios: "anuncios",
   };
-  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes"];
+  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
     gate: null, // { mode: server|login|register, error }
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
-    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [],
+    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [], reconocimientos: [], anuncios: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
@@ -246,7 +246,7 @@
     const live = !!state.me && (state.mode === "live" || state.mode === "offline") && state.me.role !== "pantalla";
     const me = live ? { id: state.me.id, name: state.me.name, muneco: state.me.muneco || null } : null;
     const st = { me, presencia: live ? q.presence(state.me) : "", unread: live ? q.unread() : 0, muted: !!state.muted, theme: state.theme || "system",
-      premios: live ? state.me.premios || [] : [], timer: live && L.bubbleTimer ? L.bubbleTimer() : null };
+      premios: live ? state.me.premios || [] : [], timer: live && L.bubbleTimer ? L.bubbleTimer() : null, agua: live && L.bubbleAgua ? L.bubbleAgua() : null };
     const sig = JSON.stringify(st);
     if (sig === bubbleSig) return;
     const prev = bubbleSig ? JSON.parse(bubbleSig).unread : -1;

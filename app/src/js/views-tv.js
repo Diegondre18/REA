@@ -47,6 +47,7 @@
         <aside class="tv-side">
           <div class="tv-brand"><${L.Sym} /><b>LAP</b><span>Cerebro</span>${exit && html`<button type="button" class="btn sm ghost" onClick=${() => L.go("#oficina")}>Salir</button>`}</div>
           <${Clock} />
+          ${L.anunciosActivos && L.anunciosActivos().slice(0, 2).map((a) => html`<div class=${L.cx("tv-card anuncio", a.importante && "imp")} key=${a.id}><h3>${a.importante ? "Anuncio importante" : "Anuncio"}</h3><p class="tv-anuncio">${a.texto}</p></div>`)}
           ${bdays.length > 0 && html`<div class="tv-card bday"><h3>¡Cumpleaños!</h3>${bdays.map((u) => html`<div class="tv-row" key=${u.id}><${Avatar} id=${u.id} cls="lg" /><b>${u.name}</b></div>`)}</div>`}
           <div class="tv-card"><h3>Hoy</h3>${hoy.length ? hoy.map((e) => { const live = e.time && nowM >= mins(e.time) && nowM < mins(e.time) + (Number(e.duration) || 60); return html`
             <div class=${L.cx("tv-row", live && "live")} key=${e.id}><span class="mono">${e.time || "—"}</span><span><b>${e.title}</b><small>${live ? "En curso · " : ""}${L.EVENT_KIND[e.kind].label}${q.project(e.project) ? " · " + (q.project(e.project).code || q.project(e.project).name) : ""}</small></span></div>`; })

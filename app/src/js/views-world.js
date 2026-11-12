@@ -187,15 +187,16 @@
     // Premios del muñeco sobre el escritorio.
     const pr = (dk.u && Array.isArray(dk.u.premios)) ? dk.u.premios : [];
     const left = [[0.1, 0.22], [0.1, 0.6]], right = [[1.45, 0.25], [1.68, 0.58]];
-    for (const id of ["lampara", "planta", "trofeo", "cuadro", "taza"]) {
+    for (const id of ["lampara", "planta", "medalla", "trofeo", "cuadro", "taza"]) {
       if (!pr.includes(id)) continue;
-      const slot = (id === "lampara" || id === "planta" ? left : right).shift();
+      const slot = (id === "lampara" || id === "planta" || id === "medalla" ? left : right).shift();
       if (!slot) continue;
       const sx = x + slot[0], sy = y + slot[1];
       if (id === "lampara") { box(ctx, sx + 0.1, sy + 0.1, 11, 0.1, 0.1, 9, C.metal); box(ctx, sx, sy, 20, 0.3, 0.3, 3, "#fbe7a8", "#f3d77f", "#e9c968"); }
       else if (id === "planta") { box(ctx, sx + 0.04, sy + 0.04, 11, 0.22, 0.22, 3, C.pot, "#d6cdc3", "#c7bdb2"); box(ctx, sx, sy, 14, 0.3, 0.3, 4, C.leaf, C.leaf2, C.leaf3); }
       else if (id === "trofeo") { box(ctx, sx + 0.06, sy + 0.06, 11, 0.16, 0.16, 1, "#c08f12"); box(ctx, sx, sy, 12, 0.28, 0.28, 4, "#f2c94c", "#d9a925", "#c08f12"); }
       else if (id === "cuadro") { box(ctx, sx, sy, 11, 0.36, 0.07, 5, "#8b5a2b", "#5fb4ff", "#6e4a2e"); }
+      else if (id === "medalla") { box(ctx, sx + 0.1, sy, 11, 0.06, 0.06, 6, "#0057ff"); box(ctx, sx + 0.02, sy - 0.02, 15, 0.22, 0.08, 4, "#f2c94c", "#d9a925", "#c08f12"); }
       else if (id === "taza") { box(ctx, sx, sy, 11, 0.17, 0.17, 2, "#ea0029", "#c4001f", "#a3001a"); }
     }
     if (!pr.length || pr.length < 3) { /* deja la decoración normal */ }
@@ -719,6 +720,7 @@
           ${menu && html`<div class="o-menu glass" role="menu" style=${{ left: menu.x + "px", top: menu.y + "px" }} onMouseLeave=${() => setMenu(null)}>
             <div class="o-menu-head"><b>${menu.u.name}</b><small><${L.PresDot} id=${q.presence(menu.u)} /> ${q.presenceInfo(menu.u).label}</small></div>
             <button type="button" role="menuitem" onClick=${() => { setMenu(null); L.openSheet("toque", menu.u.id); }}>Tocar el hombro</button>
+            <button type="button" role="menuitem" onClick=${() => { setMenu(null); L.openSheet("gracias", menu.u.id); }}>Dar las gracias</button>
             ${menu.working && html`<button type="button" role="menuitem" onClick=${() => { setMenu(null); L.openTask(menu.u.taskId); }}>Ver en qué trabaja</button>`}
             <button type="button" role="menuitem" onClick=${() => { setMenu(null); L.openSheet("profile", menu.u.id); }}>Ver perfil</button>
           </div>`}

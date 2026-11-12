@@ -81,7 +81,7 @@
     const weekEnd = L.iso(L.addDays(L.monday(L.today()), 6));
     if (!s.proyectos.length && !s.tareas.length) {
       return html`<${PageHead} eyebrow=${L.cap(L.fmtLong(t))} title=${`${L.greeting()}, ${L.first(me.name)}.`} />
-        <div class="grid"><${TeamNow} users=${q.staff()} />
+        <div class="grid">${L.Bienvenida && html`<${L.Bienvenida} />`}<${TeamNow} users=${q.staff()} />
         <div class="glass span-12"><${Empty} title="El estudio todavía no tiene proyectos aquí" text="Crea un proyecto, suma a su equipo y arma el plan de entregables. Cuando el plan se aprueba, cada quien ve lo suyo en su cronograma.">
           <button type="button" class="btn primary" onClick=${() => L.openSheet("project")}>Crear el primer proyecto</button>
           <button type="button" class="btn" onClick=${act.loadSample}>Ver con datos de ejemplo</button><//></div></div>`;
@@ -101,6 +101,7 @@
       <${PageHead} eyebrow=${`${L.cap(L.fmtLong(t))} · Semana ${L.isoWeek(L.today())}`} title=${`${L.greeting()}, ${L.first(me.name)}.`}
         sub=${`${para ? `Tienes ${L.plural(para, "tarea", "tareas")} para hoy` : "No tienes entregas para hoy"}${estaSemana ? ` y ${L.plural(estaSemana, "reunión", "reuniones")} esta semana` : ""}.`} />
       <div class="grid">
+        ${L.Bienvenida && html`<${L.Bienvenida} />`}
         <${Pending} pend=${pend} />
         ${L.AgentStrip && html`<${L.AgentStrip} />`}
         <${Panel} title="Mis tareas" cls="span-7" action=${html`<a class="link" href="#agenda">Mi cronograma</a>`}>
@@ -320,10 +321,12 @@
     };
     return html`
       <${PageHead} title="Equipo" sub=${`${L.plural(staff.length, "persona", "personas")} · ${staff.filter(q.online).length} conectadas ahora`}>
+        ${q.isDirector() && html`<button type="button" class="btn" onClick=${() => L.openSheet("anuncio")}>Publicar un anuncio</button>`}
         <button type="button" class="btn" onClick=${() => L.openSheet("profile", s.me.id)}><${Icon} name="edit" /> Mi perfil</button>
       <//>
       <div class="grid">
         <${L.Carga} />
+        ${L.Reconocimientos && html`<${L.Reconocimientos} />`}
         ${sections.filter((x) => x.people.length).map(({ a, people }) => html`<${Panel} key=${a.id} title=${a.label} cls="span-12" action=${html`<span class="tag">${people.length}</span>`}><div class="members">${sortPeople(people).map(card)}</div><//>`)}
         ${none.length > 0 && html`<${Panel} title="Sin área asignada" cls="span-12" action=${q.isDirector() ? html`<span class="tag">Ábreles el perfil para asignarla</span>` : null}><div class="members">${sortPeople(none).map(card)}</div><//>`}
       </div>`;

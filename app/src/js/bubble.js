@@ -34,6 +34,15 @@
     } else if (Math.floor(t / 3000) % 3 === 0 && (t % 3000) < 500) lift = 1;
     const x = Math.round((w * dpr - 12 * k) / 2), y = Math.round(h * dpr - 22 * k - 14 * dpr) - lift * Math.round(dpr);
     PX.drawFigure(ctx, x, y, cfg, "front", frame, false, flip, k, ow);
+    // Vaso de agua que se llena durante el día.
+    if (state.agua) {
+      const u = Math.max(2, Math.round(2 * dpr)), gx = Math.round(4 * dpr), gh = 9 * u, gw = 6 * u, gy = Math.round(h * dpr - 18 * dpr) - gh;
+      const lvl = Math.min(1, state.agua.n / Math.max(1, state.agua.meta));
+      ctx.fillStyle = "#2a2228"; ctx.fillRect(gx - u, gy, u, gh); ctx.fillRect(gx + gw, gy, u, gh); ctx.fillRect(gx - u, gy + gh, gw + 2 * u, u);
+      ctx.fillStyle = "rgba(200,225,238,0.55)"; ctx.fillRect(gx, gy, gw, gh);
+      const fh = Math.round(gh * lvl);
+      ctx.fillStyle = "#4aa8ff"; ctx.fillRect(gx, gy + gh - fh, gw, fh);
+    }
   }
   // Redibujo liviano: 10 cuadros por segundo bastan para respirar; al saltar, cada cuadro.
   let lastPaint = 0;
@@ -179,6 +188,7 @@
       ${n ? `<button type="button" class="unread" data-a="bell">Ver ${n === 1 ? "1 aviso sin leer" : n + " avisos sin leer"}</button><div class="sep"></div>` : ""}
       ${state.timer ? `<button type="button" data-c="pomo-stop">Terminar el Pomodoro</button>` : `<button type="button" data-c="pomo-start">Empezar Pomodoro</button>`}
       <button type="button" data-c="pausa-ahora">Pausa activa ahora</button>
+      ${state.agua ? `<button type="button" data-c="agua-tome">Tomé un vaso de agua (${state.agua.n}/${state.agua.meta})</button>` : ""}
       <div class="sep"></div>
       ${PX.PRESENCIAS.map((p) => `<button type="button" role="menuitemradio" aria-checked="${p.id === pres}" data-p="${p.id}"><i class="dot" style="background:${p.color}"></i>${p.label}</button>${p.id === pres && p.hint ? `<div class="hint">${esc(p.hint)}</div>` : ""}`).join("")}
       <div class="sep"></div>

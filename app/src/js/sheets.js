@@ -103,6 +103,7 @@
           <${Field} label="Inicio" id="t-start"><input id="t-start" type="date" value=${f.start} onInput=${set("start")} /><//>
           <${Field} label="Entrega" id="t-due"><input id="t-due" type="date" value=${f.due} onInput=${set("due")} /><//>
         </div>
+        ${L.DurationHint && f.status !== "terminado" && html`<${L.DurationHint} kind=${f.kind} assignees=${f.assignees} start=${f.start} due=${f.due} onUse=${(d) => setF((p) => ({ ...p, due: d }))} />`}
         ${f.project && html`<${Field} label="Es contenido para la reunión" id="t-meeting" hint=${!newMeeting && f.meeting && !meetingTouched ? "Se eligió sola la reunión con cliente más cercana del proyecto." : ""}>
           <select id="t-meeting" value=${newMeeting ? "__new" : f.meeting || ""} onChange=${(e) => { const v = e.target.value; setMeetingTouched(true); if (v === "__new") setNewMeeting({ title: "Reunión con cliente", date: f.due || L.todayIso(), time: "10:00" }); else { setNewMeeting(null); setF((p) => ({ ...p, meeting: v })); } }}>
             <option value="">Ninguna</option>
@@ -258,7 +259,8 @@
     return html`
       <${Sheet} title=${isMe ? "Tu perfil" : "Persona"} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
         <div class="profile-head"><${Avatar} id=${u.id} cls="xl" dot /><div><b>${u.name}</b><span class="muted">${u.email || ""}</span><span class="tag">${q.roleLabel(u)}${q.online(u) && q.presence(u) !== "disponible" ? " · " + q.presenceInfo(u).label : ""}</span></div>
-          ${!isMe && u.role !== "maestro" && html`<button type="button" class="btn sm push" onClick=${() => L.openSheet("toque", u.id)}><${L.Icon} name="bell" size=${13} /> Tocar el hombro</button>`}</div>
+          ${!isMe && u.role !== "maestro" && u.role !== "pantalla" && html`<div class="push stack-btns"><button type="button" class="btn sm" onClick=${() => L.openSheet("toque", u.id)}><${L.Icon} name="bell" size=${13} /> Tocar el hombro</button><button type="button" class="btn sm" onClick=${() => L.openSheet("gracias", u.id)}>Dar las gracias</button></div>`}</div>
+        ${L.graciasPara && L.graciasPara(u.id).length > 0 && html`<p class="muted kudo-count">${isMe ? "Has recibido" : "Ha recibido"} ${L.plural(L.graciasPara(u.id).length, "agradecimiento", "agradecimientos")} del equipo.</p>`}
         ${isMe && html`<${Field} label="Nombre" id="u-name"><input id="u-name" value=${f.name} onInput=${set("name")} /><//>`}
         <${Field} label="Cargo" id="u-cargo"><input id="u-cargo" value=${f.cargo} onInput=${set("cargo")} disabled=${!can} placeholder="Arquitecta, visualizador, coordinadora…" /><//>
         <div class="fld"><span class="lbl">${u.role === "director" || f.role === "director" ? "Áreas, además de Dirección" : "Equipo"}</span><${Pills} options=${areaOptions} value=${f.areas} attr="data-a" disabled=${!can} onChange=${(a) => setF((x) => ({ ...x, areas: toggleIn(x.areas, a) }))} /></div>
@@ -332,6 +334,8 @@
     if (sh.type === "profile") return html`<${ProfileSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "muneco") return html`<${L.MunecoSheet} key=${k} />`;
     if (sh.type === "toque") return html`<${L.ToqueSheet} key=${k} id=${sh.id} />`;
+    if (sh.type === "gracias") return html`<${L.GraciasSheet} key=${k} id=${sh.id} />`;
+    if (sh.type === "anuncio") return html`<${L.AnuncioSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "tool") { const { col, ...d } = sh.defaults; return html`<${L.ToolSheet} key=${k + col} col=${col} id=${sh.id} defaults=${d} />`; }
     return null;
   }

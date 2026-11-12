@@ -92,7 +92,7 @@
           : html`<p class="note">Ningún proyecto tiene entregas ni atrasos esta semana.</p>`}</div>
       <//>
       <${Panel} title="Carga de la semana" cls="span-5" action=${html`<a class="link" href="#linea">Línea de tiempo</a>`}>
-        <div class="load-list">${people.map(({ u, n, late, away }) => html`<div class="load-row" key=${u.id}><${Avatar} id=${u.id} /><span class="nm">${L.first(u.name)}${away ? html` <small>ausente</small>` : ""}</span>
+        <div class="wk-load-list">${people.map(({ u, n, late, away }) => html`<div class="wk-load-row" key=${u.id}><${Avatar} id=${u.id} /><span class="nm">${L.first(u.name)}${away ? html` <small>ausente</small>` : ""}</span>
           <span class="lb"><i class=${loadLevel(n)} style=${{ width: (n / max) * 100 + "%" }}></i></span><span class="mono">${n}${late ? html` <b class="late">${late}↯</b>` : ""}</span></div>`)}</div>
         <p class="hint">Tareas abiertas que la persona tiene en la semana. Amarillo desde ${LOAD_MED}, rojo desde ${LOAD_HIGH}. ↯ = atrasadas.</p>
       <//>`;
@@ -138,7 +138,8 @@
     const todayPos = pos(t);
 
     let body;
-    if (mode === "proyectos") {
+    if (mode === "duraciones") body = html`<${L.Duraciones} />`;
+    else if (mode === "proyectos") {
       const projects = s.proyectos.filter((p) => p.status !== "cerrado").map((p) => {
         const tasks = s.tareas.filter((x) => x.project === p.id && x.due && inArea(x) && span(x.start, x.due));
         const marks = [
@@ -202,7 +203,7 @@
     return html`
       <${L.PageHead} title="Línea de tiempo" sub="Todos los proyectos y la carga de cada persona en un solo calendario. Por ahora es para mirar: las fechas se cambian en cada tarea." />
       <div class="toolbar wrap">
-        <${Seg} label="Ver por" value=${mode} onChange=${setMode} options=${[{ id: "proyectos", label: "Proyectos" }, { id: "personas", label: "Personas" }]} />
+        <${Seg} label="Ver por" value=${mode} onChange=${setMode} options=${[{ id: "proyectos", label: "Proyectos" }, { id: "personas", label: "Personas" }, { id: "duraciones", label: "Duraciones" }]} />
         <${Seg} label="Escala" value=${zoom} onChange=${(z) => { setZoom(z); setShift(0); }} options=${ZOOMS} />
         <div class="seg" role="group" aria-label="Mover"><button type="button" aria-label="Antes" onClick=${() => setShift(shift - 1)}>‹</button><button type="button" aria-pressed=${shift === 0} onClick=${() => setShift(0)}>Hoy</button><button type="button" aria-label="Después" onClick=${() => setShift(shift + 1)}>›</button></div>
         <span class="muted light">${L.fmtShort(start)} a ${L.fmtShort(end)} ${end.getFullYear()}</span>

@@ -225,6 +225,7 @@
     return html`
       ${s.update && html`<div class="banner glass update"><p><strong>LAP Cerebro ${s.update} está lista.</strong> Se instala al reiniciar la app; tarda unos segundos y vuelve a abrir sola.</p><button type="button" class="btn sm primary" onClick=${() => L.desk.installUpdate()}>Reiniciar y actualizar</button></div>`}
       ${L.WellAlert && html`<${L.WellAlert} />`}
+      ${L.AnunciosBanner && html`<${L.AnunciosBanner} />`}
       ${L.BackupBanner && html`<${L.BackupBanner} />`}
       ${s.mode === "offline" && html`<div class="banner glass"><p><strong>Sin conexión con el servidor.</strong> Lo que ves puede estar desactualizado. La app reintenta sola cada minuto.</p><button type="button" class="btn sm" onClick=${act.reconnect}>Reintentar ahora</button></div>`}
       ${showWeek && html`<div class="banner glass wk-banner"><p><strong>Empieza la semana ${L.isoWeek(L.today())}.</strong> Mira qué vence, qué está bloqueado y quién del equipo no estará.</p><div class="inline"><button type="button" class="btn sm ghost" onClick=${markWeek}>Ahora no</button><button type="button" class="btn sm primary" onClick=${() => { markWeek(); L.go("#semana"); }}>Ver mi semana</button></div></div>`}

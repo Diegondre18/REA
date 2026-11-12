@@ -61,6 +61,18 @@ El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sist
 
 **Pantalla de la oficina (TV).** Oficina → *Pantalla de la oficina*: la oficina en grande, la hora, las reuniones de hoy, las entregas de la semana, quién está y los cumpleaños. Para una TV fija, crea una cuenta y que Dirección le ponga el rol *Pantalla de la oficina*: abre siempre así y no aparece como persona.
 
+## Equipo: agradecimientos, anuncios, bienvenida y duraciones reales
+
+**Agradecimientos.** Desde el perfil de un compañero o haciendo clic en su muñeco en la oficina: *Dar las gracias*. Le llega a su burbuja con confeti y queda en Equipo. Con 5 agradecimientos su muñeco gana la medalla de compañerismo.
+
+**Anuncios de Dirección.** Equipo → *Publicar un anuncio*, con fecha hasta la que se muestra. Llega a la burbuja de todos, queda arriba en la app y en la pantalla de la oficina. Si se marca *importante*, suena aunque estén en No molestar.
+
+**Bienvenida.** En Inicio, una lista guiada (armar el muñeco, cumpleaños, conocer la oficina, cambiar el estado, marcar en qué trabajas, ver Mi semana) que se marca sola. Se puede ocultar.
+
+**Cuánto tardan las cosas de verdad.** Con las tareas terminadas, la app calcula cuántos días hábiles toma cada tipo de trabajo (mediana), cuánto se planea y qué tan seguido se entrega a tiempo: Línea de tiempo → *Duraciones*, para todo el estudio o por persona. Al crear una tarea con tipo y fecha de inicio sugiere una entrega realista (con el historial de la persona si tiene al menos 3 de ese tipo) y avisa si quedó corta. Es estadística simple, sin IA.
+
+**Agua.** Opcional en el perfil: un globito suave cada 45 a 120 minutos en horario laboral, botón *Tomé un vaso* y un vaso junto al muñeco de la burbuja que se llena durante el día. Cuenta en tu bienestar privado.
+
 ## Respaldo del estudio
 
 En el PC servidor, **Tu perfil → Respaldo del estudio**: se elige una carpeta en un disco externo o en el NAS y una vez al día se guarda ahí una copia completa (las últimas 30). Hay botones para respaldar ahora, abrir la carpeta y restaurar cualquier respaldo; al restaurar, los datos de ese momento quedan guardados aparte en el PC servidor. Si el respaldo falla o lleva más de 2 días sin hacerse, Dirección recibe un aviso y ve un letrero arriba en la app.
