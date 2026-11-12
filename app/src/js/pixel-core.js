@@ -3,8 +3,8 @@
   "use strict";
   const GENEROS = [{ id: "hombre", label: "Hombre" }, { id: "mujer", label: "Mujer" }];
   const PEINADOS = {
-    hombre: [{ id: "corto", label: "Corto" }, { id: "rizado", label: "Rizado" }, { id: "largo", label: "Largo" }, { id: "coleta", label: "Coleta" }],
-    mujer: [{ id: "largo", label: "Largo" }, { id: "coleta", label: "Coleta" }, { id: "corto", label: "Corto" }, { id: "rizado", label: "Rizado" }],
+    hombre: [{ id: "corto", label: "Corto" }, { id: "rapado", label: "Rapado" }, { id: "rizado", label: "Rizado" }, { id: "largo", label: "Largo" }],
+    mujer: [{ id: "largo", label: "Largo" }, { id: "coleta", label: "Coleta" }, { id: "bob", label: "Melena corta" }, { id: "rizado", label: "Rizado" }],
   };
   const PELO = [
     { id: "#2b2220", label: "Negro" }, { id: "#5a3825", label: "Castaño" }, { id: "#8a5a35", label: "Castaño claro" }, { id: "#d9b25f", label: "Rubio" },
@@ -17,7 +17,7 @@
     { id: "#8b5a2b", label: "Café" }, { id: "#2d2f36", label: "Negro" }, { id: "#e9e6e1", label: "Blanco" }, { id: "#8a8f98", label: "Gris" },
     { id: "#1f3a68", label: "Azul oscuro" }, { id: "#6b7a2f", label: "Verde oliva" }, { id: "#7a1f3d", label: "Vino" }, { id: "#5fb4ff", label: "Celeste" },
   ];
-  const OUT = "#1e1512", EYE = "#1e1512", PANTS = "#d6c4ac", PANTS_S = "#b8a48e", SHOES = "#f2f0ec", SOLE = "#c4bfb8", SHIRT = "#eeeae4";
+  const OUT = "#2a2228", EYE = "#231c20", PANTS = "#cbbda7", PANTS_S = "#ae9f88", SHOES = "#f4f2ee", SOLE = "#c9c4bb", SHIRT = "#f4f1ea";
 
   const hex = (c) => { const v = String(c).startsWith("rgb") ? c.match(/\d+/g).map(Number) : null; if (v) return v; const n = parseInt(c.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
   const shade = (c, k) => { const [r, g, b] = hex(c); const f = (v) => Math.max(0, Math.min(255, Math.round(k >= 0 ? v * (1 - k) : v + (255 - v) * -k))); return `rgb(${f(r)},${f(g)},${f(b)})`; };
@@ -34,172 +34,167 @@
     return defaults(u);
   }
 
-  // Muñeco en pixel art de 27×56, dibujado a partir de la referencia del estudio: vista isométrica de 3/4
-  // (de frente y de espaldas, la que usa la oficina) y vista frontal (burbuja y foto de perfil), seis peinados. Cada letra es una parte; los colores de pelo, piel y buzo se cambian
-  // según el muñeco de cada persona. O contorno · H/L/h pelo · S/s piel · E ojos · m boca · K/k audífonos
-  // al cuello · C/c buzo · T/t camiseta · P/p/q pantalón · F/f tenis · r moño.
-  const SPRITES = {"front":{"corto":["...........................","...........................",".........OOOOOOOO..........",".......OOHHHHLLHHOO........","......OHHLLHHHHHHHHO.......",".....OHHHHHHHHHHHHHHO......",".....OHhHHHHHLHHHHhHO......","....OHHhHHHHHHHHHHhHHO.....","....OHhhHHhHHHHhHHhhHO.....","....OhhSShhSSSShSShhhO.....","....OhSShShhhSSShhhSShO....","....OhSSSSSSSSSSSSSSShO....","...OSsSSSSEESSSSEESSSsSO...","...OSsSSSSEESSSSEESSSsSO...","....OhsSSSEESSsSEESSShO....","......OsSSSSSSsSSSSSO......",".......OSSSSSmmSSSSO.......",".......OOsSSSSSSSSsOO......","......OKkOOsSSSSsOOkKO.....",".....OKKKkOOsssOOkKKKO.....",".....OkKKKkOSSSOkKKKkO.....","....OOkkKKOOOOOOOKKkkOO....","...OCCOkkOCCCCCCCOkkOCCO...","...OCCCOOCCCCCCCCCOOCCcO...","...OCCCcCCCCcCCCcCCCCCcO...","..OCCCcOCCcCCCcCCCcCOCCcO..","..OCCCcOCCCCcCCCCCcCOCCcO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"],"rizado":["..........OOOOO............",".......OOOHHHLHOOOO........","......OHLLHHHHLhHLLO.......",".....OOHHHhhHHhHHHLHO......","...OOHLHHhHLLLhhLLHhhO.....","...OLLhHhHLHHLhHLHHhHO.....","...OhHhHhLLHhHhhHLHHhHO....","...OHHHHhHHhHhhHhhHHHhO....","...OHHhHHHHhSHhShhHHHhO....","...OhhhHhHhSSShSSShHhHO....","....OhHHhShhhSSShhhShHO....","....OHhhSSSSSSSSSSSShHO....","....OHhSSSEESSSSEESShO.....",".....OhSSSEESSSSEESShO.....",".....OhsSSEESSsSEESShO.....","......OsSSSSSSsSSSSSO......",".......OSSSSSmmSSSSO.......",".......OOsSSSSSSSSsOO......","......OKkOOsSSSSsOOkKO.....",".....OKKKkOOsssOOkKKKO.....",".....OkKKKkOSSSOkKKKkO.....","....OOkkKKOOOOOOOKKkkOO....","...OCCOkkOCCCCCCCOkkOCCO...","...OCCCOOCCCCCCCCCOOCCcO...","...OCCCcCCCCcCCCcCCCCCcO...","..OCCCcOCCcCCCcCCCcCOCCcO..","..OCCCcOCCCCcCCCCCcCOCCcO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"],"largo":["...........................","........OOOOOOOOO..........","......OOHHHLLHHHHOO........",".....OHHLLHHHHHHHHHO.......","....OHHHHHHHHHHHHHHHO......","....OHHHHHHHLHHHHHHHHO.....","...OHHhHHHHHHHHHHHHhHO.....","...OHHhHHHHHHHHHHHHhHHO....","...OHhhHHHHhHHHHHHHhhHO....","...OHhhSShhSSSShSShhhHO....","...OHhSShShhhSSShhhSShHO...","...OHhSSSSSSSSSSSSSSShHO...","...OHhSSSSEESSSSEESSShHO...","...OHhSSSSEESSSSEESSShHO...","...OHhsSSSEESSsSEESSShHO...","..OHHhOsSSSSSSsSSSSSOhHHO..","..OHHhOOSSSSSmmSSSSOOhHHO..","..OHHhOOOsSSSSSSSSsOOhHHO..","..OHHhOKkOOsSSSSsOOkOhHHO..","..OHHhOKKkOOsssOOkKKOhHHO..","..OHHhOKKKkOSSSOkKKKOhHHO..","..OHHhOkKKOOOOOOOKKkOhHHO..","..OHHhOkkOCCCCCCCOkkOhHHO..","..OHHhOOOCCCCCCCCCOOOhHHO..","..OHHhOcCCCCcCCCcCCCOhHHO..","..OHHhOOCCcCCCcCCCcCOhHHO..","..OOOOcOCCCCcCCCCCcC.OOOO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"],"coleta":["...........................","...........................",".........OOOOOOOO..........",".......OOHHHHLLHHOOO.......","......OHHLLHHHHHHHHOrO.....",".....OHHHHHHHHHHHHHHOrrO...",".....OHhHHHHHLHHHHhHOHHO...","....OHHhHHHHHHHHHHhHOHHHO..","....OHhhHHhHHHHhHHhhOHhHO..","....OhhSSSSSSSSSShhhOHhHO..","....OhSShShhhSSShhhSShOHhO.","....OhSSSSSSSSSSSSSSShOHhO.","...OSsSSSSEESSSSEESSSsOHhO.","...OSsSSSSEESSSSEESSSsOhO..","....OhsSSSEESSsSEESSShOO...","......OsSSSSSSsSSSSSOOHhO..",".......OSSSSSmmSSSSO.OHhO..",".......OOsSSSSSSSSsOOOHhO..","......OKkOOsSSSSsOOkKOOO...",".....OKKKkOOsssOOkKKKO.....",".....OkKKKkOSSSOkKKKkO.....","....OOkkKKOOOOOOOKKkkOO....","...OCCOkkOCCCCCCCOkkOCCO...","...OCCCOOCCCCCCCCCOOCCcO...","...OCCCcCCCCcCCCcCCCCCcO...","..OCCCcOCCcCCCcCCCcCOCCcO..","..OCCCcOCCCCcCCCCCcCOCCcO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"]},"back":{"corto":["...........................","...........................",".........OOOOOOOO..........",".......OOHHHHLLHHOO........","......OHHLLHHHHHHHHO.......",".....OHHHHHHHHHHHHHHO......",".....OHhHHHHHLHHHHhHO......","....OHHhHHHHHHHHHHhHHO.....","....OHhhHHhHHHHhHHhhHO.....","....OhHhHHhHHHHhHHhHhO.....","....OHhhHHHhHHHhHHhhHO.....","...OSOhHhHHHhHHHhHhOSO.....","...OSOhhhHhhHhhHhhhOSO.....","....OOhhhhhhhhhhhhhOO......",".....OOhhhhhhhhhhhOO.......","......OOsSSSSSSSsOO........",".......OOsSSSSSSsOO........",".......OOSSSSSSSSOO........","......OKkOOsSSSSsOOkKO.....",".....OKKKkOOsssOOkKKKO.....",".....OkKKKkOSSSOkKKKkO.....","....OOkkKKOOOOOOOKKkkOO....","...OCCOkkOCCCCCCCOkkOCCO...","...OCCCOOCCCCCCCCCOOCCcO...","...OCCCcCCCCcCCCcCCCCCcO...","..OCCCcOCCcCCCcCCCcCOCCcO..","..OCCCcOCCCCcCCCCCcCOCCcO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"],"rizado":["..........OOOOO............",".......OOOHHHLHOOOO........","......OHLLHHHHLhHLLO.......",".....OOHHHhhHHhHHHLHO......","...OOHLHHhHLLLhhLLHhhO.....","...OLLhHhHLHHLhHLHHhHO.....","...OhHhHhLLHhHhhHLHHhHO....","...OHHHHhHHhHhhHhhHHHhO....","...OHHhHHHLHHhHHLhHHHhO....","...OhhHHhHHHhHHHhHHhHHO....","....OhHHhLHHhHLHHhHHhO.....","....OHhhHHhHHHHhHHHhhO.....","....OhHhHhHHhHHhHhHhO......",".....OhhHhhHhhHhhHhhO......",".....OhhhhhhhhhhhhhhO......","......OOhhhhhhhhhhOO.......",".......OOsSSSSSSsOO........",".......OOSSSSSSSSOO........","......OKkOOsSSSSsOOkKO.....",".....OKKKkOOsssOOkKKKO.....",".....OkKKKkOSSSOkKKKkO.....","....OOkkKKOOOOOOOKKkkOO....","...OCCOkkOCCCCCCCOkkOCCO...","...OCCCOOCCCCCCCCCOOCCcO...","...OCCCcCCCCcCCCcCCCCCcO...","..OCCCcOCCcCCCcCCCcCOCCcO..","..OCCCcOCCCCcCCCCCcCOCCcO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"],"largo":["...........................","...........................",".........OOOOOOOO..........",".......OOHHHHLLHHOO........","......OHHLLHHHHHHHHO.......",".....OHHHHHHHHHHHHHHO......",".....OHhHHHHHLHHHHhHO......","....OHHhHHHHHHHHHHhHHO.....","....OHhhHHhHHHHhHHhhHO.....","....OhHhHHhHHHHhHHhHhO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHO.....","...OHhHHhHHhHHhHHhHHHOO....","...OHhHHhHHhHHhHHhHHHOCO...","...OHhHHhHHhHHhHHhHHHOcO...","...OHhHHhHHhHHhHHhHHHOcO...","..OOHhHHhHHhHHhHHhHHHOCcO..","..OOOOOOOOOOOOOOOOOOOOCcO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"],"coleta":["...........................","...........................",".........OOOOOOOO..........",".......OOHHHHLLHHOO........","......OHHLLHHHHHHHHO.......",".....OHHHHHHHHHHHHHHO......",".....OHhHHHHHLHHHHhHO......","....OHHhHHHHHHHHHHhHHO.....","....OHhhHHhHHHHhHHhhHO.....","....OhHhHHhHHHHhHHhHhO.....","....OHhhHHHhHHHhHHhhHO.....","...OSOhHhHHHhHHHhHhOSO.....","...OSOhhhHhhHhhHhhhOSO.....","....OOhhhhhhhhhhhhhOO......",".....OOhhhOrrrOhhhOO.......","......OOsSOHhHOSsOO........",".......OOsOHhHOSsOO........",".......OOSOHhHOSSOO........","......OKkOOHhHOSsOOkKO.....",".....OKKKkOHhHOOOkKKKO.....",".....OkKKKOHhHOOkKKKkO.....","....OOkkKKOHhHOOOKKkkOO....","...OCCOkkOOHhHOCCOkkOCCO...","...OCCCOOCOHhHOCCCOOCCcO...","...OCCCcCCOOOOOCcCCCCCcO...","..OCCCcOCCcCCCcCCCcCOCCcO..","..OCCCcOCCCCcCCCCCcCOCCcO..","..OCcCcOCcCCCCcCCcCCOCcCO..","..OCCCcOCCCCcCCCCcCCOCCcO..","..OCcCcOCCcCCCcCCCCcOcCcO..",".OCCCCcOCCCCCcCCCcCCOCCcCO.",".OCcCCcOCcCCCCCcCCCCOCCccO.",".OCCCccOCCCcCCCCcCcCOcCccO.",".OCcCccOCCCCCcCCCCCCOCcccO.",".OCCcccOCcCCCCCCcCCCOccccO.",".OOccccOCCCCCCCCCCCCOcccOO.","..OsSsOOCCCCCCCCCCCOOsSsO..","..OSSSOTTTTTTTTTTTTTOSSSO..","..OsSsOtTTTTTTTTTTTtOsSsO..","...OOOOOPPPPPPPPPPPOOOO....","......OPPPPPPPPPPPPPO......","......OPPPPPpOpPPPPPO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPPPPpPOPPPPPpO......","......OPpPPpPOPpPPPpO......","......OPpPPpPOPpPPppO......","......OppPPppOppPPppO......",".....OppPPPppOppPPPpO......",".....OpPPPPPpOpPPPPPO......",".....OqqqqqqqOqqqqqqO......","......OFFFFFOOOFFFFFO......",".....OFFFFFFO.OFFFFFFO.....",".....OFFFFFfO.OfFFFFFO.....",".....OfffffO...OfffffO.....","......OOOOO.....OOOOO......"]},"iso":{"corto":["...........................","...........................",".........OOOOOOOOOOO.......","........OOOOOOOOOOOOO......",".......OhhhhhhhhhhhhLO.....","......OhHHHHHHHHHHHLHLO....",".....OhHHHHHHHHHHHLOLLO....",".....OhHHHHHHHHHHLOSOO.....","....OhHHHHHHHHHHLOSSOO.....","....OhHHHHHHHHHLOSSOOO.....","....OLHHHHLLLHLLOSSSO......",".....OHHLLOOOLOOOSSOO......",".....OLLOOSEESSSESSOO......","......OLHSSEESSSESSSSO.....","......OOLOSSSSSSSSmSSO.....",".......OLHLOSSSSSSSSO......","........OHLOSSmmSSSSO......","........OLOSSSSSSSSO.......","........OKKOSSSSOKKKO......","......OKkKKOOOOOKKKKKO.....",".....OPpOkKKKKKKKKKKKO.....",".....OPPpOKkKKKKKKKkKO.....",".....OCCCPpOCCCCCCcOcO.....",".....OCCcOpOCCCCCCcOcO.....","....OCCCcOpOCCCCCCCcOO.....","....OCCCcOpOCCCCCCCcOOO....","....OCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","..OOOCCCcOPCCCCCCCCcOCcO...","..OpOCCCcOOCCCCCCCCcOccO...","..OPCCCCCcOCCCCCCCCCcOcO...","..OPCCCCCcOCCCCCCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."],"rizado":[".........O..OhHLO..........","........OOOOhHHHLOOOOO.....",".......OOhhhHHHHHhhLOO.....","......OOhHHHHHHHHHHHLOOO...","....OOhhHHLLHHHHLLHHHLOOO..","....OhHHHHHHLHHHHHLLHHLOO..","....OhHHHHHHHHHHHHLOLHLO...","....OhHLLHHHHLLHHLOSOLOO...","...OhHHHHLHHHHHLLOSSOhLO...","...OhHHHHHHHHHHLOSSOhLOO...","..OOLHHHHHLLLHLLOSSSSOO....","...OOHHHLLOOOLOOOSSOSO.....","....OLLLOOSEESSSESSOO......",".....OLLLSSEESSSESSSSO.....",".....OOOLOSSSSSSSSmSSO.....",".......OLHLOSSSSSSSSO......","........OHLOSSmmSSSSO......","........OLOSSSSSSSSO.......","........OKKOSSSSOKKKO......","......OKkKKOOOOOKKKKKO.....",".....OPpOkKKKKKKKKKKKO.....",".....OPPpOKkKKKKKKKkKO.....",".....OCCCPpOCCCCCCcOcO.....",".....OCCcOpOCCCCCCcOcO.....","....OCCCcOpOCCCCCCCcOO.....","....OCCCcOpOCCCCCCCcOOO....","....OCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","..OOOCCCcOPCCCCCCCCcOCcO...","..OpOCCCcOOCCCCCCCCcOccO...","..OPCCCCCcOCCCCCCCCCcOcO...","..OPCCCCCcOCCCCCCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."],"largo":["...........................","...........................",".........OOOOOOOOOOO.......","........OOOOOOOOOOOOO......",".......OhhhhhhhhhhhhLO.....","......OhHHHHHHHHHHHLHLO....",".....OhHHHHHHHHHHHLOLLO....",".....OhHHHHHHHHHHLOSOO.....","....OhHHHHHHHHHHLOSSOO.....","...OOhHHHHHHHHHLOSSOOO.....","...OOHHHHHLLLHLLOSSSO......","...OOHHHLLOOOLOOOSSOO......","...OOHHLOOSEESSSESSOO......","...OOHHHHSSEESSSESSSSO.....","...OOHHHLOSSSSSSSSmSSO.....","...OOHHHHHLOSSSSSSSSO......","...OOHHHHHLOSSmmSSSSO......","...OOHHHHLOSSSSSSSSO.......","...OOHHHHHKOSSSSOKKKO......","...OOHHHHHKOOOOOKKKKKO.....","...OOHHHHHKKKKKKKKKKKO.....","...OOHHHHHKkKKKKKKKkKO.....","...OOHHHHLpOCCCCCCcOcO.....","...OOHHHLOpOCCCCCCcOcO.....","...OOHHHLOpOCCCCCCCcOO.....","....OHHHLOpOCCCCCCCcOOO....","....OHHHLOpOCCCCCCCcOcO....","...OOHHHLOpOCCCCCCCcOcO....","...OOHHHLOpOCCCCCCCcOcO....","..OOOHHHLOPCCCCCCCCcOCcO...","..OpOCHHcOOCCCCCCCCcOccO...","..OPCCCCCcOCCCCCCCCCcOcO...","..OPCCCCCcOCCCCCCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."],"coleta":["...........................","...........................",".........OOOOOOOOOOO.......","........OOOOOOOOOOOOO......","...OOO.OhhhhhhhhhhhhLO.....","..rrrOOhHHHHHHHHHHHLHLO....","..OrrrhHHHHHHHHHHHLOLLO....",".OOhHHHHHHHHHHHHHLOSOO.....",".OOhHHHHHHHHHHHHLOSSOO.....",".OOhHHHHHHHHHHHLOSSOOO.....",".OOHHHHHHHLLLHLLOSSSO......",".OOHHHHHLLOOOLOOOSSOO......",".OOHHHHLOOSEESSSESSOO......",".OOHHHLLHSSEESSSESSSSO.....","..OHHLOOLOSSSSSSSSmSSO.....","..OLLOOOLHLOSSSSSSSSO......","..OOLO..OHLOSSmmSSSSO......","...OOO..OLOSSSSSSSSO.......","...OO...OKKOSSSSOKKKO......","......OKkKKOOOOOKKKKKO.....",".....OPpOkKKKKKKKKKKKO.....",".....OPPpOKkKKKKKKKkKO.....",".....OCCCPpOCCCCCCcOcO.....",".....OCCcOpOCCCCCCcOcO.....","....OCCCcOpOCCCCCCCcOO.....","....OCCCcOpOCCCCCCCcOOO....","....OCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","..OOOCCCcOPCCCCCCCCcOCcO...","..OpOCCCcOOCCCCCCCCcOccO...","..OPCCCCCcOCCCCCCCCCcOcO...","..OPCCCCCcOCCCCCCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."]},"isoBack":{"corto":["...........................","...........................",".........OOOOOOOOOOO.......","........OOOOOOOOOOOOhLO....",".......OhhhhhhhhhhhhHLO....","......OhHHHHHHHHHHHHHLO....",".....OhHHHHHHHHHHHHHHLO....",".....OhHHHHHHHHHHHHHHLO....","....OhHHHHHHHHHHHHHHHLO....","....OhHHHHHHHHHHHHHHLO.....","....OLHHHHHHHHHHHHHHLO.....",".....OHHHHHHHHHHHHHHLO.....",".....OLHHHHHHHHHHHHHLO.....","......OLHHHHHHHHHHHLOO.....",".......OHHHHHHHHHHHHLO.....",".......OHHHHHHHHHHHLO......","........OLLLLLLLLLLKO......","........OKKssssKKKKKO......","........OKKOKKKKOKKKO......","......OKkKKOOOOOKKKKKO.....",".....OPpOkKKKKKKKKKKKO.....",".....OPPpOKkKKKKKKKkKO.....",".....OCCCPpOCCCCCCcOcO.....",".....OCCcOpOCCCCCCcOcO.....","....OCCCcOpOCCCCCCCcOO.....","....OCCCcOpOCCCCCCCcOOO....","....OCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","..OOOCCCcOPCCCCCCCCcOCcO...","..OpOCCCcOOCCCCCCCCcOccO...","..OPCCCCCcOCCCCCCCCCcOcO...","..OPCCCCCcOCCCCCCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."],"rizado":["............OhHLOOO........",".........OOOhHHHLOOO.......","......OOOhhhHHHHHhhLOO.....","......OhhHHHHHHHHHHHhhLO...","....OOhHHHLLHHHHLLHHHLOO...","....OhHHHHHHLHHHHHLHHHLO...","....OhHHHHHHHHHHHHHHHHLO...","...OOhHLLHHHHLLHHHHLLLOO...","...OhHHHHLHHHHHLHHHHHLOO...","...OhHHHHHHHHHHHHHHHHLLO...","...OLHHHHHLLHHHHLLHHLOLO...","...OOHHHHHHHLHHHHHLLOOO....","....OLLLHHHHHHHHHHHLOLO....",".....OLHLHHHHHHHHHHHLOO....","......OLHHHHHHHHHHHHLOO....",".......OHHHHHHHHHHHLO......","........OLLLLLLLLLLKO......","........OKKssssKKKKKO......","........OKKOKKKKOKKKO......","......OKkKKOOOOOKKKKKO.....",".....OPpOkKKKKKKKKKKKO.....",".....OPPpOKkKKKKKKKkKO.....",".....OCCCPpOCCCCCCcOcO.....",".....OCCcOpOCCCCCCcOcO.....","....OCCCcOpOCCCCCCCcOO.....","....OCCCcOpOCCCCCCCcOOO....","....OCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","..OOOCCCcOPCCCCCCCCcOCcO...","..OpOCCCcOOCCCCCCCCcOccO...","..OPCCCCCcOCCCCCCCCCcOcO...","..OPCCCCCcOCCCCCCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."],"largo":["...........................","...........................",".........OOOOOOOOOOO.......","........OOOOOOOOOOOOhLO....",".......OhhhhhhhhhhhhHLO....","......OhHHHHHHHHHHHHHLO....",".....OhHHHHHHHHHHHHHHLO....",".....OhHHHHHHHHHHHHHHLO....","....OhHHHHHHHHHHHHHHHLO....","....OhHHHHHHHHHHHHHHLO.....","....OLHHHHHHHHHHHHHHLO.....",".....OHHHHHHHHHHHHHLLO.....",".....OLHHHHHHHHHHHLOLO.....",".....OOHHHHHHHHHHHHLOO.....",".....OOHHHHHHHHHHHHHLO.....",".....OOHHHHHHHHHHHHLO......",".....OOHHHHHHHHHHHHLO......",".....OOHHHHHHHHHHHLOO......",".....OOHHHHHHHHHHHHLO......",".....OOHHHHHHHHHHHHHLO.....",".....OHHHHHHHHHHHHHHLO.....",".....OHHHHHHHHHHHHHHLO.....",".....OHHHHHHHHHHHHHHLO.....",".....OHHHHHHHHHHHHHHLO.....","....OHHHHHHHHHHHHHHLOO.....","....OCHHHHHHHHHHHHHLOOO....","....OCHHHHHHHHHHHHHLOcO....","...OOCHHHHHHHHHHHHHLOcO....","...OOCCHHHHHHHHHHHHcOcO....","..OOOCCHHHHHHHHHHHHcOCcO...","..OpOCCHHHHHHHHHHHHcOccO...","..OPCCCCCHLHHHHHHHCCcOcO...","..OPCCCCCcOHHHHHCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."],"coleta":["...........................","...........................",".........OOOOOOOOOOO.......","........OOOOOOOOOOOOhLO....",".......OhhhhhhhhhhhhHLO....","......OhHHHHHHHHHHHHHLO....",".....OhHHHHHHHHHHHHHHLO....",".....OhHHHHHHHHHHHHHHLO....","....OhHHHHHHHHHHHHHHHLO....","....OhHHHHHHHHHHHHHHLO.....","....OLHHHHHHHHHHHHHHLO.....",".....OHHHHHHHHHHHHHHLO.....",".....OLHHHHHHHHHHHHHLO.....","......OLHHHHHHHHHHHLOO.....",".......OHHHHHHHHHHHHLO.....",".......OHHHrrrrrHHHLO......","........LLLHHHHHHLLKO......","........OKKHHHHHHKKK.......","........OKKHHHHHHKKKO......","......OKkKKHHHHHHKKKKO.....",".....OPpOkKHHHHHHKKKKO.....",".....OPPpOKLHHHHKKKkKO.....",".....OCCCPpOHHHHCCcOcO.....",".....OCCcOpOHHHCCCcOcO.....","....OCCCcOpOCCCCCCCcOO.....","....OCCCcOpOCCCCCCCcOOO....","....OCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","...OOCCCcOpOCCCCCCCcOcO....","..OOOCCCcOPCCCCCCCCcOCcO...","..OpOCCCcOOCCCCCCCCcOccO...","..OPCCCCCcOCCCCCCCCCcOcO...","..OPCCCCCcOCCCCCCCCCcOcO...",".OPPCCCCCcOcCCCCCCCCcOcO...",".OPPcCCCCcOOCccCCCCccOOO...",".OPpOCCcccOccOOccccOOSSO...",".OPpOccOOOOOOOcOOOOpOSSO...",".OPPpOOOOSOTTTTTTTTTOOO....",".OpPpOSSSSOpOOOOOpPpOp.....","..OppOSSSpOPPPPpPPPpO......","...OOppppOPPPPpOpPPpO......",".....OOOOpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPpPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOPPPpO......","......OpPPPPPPpOppOFFO.....","......OpPPPPPPpOOFFFFFO....","......OppPPPpppOFFFFFFFO...","......OppPPPpppOFFFFFFFO...",".......OFFFFFFFOOOOOOOO....",".......OFFFFFFFFO..........",".......OFFFFFFFFO..........","........OOOOOOOO..........."]}};
-
-  const GW = 27, GH = 56;
-  // Accesorios dibujados encima, en la misma cuadrícula: { fila: [[columna, "letras"]] }.
-  const OVER = {
-    audifonos: { 1: [[8, "OOOOOOOOOOO"]], 2: [[7, "OkKKKKKKKKKkO"]], 3: [[6, "Ok"], [19, "kO"]], 4: [[5, "Ok"], [20, "kO"]], 5: [[4, "Ok"], [21, "kO"]], 6: [[3, "Ok"], [22, "kO"]], 7: [[3, "Ok"], [22, "kO"]], 8: [[2, "Ok"], [22, "kO"]],
-      9: [[1, "OOO"], [22, "OOO"]], 10: [[1, "OkKO"], [22, "OKkO"]], 11: [[1, "OKrO"], [22, "OrKO"]], 12: [[1, "OKrO"], [22, "OrKO"]], 13: [[1, "OkKO"], [22, "OKkO"]], 14: [[1, "OOO"], [23, "OOO"]] },
-    taza: { 31: [[21, "OOOOO"]], 32: [[21, "OTTTO"]], 33: [[21, "OTtTOO"]], 34: [[21, "OTTTOtO"]], 35: [[21, "OTtTOO"]], 36: [[21, "OOOOO"]] },
-    libreta: { 24: [[22, "OOO"]], 25: [[21, "OTTtO"]], 26: [[21, "OTTtO"]], 27: [[21, "OTCtO"]], 28: [[21, "OTCtO"]], 29: [[21, "OTTtO"]], 30: [[21, "OTTtO"]], 31: [[21, "OTCtO"]], 32: [[21, "OTTtO"]], 33: [[21, "OTTtO"]], 34: [[21, "OTTtO"]], 35: [[22, "OTO"]] },
-    gorra: { 1: [[8, "OOOOOOOOO"]], 2: [[6, "OOgggggggggOO"]], 3: [[5, "OggGgggggggggO"]], 4: [[4, "OggggggggggggggO"]], 5: [[4, "OggggggggggggggOOOOO"]], 6: [[4, "OOOOOOOOOOOOOOOGGGGGO"]], 7: [[19, "OOOOOO"]] },
-    estira: { 2: [[1, "OSSO"], [22, "OSSO"]], 3: [[1, "OSSO"], [22, "OSSO"]], 4: [[1, "OCCO"], [22, "OCCO"]], 5: [[1, "OCcO"], [22, "OcCO"]], 6: [[1, "OCcO"], [22, "OcCO"]], 7: [[1, "OCcO"], [22, "OcCO"]],
-      8: [[2, "OCcO"], [21, "OcCO"]], 9: [[2, "OCcO"], [21, "OcCO"]], 10: [[2, "OCcO"], [21, "OcCO"]], 11: [[3, "OCcO"], [20, "OcCO"]], 12: [[3, "OCcO"], [20, "OcCO"]], 13: [[3, "OCcO"], [20, "OcCO"]], 14: [[3, "OCcO"], [20, "OcCO"]],
-      15: [[3, "OCcO"], [20, "OcCO"]], 16: [[3, "OCcO"], [20, "OcCO"]], 17: [[3, "OCcO"], [20, "OcCO"]], 18: [[3, "OCcO"], [20, "OcCO"]], 19: [[3, "OCcO"], [20, "OcCO"]], 20: [[3, "OCcO"], [20, "OcCO"]], 21: [[3, "OCCO"], [20, "OCCO"]] },
-  };
-  // Accesorios propios de la vista isométrica (misma cuadrícula de 27×56).
-  const OVER2 = {"audifonosIso":{"2":[[9,"OOOOOOOOOOOO"]],"3":[[8,"kOOOOOOOOOOOKO"]],"4":[[8,"O"],[21,"Kk"]],"5":[[22,"K"]],"6":[[21,"OO"]],"7":[[21,"OO"]],"8":[[21,"OO"]],"9":[[21,"OO"]],"10":[[7,"OOO"],[21,"OO"]],"11":[[6,"OkKKO"],[21,"OO"]],"12":[[6,"OkrKO"]],"13":[[6,"OkrKO"]],"14":[[6,"OkKKO"]],"15":[[7,"OOO"]]},"tazaIso":{"32":[[7,"OOOO"]],"33":[[6,"OOTTO"]],"34":[[5,"OOOTTO"]],"35":[[5,"OOOTTO"]],"36":[[6,"OOTTO"]],"37":[[7,"OTTO"]],"38":[[7,"OTTO"]],"39":[[7,"OOOO"]]},"libretaIso":{"24":[[7,"OOO"]],"25":[[7,"OTO"]],"26":[[7,"OTO"]],"27":[[7,"OTO"]],"28":[[7,"OTO"]],"29":[[7,"OCO"]],"30":[[7,"OTO"]],"31":[[7,"OTO"]],"32":[[7,"OTO"]],"33":[[7,"OTO"]],"34":[[7,"OTO"]],"35":[[7,"OTO"]],"36":[[7,"OTO"]],"37":[[7,"OTO"]],"38":[[7,"OCO"]],"39":[[7,"OTO"]],"40":[[7,"OTO"]],"41":[[7,"OTO"]],"42":[[8,"O"]]},"gorra2":{"1":[[9,"OOOOOOOOOOO"]],"2":[[8,"Ogggggggggggg"]],"3":[[7,"Ogggggggggggggg"]],"4":[[6,"Ogggggggggggggggg"]],"5":[[5,"gggggggggggggggggg"]],"6":[[5,"OOOOOOOOOOOOOOOOOOOO"]],"7":[[5,"OOOOOOOOOOOOOOOOOOOO"]]},"estiraIso":{"0":[[0,"OOOOO"],[22,"OOOOO"]],"1":[[0,"OSSSO"],[22,"OSSSO"]],"2":[[0,"OSSSO"],[22,"OSSSO"]],"3":[[0,"OOOOO"],[22,"OOOOO"]],"4":[[0,"OCCcO"],[22,"OCCcO"]],"5":[[0,"OCCcO"],[22,"OCCcO"]],"6":[[0,"OCCcO"],[22,"OCCcO"]],"7":[[0,"OCCcO"],[22,"OCCcO"]],"8":[[0,"OCCcO"],[22,"OCCcO"]],"9":[[0,"OCCcO"],[22,"OCCcO"]],"10":[[0,"OCCcO"],[22,"OCCcO"]],"11":[[0,"OCCcO"],[22,"OCCcO"]],"12":[[0,"OCCcO"],[22,"OCCcO"]],"13":[[0,"OCCcO"],[22,"OCCcO"]],"14":[[0,"OCCcO"],[22,"OCCcO"]],"15":[[0,"OCCcO"],[22,"OCCcO"]],"16":[[0,"OCCcO"],[22,"OCCcO"]],"17":[[0,"OCCcO"],[22,"OCCcO"]],"18":[[0,"OCCcO"],[22,"OCCcO"]],"19":[[0,"OCCcO"],[22,"OCCcO"]],"20":[[0,"OCCcO"],[22,"OCCcO"]],"21":[[0,"OCCcO"],[22,"OCCcO"]],"22":[[0,"OCCcO"],[22,"OCCcO"]]}};
-  // Plantilla final (filas de letras) según el muñeco, la vista, el paso al caminar y si está sentado.
-  const cache = new Map();
-  function grid(cfg, view, frame, seated) {
-    // Cuatro peinados; los que ya no existen pasan al más parecido.
-    const p = { rapado: "corto", bob: "largo" }[cfg.peinado] || cfg.peinado;
-    const style = SPRITES.iso[p] ? p : "corto";
-    // "front"/"back" = isométrica (oficina); "frontal"/"frontalBack" = de frente (burbuja, foto de perfil).
-    const v = view === "back" ? "isoBack" : view === "frontal" ? "front" : view === "frontalBack" ? "back" : "iso";
-    const key = [v, style, frame, seated, cfg.extra || "", cfg.gorra ? 1 : 0, cfg.pose || "", cfg.blink ? 1 : 0, cfg.look || 0, cfg.genero].join("|");
-    if (cache.has(key)) return cache.get(key);
-    const base = SPRITES[v][style];
-    const RH = base.length, RW = base[0].length, S = RH / GH, iso = v === "iso" || v === "isoBack";
-    const g = base.map((r) => r.split(""));
-    const set = (y, x, ch) => { if (y >= 0 && y < RH && x >= 0 && x < RW) g[y][x] = ch; };
-    // Caminar: una pierna sube un poco.
-    if (frame === 1 || frame === 3) {
-      const [a, b] = frame === 1 ? [0, 13 * S] : [13 * S, RW];
-      for (let y = 40 * S; y < RH; y++) for (let x = a; x < b; x++) g[y][x] = y + S < RH ? base[y + S][x] : ".";
-    }
-    if (seated) for (let y = 40 * S; y < RH; y++) for (let x = 0; x < RW; x++) g[y][x] = ".";
-    if (v === "front" || v === "iso") {
-      // Mirada hacia un lado (burbuja) y parpadeo.
-      if (cfg.look) {
-        const eyes = [];
-        g.forEach((r, y) => r.forEach((ch, x) => { if (ch === "E") eyes.push([y, x]); }));
-        for (const [y, x] of eyes) g[y][x] = "S";
-        for (const [y, x] of eyes) set(y, x + cfg.look * S, "E");
-      }
-      const eyeRows = []; g.forEach((r, y) => { if (r.includes("E")) eyeRows.push(y); });
-      const lastEye = eyeRows.length ? Math.max(...eyeRows) : 14 * S;
-      if (cfg.blink) g.forEach((r, y) => r.forEach((ch, x) => { if (ch === "E" && y < lastEye) r[x] = "S"; }));
-      // Muñeca: rubor y pestañas.
-      if (cfg.genero === "mujer") {
-        if (v === "front") { set(15, 9, "b"); set(15, 18, "b"); }
-        else { g.forEach((r, y) => r.forEach((ch, x) => { if (ch === "m" && y < 16) r[x] = "b"; })); }
-        const top = [];
-        const firstEye = eyeRows.length ? Math.min(...eyeRows) : 12;
-        g.forEach((r, y) => r.forEach((ch, x) => { if (ch === "E" && y === firstEye) top.push(x); }));
-        if (top.length) { set(firstEye - 1, Math.min(...top) - 1, "O"); set(firstEye - 1, Math.max(...top) + 1, "O"); }
-      }
-    }
-    // Estirándose: brazos arriba (se quitan los de abajo).
-    if (cfg.pose === "estira") {
-      if (iso) {
-        for (let y = 30; y < 42; y++) for (let x = 0; x < RW; x++) if (g[y][x] === "S" || g[y][x] === "s") g[y][x] = "c";
-      } else {
-        for (let y = 22; y < 40; y++) { for (let x = 0; x < 7; x++) g[y][x] = "."; for (let x = 21; x < GW; x++) g[y][x] = "."; }
-        for (let y = 22; y < 36; y++) { g[y][7] = "O"; g[y][20] = "O"; }
-      }
-    }
-    // No molestar: los audífonos pasan del cuello a las orejas.
-    if (cfg.extra === "audifonos" && !iso) g.forEach((r) => r.forEach((ch, x) => { if (ch === "K") r[x] = "C"; else if (ch === "k") r[x] = "c"; }));
-    const over = (name) => {
-      const big = OVER2[name], o = big || OVER[name]; if (!o) return;
-      const k = big ? 1 : S;
-      for (const y in o) for (const [x, str] of o[y]) for (let i = 0; i < str.length; i++) if (str[i] !== " ")
-        for (let a = 0; a < k; a++) for (let b = 0; b < k; b++) set(+y * k + a, (x + i) * k + b, str[i]);
-    };
-    if (cfg.pose === "estira") over(iso ? "estiraIso" : "estira");
-    if (cfg.gorra && cfg.extra !== "audifonos") over(iso ? "gorra2" : "gorra");
-    if (cfg.extra === "audifonos") over(iso ? "audifonosIso" : "audifonos");
-    else if ((v === "front" || v === "iso") && (cfg.extra === "taza" || cfg.extra === "libreta") && cfg.pose !== "estira") over(iso ? cfg.extra + "Iso" : cfg.extra);
-    const out = g.map((r) => r.join(""));
-    if (cache.size > 400) cache.clear();
-    cache.set(key, out);
-    return out;
-  }
-  function colors(cfg) {
-    const s = cfg.piel, c = cfg.ropa, h = cfg.pelo;
-    return {
-      O: OUT, H: h, L: shade(h, -0.3), h: shade(h, 0.38), S: s, s: shade(s, 0.16), E: EYE, m: shade(s, 0.32), b: "#f0a39d",
-      K: "#4a4644", k: "#2c2827", C: c, c: shade(c, 0.28), T: SHIRT, t: "#cdc8c0", P: PANTS, p: PANTS_S, q: "#988a7a",
-      F: SHOES, f: SOLE, r: "#ea0029", g: "#ea0029", G: "#b8001f",
-    };
-  }
-  // Compatibilidad: devuelve las celdas pintadas como piezas.
+  // Piezas del muñeco en una cuadrícula de 24×42 (medios pixeles de la caja de 12×21 de siempre):
+  // cabeza grande, pelo con volumen y brillos, buzo con sombra, camiseta asomando, pantalón y tenis.
+  // Cada pieza: [x, y, ancho, alto, color, sinContorno]. Los pies quedan abajo (y = 41).
   function parts(cfg, view, frame, seated) {
-    const out = [], col = colors(cfg);
-    grid(cfg, view, frame, seated).forEach((r, y) => { for (let x = 0; x < r.length; x++) if (r[x] !== ".") out.push([x, y, 1, 1, col[r[x]] || OUT, true]); });
+    const s = cfg.piel, sS = shade(cfg.piel, 0.13), sD = shade(cfg.piel, 0.28);
+    const c = cfg.ropa, cS = shade(cfg.ropa, 0.24), cH = shade(cfg.ropa, -0.18);
+    const h = cfg.pelo, hS = shade(cfg.pelo, 0.3), hH = shade(cfg.pelo, -0.28);
+    const out = [];
+    const r = (x, y, w, hh, col) => out.push([x, y, w, hh, col, false]);
+    const d = (x, y, w, hh, col) => out.push([x, y, w, hh, col, true]); // detalle interior, sin contorno
+    const f1 = frame === 1 ? 1 : 0, f3 = frame === 3 ? 1 : 0;
+    const woman = cfg.genero === "mujer";
+    const front = view === "front";
+    const st = cfg.peinado;
+    const longHair = st === "largo" || (woman && st === "rizado");
+
+    // Pelo largo por detrás de los hombros (se dibuja primero).
+    if (longHair && front) { r(4, 9, 3, st === "rizado" ? 12 : 14, h); r(17, 9, 3, st === "rizado" ? 12 : 14, h); d(5, 12, 1, 7, hS); d(18, 12, 1, 7, hS); }
+
+    // Piernas y tenis.
+    if (!seated) {
+      r(7, 30, 10, 2, PANTS);
+      r(7, 32 - f1, 4, 6, PANTS); r(13, 32 - f3, 4, 6, PANTS);
+      d(10, 32, 1, 6 - f1, PANTS_S); d(16, 32, 1, 6 - f3, PANTS_S);
+      r(6, 38 - f1, 5, 3, SHOES); r(13, 38 - f3, 5, 3, SHOES);
+      d(6, 40 - f1, 5, 1, SOLE); d(13, 40 - f3, 5, 1, SOLE);
+    }
+    // Torso: buzo con hombros, sombra a un lado, camiseta asomando abajo.
+    const sh = woman ? 6 : 5, sw = woman ? 12 : 14;
+    r(sh, 17, sw, 2, c);
+    r(6, 19, 12, 10, c);
+    d(15, 19, 2, 10, cS); d(7, 19, 3, 1, cH);
+    // Textura de tejido del buzo (punteado suave).
+    for (let yy = 21; yy < 28; yy += 2) for (let xx = 7 + (yy % 4 === 1 ? 1 : 0); xx < 15; xx += 3) d(xx, yy, 1, 1, cS);
+    if (front) { d(9, 17, 6, 1, cS); d(10, 18, 4, 1, cS); }
+    r(7, 29, 10, 1, SHIRT);
+    // Brazos (mangas) y manos. Poses de pausa activa:
+    //  estira = brazos rectos arriba con las manos juntas sobre la cabeza · medio = brazos abiertos a los lados
+    //  hombros = hombros arriba · giroI/giroD = brazos arriba girando el tronco · cuelloI/cuelloD = cabeza inclinada.
+    const pose = cfg.pose || "";
+    const up = pose === "estira" || pose === "giroI" || pose === "giroD";
+    const arms = () => {
+      if (up) {
+        // por fuera de la cabeza y por detrás del pelo; las manos se juntan arriba
+        r(2, 10, 4, 9, c); r(18, 10, 4, 9, c);           // brazo, desde el hombro
+        r(1, 1, 4, 9, c); r(19, 1, 4, 9, c);             // antebrazo, recto hacia arriba
+        r(3, -3, 5, 4, c); r(16, -3, 5, 4, c);           // muñecas hacia el centro
+        r(7, -6, 10, 4, s); d(11, -6, 2, 4, sS);         // manos entrelazadas sobre la cabeza
+        d(4, 11, 1, 7, cS); d(21, 11, 1, 7, cS); d(3, 2, 1, 8, cS); d(22, 2, 1, 8, cS);
+      } else if (pose === "medio") {
+        r(-1, 17, 6, 3, c); r(19, 17, 6, 3, c); d(-1, 19, 6, 1, cS); d(19, 19, 6, 1, cS);
+        r(-3, 17, 2, 3, s); r(25, 17, 2, 3, s);
+      } else {
+        const lift = pose === "hombros" ? -2 : 0;
+        r(3, 18 + f3 + lift, 3, 10, c); r(18, 18 + f1 + lift, 3, 10, c); d(5, 19 + f3 + lift, 1, 8, cS); d(20, 19 + f1 + lift, 1, 8, cS);
+        r(3, 28 + f3 + lift, 3, 2, s); r(18, 28 + f1 + lift, 3, 2, s);
+        if (lift) { r(sh - 1, 15, sw + 2, 3, c); d(sh, 15, sw, 1, cH); }
+      }
+    };
+    arms();
+    const headFrom = out.length;
+    // Cuello y cabeza.
+    r(10, 15, 4, 3, sS);
+    r(7, 4, 10, 1, s); r(6, 5, 12, 10, s); r(7, 15, 10, 1, s);
+    r(5, 9, 1, 3, s); r(18, 9, 1, 3, s);
+    if (front) {
+      d(17, 7, 1, 7, sS); d(16, 13, 1, 2, sS);
+      const look = cfg.look || 0; // -1 mira a la izquierda, 1 a la derecha (en la burbuja)
+      if (cfg.blink) { d(8 + look, 11, 2, 1, EYE); d(14 + look, 11, 2, 1, EYE); }
+      else {
+        d(8 + look, 9, 2, 3, EYE); d(14 + look, 9, 2, 3, EYE);
+        d(8 + look + (look > 0 ? 1 : 0), 9, 1, 1, "#ffffff"); d(14 + look + (look > 0 ? 1 : 0), 9, 1, 1, "#ffffff");
+      }
+      d(8, 7, 2, 1, hS); d(14, 7, 2, 1, hS);
+      d(11 + (cfg.look || 0), 13, 2, 1, shade(cfg.piel, 0.2)); d(12 + (cfg.look || 0), 13, 1, 1, sD);
+      if (woman) { d(7, 12, 1, 1, "#f2a3a0"); d(16, 12, 1, 1, "#f2a3a0"); d(7, 9, 1, 1, EYE); d(17, 9, 1, 1, EYE); }
+    }
+
+    // Peinados (de frente y de espaldas).
+    if (front) {
+      if (st === "rapado") { r(6, 3, 12, 2, h); r(6, 5, 1, 3, h); r(17, 5, 1, 3, h); d(8, 3, 4, 1, hH); }
+      else if (st === "rizado") {
+        // Volumen con borde ondulado y rizos (brillo arriba, sombra abajo de cada rizo).
+        r(8, 0, 3, 1, h); r(13, 0, 3, 1, h); r(6, 1, 12, 1, h); r(4, 2, 16, 1, h); r(3, 3, 18, 3, h);
+        r(2, 5, 2, 3, h); r(20, 5, 2, 3, h); r(3, 6, 4, 6, h); r(17, 6, 4, 6, h); r(4, 12, 2, 1, h); r(18, 12, 2, 1, h);
+        r(7, 6, 3, 2, h); r(10, 6, 2, 1, h); r(13, 6, 3, 2, h); r(16, 6, 1, 1, h);
+        const curl = (x, y) => { d(x, y, 1, 1, hH); d(x + 1, y + 1, 1, 1, hS); d(x - 1, y + 1, 1, 1, hS); };
+        for (const [x, y] of [[6, 2], [10, 1], [14, 1], [18, 3], [4, 4], [9, 4], [13, 3], [16, 5], [4, 8], [19, 8], [8, 6], [14, 6], [11, 3], [5, 10], [18, 10]]) curl(x, y);
+      } else if (st === "largo") {
+        r(6, 2, 12, 2, h); r(5, 4, 14, 3, h); r(5, 7, 2, 3, h); r(17, 7, 2, 3, h); r(7, 7, 6, 1, h);
+        d(8, 3, 5, 1, hH); d(14, 5, 3, 1, hS); d(6, 5, 1, 4, hS);
+      } else if (st === "coleta") {
+        r(6, 2, 12, 2, h); r(5, 4, 14, 3, h); r(5, 7, 1, 3, h); r(18, 7, 1, 3, h); r(7, 7, 5, 1, h);
+        r(19, 5, 2, 2, "#ea0029"); r(19, 7, 3, 8, h); r(20, 15, 2, 3, h); d(20, 9, 1, 6, hS); d(8, 3, 5, 1, hH);
+      } else if (st === "bob") {
+        r(6, 2, 12, 2, h); r(5, 4, 14, 4, h); r(4, 7, 3, 9, h); r(17, 7, 3, 9, h); r(7, 8, 10, 0, h);
+        d(5, 9, 1, 6, hS); d(18, 9, 1, 6, hS); d(8, 3, 6, 1, hH);
+      } else { // corto
+        r(6, 2, 12, 2, h); r(5, 4, 14, 3, h); r(5, 7, 2, 3, h); r(17, 7, 2, 3, h);
+        r(7, 7, 2, 1, h); r(10, 7, 3, 1, h); r(14, 7, 2, 1, h);
+        d(8, 3, 4, 1, hH); d(13, 5, 1, 1, hS); d(16, 4, 1, 2, hS);
+      }
+    } else {
+      // De espaldas: el pelo tapa la cabeza.
+      const big = st === "rizado";
+      r(big ? 4 : 5, big ? 1 : 2, big ? 16 : 14, big ? 15 : 14, h);
+      if (big) {
+        r(2, 4, 2, 8, h); r(20, 4, 2, 8, h); r(8, 0, 3, 1, h); r(13, 0, 3, 1, h);
+        for (const [x, y] of [[6, 3], [10, 2], [14, 4], [17, 7], [7, 9], [12, 11], [16, 12], [4, 7], [19, 6], [11, 6]]) { d(x, y, 1, 1, hH); d(x + 1, y + 1, 1, 1, hS); d(x - 1, y + 1, 1, 1, hS); }
+      }
+      else d(8, 3, 6, 1, hH);
+      if (st === "largo" || (woman && big)) r(5, 14, 14, 8, h);
+      if (st === "bob") r(4, 8, 16, 8, h);
+      if (st === "coleta") { r(10, 15, 4, 8, h); r(10, 13, 4, 2, "#ea0029"); }
+      d(11, 14, 2, 1, hS);
+    }
+
+    // Accesorios del estado y premios.
+    const ex = cfg.extra;
+    if (cfg.gorra && ex !== "audifonos") { r(5, 1, 14, 4, "#ea0029"); d(7, 2, 4, 1, "#ff4d6a"); if (front) r(12, 5, 9, 1, "#b8001f"); }
+    if (ex === "audifonos") { r(6, 0, 12, 1, "#2d2f36"); r(4, 1, 2, 4, "#2d2f36"); r(18, 1, 2, 4, "#2d2f36"); r(2, 7, 4, 6, "#3a3d46"); r(18, 7, 4, 6, "#3a3d46"); d(3, 8, 1, 4, "#ff5a6e"); d(20, 8, 1, 4, "#ff5a6e"); }
+    else if (ex === "taza" && front) { r(19, 24, 4, 5, "#f4f1ea"); r(23, 25, 1, 3, "#f4f1ea"); d(19, 24, 4, 1, "#8b5a2b"); }
+    else if (ex === "libreta" && front) { r(19, 19, 3, 11, "#f4f1ea"); d(19, 19, 3, 1, "#d9d4cb"); d(20, 22, 1, 5, "#5c7fb8"); }
+    // Cabeza inclinada (cuello) o tronco girado (espalda): se corre la parte de arriba.
+    const tilt = pose === "cuelloI" ? -2 : pose === "cuelloD" ? 2 : 0;
+    if (tilt) for (let i = headFrom; i < out.length; i++) { out[i][0] += tilt; out[i][1] += 1; }
+    const twist = pose === "giroI" ? -2 : pose === "giroD" ? 2 : 0;
+    if (twist) for (const p of out) if (p[1] < 30) p[0] += twist;
     return out;
   }
   // Accesorio que lleva cada estado.
   const EXTRA = { no_molestar: "audifonos", almuerzo: "taza", reunion: "libreta" };
-  // Accesorio del estado, gorra si la ganó y, en pausa, alterna estirarse (t = tiempo en ms).
+  // Accesorio del estado, gorra si la ganó y, en pausa, sube y baja los brazos (t = tiempo en ms).
   const withExtra = (cfg, presencia, premios, t) => {
     const out = { ...cfg };
     if (EXTRA[presencia]) out.extra = EXTRA[presencia];
     if (Array.isArray(premios) && premios.includes("gorra")) out.gorra = true;
-    if (presencia === "pausa" && t !== undefined && Math.floor(t / 900) % 2 === 0) out.pose = "estira";
+    if (presencia === "pausa" && t !== undefined) out.pose = ["", "medio", "estira", "estira", "medio"][Math.floor(t / 420) % 5];
     return out;
   };
-  // Dibuja el muñeco en la caja de siempre (12×21 pixeles de tamaño k; los pies abajo).
-  // Si el muñeco queda más pequeño que su dibujo, se reduce la imagen completa con suavizado
-  // (así no se pierden filas ni pixeles); si queda más grande, se pintan las celdas nítidas.
+  // Dibuja con contorno: primero la silueta oscura, luego los colores. k = tamaño de un pixel de la caja
+  // de 12×21 (cada pieza mide medio pixel); ow = grosor del contorno en pixeles de pantalla.
   function drawFigure(ctx, x, y, cfg, view = "front", frame = 0, seated = false, flip = false, k = 1, ow = 1) {
-    const rows = grid(cfg, view, frame, seated), RH = rows.length, RW = rows[0].length;
-    const u = (k * 21) / RH, ox = x + (12 * k - RW * u) / 2, col = colors(cfg);
-    if (u >= 1.75) { paint(ctx, rows, col, ox, y, u, flip, RH); return; }
-    const img = sprite(rows, col, flip);
+    const ps = parts(cfg, view, frame, seated);
+    const u = k / 2;
+    const R = (px, py, w, hh) => {
+      const rx = flip ? 24 - px - w : px;
+      const x1 = Math.round(x + rx * u), y1 = Math.round(y + py * u), x2 = Math.round(x + (rx + w) * u), y2 = Math.round(y + (py + hh) * u);
+      return [x1, y1, Math.max(1, x2 - x1), Math.max(1, y2 - y1)];
+    };
+    ctx.fillStyle = OUT;
+    for (const p of ps) { if (p[5] || !p[3]) continue; const [a, b, w, hh] = R(p[0], p[1], p[2], p[3]); ctx.fillRect(a - ow, b - ow, w + 2 * ow, hh + 2 * ow); }
+    for (const p of ps) { if (!p[3]) continue; const [a, b, w, hh] = R(p[0], p[1], p[2], p[3]); ctx.fillStyle = p[4]; ctx.fillRect(a, b, w, hh); }
+  }
+  // Solo la cabeza (para la burbuja que se asoma por el borde de la pantalla).
+  function drawHead(ctx, x, y, cfg, k = 6, ow = 2) {
+    const u = k / 2;
     ctx.save();
-    ctx.imageSmoothingEnabled = true;
-    if ("imageSmoothingQuality" in ctx) ctx.imageSmoothingQuality = "high";
-    ctx.drawImage(img, Math.round(ox), Math.round(y), RW * u, RH * u);
+    ctx.beginPath(); ctx.rect(x - 4 * u, y - 2 * u, 32 * u, 18 * u); ctx.clip();
+    drawFigure(ctx, x, y, cfg, "front", 0, true, false, k, ow);
     ctx.restore();
-  }
-  // Cada combinación de dibujo y colores se pinta una vez a tamaño real y se guarda.
-  const sprites = new WeakMap();
-  function sprite(rows, col, flip) {
-    let m = sprites.get(rows);
-    if (!m) { m = new Map(); sprites.set(rows, m); }
-    const key = (flip ? "1" : "0") + col.H + col.S + col.C;
-    let c = m.get(key);
-    if (!c) {
-      const w = rows[0].length, h = rows.length;
-      if (typeof document !== "undefined") { c = document.createElement("canvas"); c.width = w; c.height = h; }
-      else c = new OffscreenCanvas(w, h);
-      paint(c.getContext("2d"), rows, col, 0, 0, 1, flip, h);
-      if (m.size > 24) m.clear();
-      m.set(key, c);
-    }
-    return c;
-  }
-  // Pinta filas de letras con rectángulos (une las celdas iguales seguidas).
-  function paint(ctx, rows, col, x, y, u, flip, maxRows) {
-    const W = rows[0].length;
-    for (let r = 0; r < Math.min(rows.length, maxRows); r++) {
-      const row = rows[r];
-      const y1 = Math.round(y + r * u), y2 = Math.round(y + (r + 1) * u);
-      if (y2 <= y1) continue;
-      let c0 = 0;
-      while (c0 < W) {
-        const ch = row[c0];
-        let c1 = c0 + 1;
-        while (c1 < W && row[c1] === ch) c1++;
-        if (ch !== ".") {
-          const a = flip ? W - c1 : c0, b = flip ? W - c0 : c1;
-          const x1 = Math.round(x + a * u), x2 = Math.round(x + b * u);
-          if (x2 > x1) { ctx.fillStyle = col[ch] || OUT; ctx.fillRect(x1, y1, x2 - x1, y2 - y1); }
-        }
-        c0 = c1;
-      }
-    }
-  }
-  // Solo la cabeza (la burbuja que se asoma por el borde de la pantalla). px = tamaño de cada pixel.
-  function drawHead(ctx, x, y, cfg, px = 3, flip = false) {
-    paint(ctx, grid(cfg, "frontal", 0, true), colors(cfg), x, y, px, flip, 18);
   }
 
   // Estados de cada persona: los usa la app, la oficina y la burbuja.
@@ -211,5 +206,5 @@
     { id: "pausa", label: "En pausa", color: "#0e9aa7", hint: "Pausa activa o descanso. Sin globitos ni sonido salvo lo urgente." },
     { id: "fuera", label: "Fuera", color: "#8a8f98", hint: "No apareces en la oficina." },
   ];
-  window.PIXCORE = { PRESENCIAS, drawHead, grid, GW, GH, GENEROS, PEINADOS, PELO, PIEL, ROPA, OUT, shade, defaults, config, parts, drawFigure, withExtra, EXTRA };
+  window.PIXCORE = { PRESENCIAS, drawHead, GENEROS, PEINADOS, PELO, PIEL, ROPA, OUT, shade, defaults, config, parts, drawFigure, withExtra, EXTRA };
 })();

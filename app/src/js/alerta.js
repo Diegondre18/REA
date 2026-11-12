@@ -12,8 +12,8 @@
     if (data && data.me) {
       const k = 10;
       const cfg = PX.withExtra(PX.config(data.me), "pausa", data.me.premios || [], t);
-      ctx.fillStyle = "rgba(0,0,0,0.22)"; ctx.fillRect(3 * k, 22 * k, 10 * k, k);
-      PX.drawFigure(ctx, 2 * k, 1 * k, cfg, "front", 0, false, false, k, 3);
+      ctx.fillStyle = "rgba(0,0,0,0.22)"; ctx.fillRect(3 * k, 24 * k, 10 * k, k);
+      PX.drawFigure(ctx, 2 * k, 3 * k, cfg, "front", 0, false, false, k, 3);
     }
     requestAnimationFrame(paint);
   }

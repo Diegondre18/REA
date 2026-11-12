@@ -23,40 +23,37 @@
     ctx.imageSmoothingEnabled = false;
     if (!state || !state.me) return;
     // Se asoma por el borde de la pantalla: solo la cabeza y las manos agarrando el borde.
-    const px = Math.max(2, Math.round(3.2 * dpr)), ow = Math.max(1, Math.round(px * 0.6));
+    const k = Math.max(5, Math.round(8 * dpr)), u = k / 2, ow = Math.max(1, Math.round(k * 0.28));
     const W = cv.width, H = cv.height;
     const pres = state.presencia || "disponible";
     const side = place.side || "right";
     const blink = (t % 4600) < 140;
     const cfg = { ...PX.withExtra(PX.config(state.me), pres, state.premios, t), pose: "", blink, look: side === "top" || side === "bottom" ? 0 : -1 };
-    if (cfg.extra === "taza" || cfg.extra === "libreta") delete cfg.extra;
     // Cuánto se asoma: al llegar un aviso sale más (y vuelve); en reposo se mece apenas.
-    let peek = 0.62 + Math.sin(t / 1400) * 0.015;
-    if (hop > 0) peek = 0.62 + Math.abs(Math.sin(((hop - t) / 1600) * Math.PI * 2)) * 0.26;
+    let peek = 0.64 + Math.sin(t / 1400) * 0.015;
+    if (hop > 0) peek = 0.64 + Math.abs(Math.sin(((hop - t) / 1600) * Math.PI * 2)) * 0.26;
     const skin = cfg.piel, skinS = PX.shade(cfg.piel, 0.18);
     const hand = (x, y, w2, h2, vertical) => {
       const X = Math.round(x), Y = Math.round(y), WW = Math.round(w2), HH = Math.round(h2);
       ctx.fillStyle = PX.OUT; ctx.fillRect(X - ow, Y - ow, WW + 2 * ow, HH + 2 * ow);
       ctx.fillStyle = skin; ctx.fillRect(X, Y, WW, HH);
       ctx.fillStyle = skinS;
-      const line = Math.max(1, Math.round(px / 2));
-      if (vertical) { ctx.fillRect(X + Math.round(WW / 3), Y, line, Math.round(HH * 0.7)); ctx.fillRect(X + Math.round((2 * WW) / 3), Y, line, Math.round(HH * 0.7)); }
-      else { ctx.fillRect(X, Y + Math.round(HH / 3), Math.round(WW * 0.7), line); ctx.fillRect(X, Y + Math.round((2 * HH) / 3), Math.round(WW * 0.7), line); }
+      if (vertical) { ctx.fillRect(X + Math.round(WW / 3), Y, Math.max(1, Math.round(u / 3)), Math.round(HH * 0.7)); ctx.fillRect(X + Math.round((2 * WW) / 3), Y, Math.max(1, Math.round(u / 3)), Math.round(HH * 0.7)); }
+      else { ctx.fillRect(X, Y + Math.round(HH / 3), Math.round(WW * 0.7), Math.max(1, Math.round(u / 3))); ctx.fillRect(X, Y + Math.round((2 * HH) / 3), Math.round(WW * 0.7), Math.max(1, Math.round(u / 3))); }
     };
     ctx.save();
     if (side === "left" || side === "right") {
       if (side === "left") { ctx.translate(W, 0); ctx.scale(-1, 1); }
-      // La cabeza ocupa las columnas 3 a 23 del dibujo; se deja ver un poco más de la mitad.
-      const x0 = W - peek * 20 * px - 3 * px, y0 = Math.round(H * 0.42 - 9 * px);
-      PX.drawHead(ctx, Math.round(x0), y0, cfg, px);
-      hand(W - 3.4 * px, y0 - 2.5 * px, 3.6 * px, 4.4 * px, false);
-      hand(W - 3.4 * px, y0 + 16.5 * px, 3.6 * px, 4.4 * px, false);
+      const x0 = W - peek * 20 * u - 2 * u, y0 = Math.round(H * 0.4 - 8 * u);
+      PX.drawHead(ctx, Math.round(x0), y0, cfg, k, ow);
+      hand(W - 3.2 * u, y0 - 3.5 * u, 3.4 * u, 4.2 * u, false);
+      hand(W - 3.2 * u, y0 + 15.5 * u, 3.4 * u, 4.2 * u, false);
     } else {
       if (side === "top") { ctx.translate(W, H); ctx.rotate(Math.PI); }
-      const x0 = Math.round((W - 27 * px) / 2), y0 = Math.round(H - Math.min(1, peek + 0.2) * 17 * px);
-      PX.drawHead(ctx, x0, y0, cfg, px);
-      hand(x0 + 1.5 * px, H - 3.4 * px, 4.4 * px, 3.6 * px, true);
-      hand(x0 + 21 * px, H - 3.4 * px, 4.4 * px, 3.6 * px, true);
+      const x0 = Math.round((W - 24 * u) / 2), y0 = Math.round(H - Math.min(1, peek + 0.18) * 16 * u);
+      PX.drawHead(ctx, x0, y0, cfg, k, ow);
+      hand(x0 + 0.5 * u, H - 3.2 * u, 4.2 * u, 3.4 * u, true);
+      hand(x0 + 19.3 * u, H - 3.2 * u, 4.2 * u, 3.4 * u, true);
     }
     ctx.restore();
     // Vaso de agua que se llena durante el día.

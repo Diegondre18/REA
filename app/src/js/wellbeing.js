@@ -420,19 +420,19 @@
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, cv.width, cv.height);
       const c = { ...PX.withExtra(PX.config(me), "", me.premios), ...(cfgOver || {}), pose };
-      ctx.fillStyle = "rgba(40,30,35,0.14)"; ctx.fillRect(3 * k, 22 * k, 10 * k, k);
-      PX.drawFigure(ctx, 2 * k, 2 * k, c, view, frame, false, flip, k, Math.max(1, Math.round(k * 0.35)));
+      ctx.fillStyle = "rgba(40,30,35,0.14)"; ctx.fillRect(3 * k, 24 * k, 10 * k, k);
+      PX.drawFigure(ctx, 2 * k, 4 * k, c, view, frame, false, flip, k, Math.max(1, Math.round(k * 0.35)));
     });
-    return html`<canvas ref=${ref} width=${16 * k} height=${24 * k} class="big-doll" aria-hidden="true"></canvas>`;
+    return html`<canvas ref=${ref} width=${16 * k} height=${26 * k} class="big-doll" aria-hidden="true"></canvas>`;
   }
 
   // Pausa activa guiada.
   const EJERCICIOS = [
-    { t: "Cuello", d: "Inclina la cabeza despacio hacia un hombro y luego hacia el otro. Sin forzar.", poses: [{ flip: false }, { flip: true }] },
-    { t: "Brazos arriba", d: "Entrelaza los dedos, estira los brazos hacia el techo y respira hondo.", poses: [{ pose: "estira" }, {}] },
-    { t: "Hombros", d: "Haz círculos con los hombros hacia atrás, lento. Diez veces.", poses: [{ frame: 1 }, { frame: 3 }] },
-    { t: "Espalda", d: "De pie, estira los brazos hacia arriba y gira el tronco a cada lado.", poses: [{ pose: "estira", view: "back" }, { view: "back" }] },
-    { t: "Vista 20-20-20", d: "Mira algo a unos 6 metros durante 20 segundos y parpadea varias veces.", poses: [{}, { flip: true }] },
+    { t: "Cuello", d: "Inclina la cabeza despacio hacia un hombro y luego hacia el otro. Sin forzar.", poses: [{}, { pose: "cuelloI" }, { pose: "cuelloI" }, {}, { pose: "cuelloD" }, { pose: "cuelloD" }] },
+    { t: "Brazos arriba", d: "Entrelaza los dedos, estira los brazos hacia el techo y respira hondo.", poses: [{}, { pose: "medio" }, { pose: "estira" }, { pose: "estira" }, { pose: "estira" }, { pose: "medio" }] },
+    { t: "Hombros", d: "Sube los hombros hacia las orejas, sostén un segundo y suéltalos. Diez veces.", poses: [{}, { pose: "hombros" }, { pose: "hombros" }, {}] },
+    { t: "Espalda", d: "De pie, estira los brazos hacia arriba y gira el tronco a cada lado.", poses: [{ pose: "medio" }, { pose: "estira" }, { pose: "giroI" }, { pose: "giroI" }, { pose: "estira" }, { pose: "giroD" }, { pose: "giroD" }, { pose: "estira" }] },
+    { t: "Vista 20-20-20", d: "Mira algo a unos 6 metros durante 20 segundos y parpadea varias veces.", poses: [{ look: -1 }, { look: -1 }, { look: -1, blink: true }, { look: 1 }, { look: 1 }, { look: 1, blink: true }] },
     { t: "Camina", d: "Da una vuelta corta: sirve un vaso de agua o pásale a saludar a alguien.", poses: [{ frame: 1 }, { frame: 0 }, { frame: 3 }, { frame: 0 }] },
   ];
   function PausaView() {
@@ -440,15 +440,15 @@
     const per = total / EJERCICIOS.length;
     const [t0] = useState(() => Date.now());
     const [, force] = useState(0);
-    useEffect(() => { const id = setInterval(() => force((n) => n + 1), 350); return () => clearInterval(id); }, []);
+    useEffect(() => { const id = setInterval(() => force((n) => n + 1), 150); return () => clearInterval(id); }, []);
     const el = Date.now() - t0;
     const i = Math.min(EJERCICIOS.length - 1, Math.floor(el / per));
     const ex = EJERCICIOS[i];
-    const pz = ex.poses[Math.floor(el / 900) % ex.poses.length];
+    const pz = ex.poses[Math.floor(el / 600) % ex.poses.length];
     const doneAll = el >= total;
     return html`
       <div class="pausa-view glass">
-        <div class="pausa-doll"><${BigDoll} pose=${pz.pose || ""} view=${pz.view || "front"} frame=${pz.frame || 0} flip=${!!pz.flip} /></div>
+        <div class="pausa-doll"><${BigDoll} pose=${pz.pose || ""} view=${pz.view || "front"} frame=${pz.frame || 0} flip=${!!pz.flip} cfgOver=${{ look: pz.look || 0, blink: !!pz.blink }} /></div>
         <div class="pausa-body">
           <span class="eyebrow">Pausa activa · ejercicio ${i + 1} de ${EJERCICIOS.length}</span>
           <h1>${doneAll ? "¡Listo!" : ex.t}</h1>
