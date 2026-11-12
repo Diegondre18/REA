@@ -7,6 +7,7 @@ const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
 const { createBubble } = require("./bubble");
 const { createBackups } = require("./respaldo");
+const { createAlerta } = require("./alerta");
 // El servidor integrado se carga solo cuando se usa: si algo faltara, la app igual abre y se puede actualizar.
 const hostModule = () => require("./host");
 
@@ -439,3 +440,11 @@ ipcMain.handle("backup-restore", async (_e, name) => {
   if (ok.response !== 0) return { ok: false, canceled: true };
   try { return await backups.restore(path.join(st.dir, name)); } catch (err) { return { ok: false, error: err.message }; }
 });
+
+/* ---------- aviso a pantalla completa (pausas activas y descansos) ---------- */
+const alerta = createAlerta({
+  isBusy: () => !!(bubble && bubble.busy()),
+  onAction: (a) => { if (win && !win.isDestroyed()) win.webContents.send("bubble-action", a); },
+});
+ipcMain.handle("big-alert-show", (e, data) => (win && e.sender === win.webContents ? alerta.show(data) : false));
+ipcMain.on("big-alert-hide", (e, id) => { if (win && e.sender === win.webContents) alerta.hide(id); });

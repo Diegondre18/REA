@@ -26,10 +26,19 @@
     if (!L.state.screenBusy) L.sound(soundKind);
     if (L.desk && L.desk.notify) L.desk.notify(title, body, route, true);
     if (L.desk && L.desk.bubbleNotify) L.desk.bubbleNotify({ id, title, body, route, kind: "bienestar", sticky: true, actions });
-    if (big) { L.set({ bigAlert: { id, kind: big, title, body, actions, at: Date.now() } }); if (L.desk && L.desk.showApp && big) L.desk.showApp(); }
+    if (big) { L.set({ bigAlert: { id, kind: big, title, body, actions, at: Date.now() } }); fullScreen(); }
     else L.set({ wellAlert: { id, title, body, actions } });
   }
+  // En el escritorio el aviso grande sale a pantalla completa, encima de cualquier programa.
+  function fullScreen() {
+    const a = L.state.bigAlert;
+    if (!a || !L.desk || !L.desk.bigAlertShow) return;
+    const me = L.state.me;
+    const team = a.kind === "pausa" ? q.staff().filter((u) => q.presence(u) === "pausa" && q.online(u) && u.id !== me.id).map((u) => L.first(u.name)) : [];
+    L.desk.bigAlertShow({ id: a.id, kind: a.kind, title: a.title, body: a.body, actions: a.actions, team, me: { id: me.id, name: me.name, muneco: me.muneco || null, premios: me.premios || [] } }).catch(() => {});
+  }
   function clearAlert(id) {
+    if (L.desk && L.desk.bigAlertHide && L.state.bigAlert && (!id || L.state.bigAlert.id === id)) L.desk.bigAlertHide(L.state.bigAlert.id);
     if (L.desk && L.desk.bubbleNotify) L.desk.bubbleNotify({ clear: id });
     if (L.state.wellAlert && (!id || L.state.wellAlert.id === id)) L.set({ wellAlert: null });
     if (L.state.bigAlert && (!id || L.state.bigAlert.id === id)) L.set({ bigAlert: null });
@@ -37,7 +46,7 @@
   function nag(id) {
     if (!L.state.screenBusy) L.sound("descanso");
     if (L.desk && L.desk.bubbleNotify) L.desk.bubbleNotify({ nag: id });
-    if (L.state.bigAlert && L.state.bigAlert.id === id) L.set({ bigAlert: { ...L.state.bigAlert, at: Date.now() } });
+    if (L.state.bigAlert && L.state.bigAlert.id === id) { L.set({ bigAlert: { ...L.state.bigAlert, at: Date.now() } }); fullScreen(); }
   }
   const showApp = () => { if (L.desk && L.desk.showApp) L.desk.showApp(); };
 
@@ -603,7 +612,8 @@
   function BigAlert() {
     const s = L.useStore();
     const a = s.bigAlert;
-    if (!a) return null;
+    // En el escritorio se muestra a pantalla completa (ventana aparte); aquí solo sin escritorio.
+    if (!a || (L.desk && L.desk.bigAlertShow)) return null;
     const team = a.kind === "pausa" ? q.staff().filter((u) => q.presence(u) === "pausa" && q.online(u) && u.id !== s.me.id) : [];
     return html`<div class="big-alert-wrap" role="alertdialog" aria-labelledby="ba-t">
       <div class=${L.cx("big-alert glass", a.kind)} key=${a.at}>

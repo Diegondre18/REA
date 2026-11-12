@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld("lap", {
   setAutostart: (on) => ipcRenderer.invoke("autostart-set", on),
   notify: (title, body, route, urgent) => ipcRenderer.send("notify", title, body, route, !!urgent),
   showApp: () => ipcRenderer.send("show-window"),
+  bigAlertShow: (data) => ipcRenderer.invoke("big-alert-show", data),
+  bigAlertHide: (id) => ipcRenderer.send("big-alert-hide", id),
   bubbleSync: (st) => ipcRenderer.send("bubble-sync", st),
   bubbleNotify: (n) => ipcRenderer.send("bubble-notify", n),
   onBubbleAction: (fn) => ipcRenderer.on("bubble-action", (_e, a) => fn(a)),

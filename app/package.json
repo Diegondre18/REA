@@ -1,7 +1,7 @@
 {
   "name": "lap-cerebro",
   "productName": "LAP Cerebro",
-  "version": "2.11.1",
+  "version": "2.12.0",
   "description": "Cerebro del estudio LAP: proyectos, planes de entregables, cronogramas personales, reuniones, comités y quién trabaja en qué.",
   "author": "Left Angle Partnership",
   "license": "UNLICENSED",
@@ -28,6 +28,8 @@
       "bubble.js",
       "bubble-preload.js",
       "respaldo.js",
+      "alerta.js",
+      "alerta-preload.js",
       "src/**/*",
       "package.json"
     ],
