@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+<title>LAP Cerebro · burbuja</title>
+<link rel="stylesheet" href="bubble.css">
+</head>
+<body>
+<div id="doll" data-hit role="button" aria-label="Tu muñeco de LAP Cerebro. Clic para cambiar tu estado; doble clic para abrir la app.">
+  <canvas id="cv" aria-hidden="true"></canvas>
+  <span id="count" hidden></span>
+  <span id="pill" hidden></span>
+</div>
+<div id="balloons" aria-live="polite"></div>
+<div id="menu" data-hit hidden role="menu"></div>
+<script src="js/pixel-core.js"></script>
+<script src="js/bubble.js"></script>
+</body>
+</html>

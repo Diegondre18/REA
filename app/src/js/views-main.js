@@ -22,7 +22,7 @@
         <${Avatar} id=${u.id} cls="lg" dot />
         <span class="person-body">
           <span class="who">${u.name}${L.state.me.id === u.id && html`<span class="tag">Tú</span>`}</span>
-          <span class="what">${online && !q.atDesk(u) ? html`<b>Fuera del puesto</b>${task ? " · vuelve a " + task.title : ""}` : task ? html`En <b>${task.title}</b>${p ? " · " + (p.code || p.name) : ""}` : u.estado || (online ? "Conectado, sin tarea marcada" : u.lastSeen ? "Visto " + L.relTime(u.lastSeen) : "Sin conectarse aún")}</span>
+          <span class="what">${online && q.presence(u) !== "disponible" ? html`<b style=${{ color: q.presenceInfo(u).color }}>${q.presenceInfo(u).label}</b>${task ? " · " + task.title : ""}` : online && !q.atDesk(u) ? html`<b>Fuera del puesto</b>${task ? " · vuelve a " + task.title : ""}` : task ? html`En <b>${task.title}</b>${p ? " · " + (p.code || p.name) : ""}` : u.estado || (online ? "Conectado, sin tarea marcada" : u.lastSeen ? "Visto " + L.relTime(u.lastSeen) : "Sin conectarse aún")}</span>
           ${!compact && html`<span class="tag">${[u.cargo, task && u.since ? "desde " + L.relTime(u.since) : ""].filter(Boolean).join(" · ") || (u.areas || []).map((a) => L.AREA[a] && L.AREA[a].label).filter(Boolean).join(", ")}</span>`}
         </span>
       </button>`;

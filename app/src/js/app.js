@@ -104,7 +104,9 @@
         <a class="brand" href="#inicio" aria-label="LAP Cerebro, inicio"><${Sym} /><span class="lap">LAP</span><span class="rule"></span><span class="prod"><b>Cerebro</b></span></a>
         <nav class="side-nav" aria-label="Principal">
           ${item("#inicio", "home", "Inicio", r.name === "inicio", nPend || null)}
+          ${item("#semana", "flag", "Mi semana", r.name === "semana")}
           ${item("#agenda", "calendar", "Mi cronograma", r.name === "agenda")}
+          ${item("#linea", "folder", "Línea de tiempo", r.name === "linea")}
           ${item("#oficina", "office", "Oficina", r.name === "oficina")}
           ${item("#agentes", "bot", "Agentes", r.name === "agentes", L.myFindings ? L.myFindings().filter((f) => f.level === "alta").length || null : null)}
           ${item("#proyectos", "folder", "Proyectos", r.name === "proyectos")}
@@ -166,7 +168,10 @@
   /* ---------- avisos ---------- */
   function Bell() {
     const s = L.useStore();
-    const [open, setOpen] = useState(false);
+    const [mine, setMine] = useState(false);
+    // Se abre también desde la burbuja ("Ver avisos").
+    const open = mine || s.bellOpen;
+    const setOpen = (v) => { setMine(v); if (!v && L.state.bellOpen) L.set({ bellOpen: false }); };
     const box = useRef(null);
     useEffect(() => {
       const away = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
@@ -181,9 +186,9 @@
         ${open && html`<div class="pop notifs glass">
           <div class="pop-head"><h2><span class="sl">/</span>Avisos</h2>${unread > 0 && html`<button type="button" class="link" onClick=${act.readAll}>Marcar leídos</button>`}</div>
           <div class="pop-list">${s.notifs.length ? s.notifs.slice(0, 30).map((n) => html`
-            <button type="button" key=${n.id} class=${L.cx("notif", !n.read && "unread")} onClick=${() => pick(n)}>
-              <i></i><span><b>${n.title}</b>${n.body && html`<small>${n.body}</small>`}<time>${L.relTime(n.created)}</time></span>
-            </button>`) : html`<p class="note">Aquí llegan las tareas que te asignan, los planes que esperan tu visto bueno, las reuniones y los recordatorios.</p>`}</div>
+            <div key=${n.id} class="notif-wrap"><button type="button" class=${L.cx("notif", !n.read && "unread", n.urgente && "urgente")} onClick=${() => pick(n)}>
+              <i></i><span><b>${n.title}</b>${n.body && html`<small>${n.body}</small>`}<time>${L.relTime(n.created)}${n.respuesta ? " · respondiste" : ""}</time></span>
+            </button>${L.ToqueReply && html`<${L.ToqueReply} n=${n} />`}</div>`) : html`<p class="note">Aquí llegan las tareas que te asignan, los planes que esperan tu visto bueno, las reuniones y los recordatorios.</p>`}</div>
         </div>`}
       </div>`;
   }
@@ -199,6 +204,7 @@
         <${Search} />
         <span class="spacer"></span>
         ${online.length > 0 && html`<span class="online" title=${"Conectados: " + online.map((u) => u.name).join(", ")}><${Faces} ids=${online.map((u) => u.id)} max=${5} /></span>`}
+        ${L.PresenceChip && html`<${L.PresenceChip} />`}
         <span class="sync" data-mode=${s.mode} title=${s.mode === "live" ? "Los cambios se comparten con todo el equipo al instante." : "Reintentando la conexión con el servidor."}><i></i><span>${label}</span></span>
         <button type="button" class="btn icon" title=${"Modo: " + L.THEMES.find((t) => t.id === s.theme).label + ". Clic para cambiar."} aria-label="Cambiar entre modo claro, oscuro o el del sistema"
           onClick=${() => { const i = L.THEMES.findIndex((t) => t.id === s.theme); L.setTheme(L.THEMES[(i + 1) % L.THEMES.length].id); }}>
@@ -211,9 +217,14 @@
   function Banners() {
     const s = L.useStore();
     const sample = s.proyectos.some((p) => p.sample);
+    const wk = L.weekKey ? L.weekKey() : "";
+    const [seenWeek, setSeenWeek] = useState(() => { try { return localStorage.getItem("lap-cerebro-semana-vista") || ""; } catch (e) { return ""; } });
+    const markWeek = () => { try { localStorage.setItem("lap-cerebro-semana-vista", wk); } catch (e) { /* bloqueado */ } setSeenWeek(wk); };
+    const showWeek = wk && seenWeek !== wk && s.route.name !== "semana";
     return html`
       ${s.update && html`<div class="banner glass update"><p><strong>LAP Cerebro ${s.update} está lista.</strong> Se instala al reiniciar la app; tarda unos segundos y vuelve a abrir sola.</p><button type="button" class="btn sm primary" onClick=${() => L.desk.installUpdate()}>Reiniciar y actualizar</button></div>`}
       ${s.mode === "offline" && html`<div class="banner glass"><p><strong>Sin conexión con el servidor.</strong> Lo que ves puede estar desactualizado. La app reintenta sola cada minuto.</p><button type="button" class="btn sm" onClick=${act.reconnect}>Reintentar ahora</button></div>`}
+      ${showWeek && html`<div class="banner glass wk-banner"><p><strong>Empieza la semana ${L.isoWeek(L.today())}.</strong> Mira qué vence, qué está bloqueado y quién del equipo no estará.</p><div class="inline"><button type="button" class="btn sm ghost" onClick=${markWeek}>Ahora no</button><button type="button" class="btn sm primary" onClick=${() => { markWeek(); L.go("#semana"); }}>Ver mi semana</button></div></div>`}
       ${sample && html`<div class="banner glass"><p><strong>Hay proyectos de ejemplo.</strong> Torre Alameda y Casa Encinos son ficticios, para ver cómo funciona todo.</p><button type="button" class="btn sm" onClick=${act.clearSample}>Borrar ejemplos</button></div>`}`;
   }
 
@@ -222,6 +233,8 @@
     const r = s.route;
     switch (r.name) {
       case "agenda": return html`<${L.Agenda} />`;
+      case "semana": return html`<${L.Semana} key=${r.id} offset=${r.id === "proxima" ? 1 : 0} />`;
+      case "linea": return html`<${L.Linea} />`;
       case "proyectos": return html`<${L.Proyectos} />`;
       case "proyecto": return html`<${L.Proyecto} key=${r.id} id=${r.id} tab=${r.tab} />`;
       case "reuniones": return html`<${L.Reuniones} />`;

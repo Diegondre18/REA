@@ -32,7 +32,7 @@ onRecordCreateRequest((e) => {
     const lib = require(`${__hooks}/lib.js`);
     const yo = e.auth ? e.auth.id : "";
     for (const u of lib.arr(e.record.getStringSlice("assignees"))) {
-      if (u !== yo) lib.notificar(e.app, u, "tarea", "Nueva tarea: " + e.record.getString("title"),
+      if (u !== yo) lib.aviso(e, u, "tarea", "Nueva tarea: " + e.record.getString("title"),
         lib.primerNombre(e.auth) + " te la asignó" + (e.record.getString("due") ? " para el " + lib.fechaCorta(e.record.getString("due")) : "") + ".", "#tarea/" + e.record.id);
     }
   } catch (err) { console.log("aviso tarea:", err); }
@@ -49,11 +49,11 @@ onRecordUpdateRequest((e) => {
     for (const u of ahora) {
       if (u === yo) continue;
       if (antes.indexOf(u) < 0) {
-        lib.notificar(e.app, u, "tarea", "Te asignaron: " + e.record.getString("title"),
+        lib.aviso(e, u, "tarea", "Te asignaron: " + e.record.getString("title"),
           lib.primerNombre(e.auth) + " te sumó a esta tarea" + (e.record.getString("due") ? ", para el " + lib.fechaCorta(e.record.getString("due")) : "") + ".", "#tarea/" + e.record.id);
       } else if (fechaAntes !== e.record.getString("due") && e.record.getString("due")) {
-        lib.notificar(e.app, u, "tarea", "Cambió la fecha: " + e.record.getString("title"),
-          "Ahora es para el " + lib.fechaCorta(e.record.getString("due")) + ".", "#tarea/" + e.record.id);
+        lib.aviso(e, u, "tarea", "Cambió la fecha: " + e.record.getString("title"),
+          "Ahora es para el " + lib.fechaCorta(e.record.getString("due")) + ".", "#tarea/" + e.record.id, true);
       }
     }
   } catch (err) { console.log("aviso tarea:", err); }
@@ -68,7 +68,7 @@ onRecordCreateRequest((e) => {
     const r = e.record;
     const cuando = lib.fechaCorta(r.getString("date")) + (r.getString("time") ? ", " + r.getString("time") : "");
     for (const u of lib.arr(r.getStringSlice("attendees"))) {
-      if (u !== yo) lib.notificar(e.app, u, "evento", r.getString("title") + " · " + cuando, lib.primerNombre(e.auth) + " te incluyó.", "#evento/" + r.id);
+      if (u !== yo) lib.aviso(e, u, "evento", r.getString("title") + " · " + cuando, lib.primerNombre(e.auth) + " te incluyó.", "#evento/" + r.id);
     }
   } catch (err) { console.log("aviso evento:", err); }
 }, "eventos");
@@ -86,8 +86,8 @@ onRecordUpdateRequest((e) => {
     const movida = antes !== r.getString("date") + " " + r.getString("time");
     for (const u of lib.arr(r.getStringSlice("attendees"))) {
       if (u === yo) continue;
-      if (asistian.indexOf(u) < 0) lib.notificar(e.app, u, "evento", r.getString("title") + " · " + cuando, lib.primerNombre(e.auth) + " te incluyó.", "#evento/" + r.id);
-      else if (movida) lib.notificar(e.app, u, "evento", "Se movió: " + r.getString("title"), "Ahora es el " + cuando + ".", "#evento/" + r.id);
+      if (asistian.indexOf(u) < 0) lib.aviso(e, u, "evento", r.getString("title") + " · " + cuando, lib.primerNombre(e.auth) + " te incluyó.", "#evento/" + r.id);
+      else if (movida) lib.aviso(e, u, "evento", "Se movió: " + r.getString("title"), "Ahora es el " + cuando + ".", "#evento/" + r.id, true);
     }
   } catch (err) { console.log("aviso evento:", err); }
 }, "eventos");
@@ -99,7 +99,7 @@ onRecordCreateRequest((e) => {
     const lib = require(`${__hooks}/lib.js`);
     const yo = e.auth ? e.auth.id : "";
     for (const u of lib.arr(e.record.getStringSlice("members"))) {
-      if (u !== yo) lib.notificar(e.app, u, "proyecto", "Estás en el proyecto " + e.record.getString("name"), lib.primerNombre(e.auth) + " te sumó al equipo.", "#proyecto/" + e.record.id);
+      if (u !== yo) lib.aviso(e, u, "proyecto", "Estás en el proyecto " + e.record.getString("name"), lib.primerNombre(e.auth) + " te sumó al equipo.", "#proyecto/" + e.record.id);
     }
   } catch (err) { console.log("aviso proyecto:", err); }
 }, "proyectos");
@@ -111,7 +111,7 @@ onRecordUpdateRequest((e) => {
   try {
     const yo = e.auth ? e.auth.id : "";
     for (const u of lib.arr(e.record.getStringSlice("members"))) {
-      if (u !== yo && antes.indexOf(u) < 0) lib.notificar(e.app, u, "proyecto", "Estás en el proyecto " + e.record.getString("name"), lib.primerNombre(e.auth) + " te sumó al equipo.", "#proyecto/" + e.record.id);
+      if (u !== yo && antes.indexOf(u) < 0) lib.aviso(e, u, "proyecto", "Estás en el proyecto " + e.record.getString("name"), lib.primerNombre(e.auth) + " te sumó al equipo.", "#proyecto/" + e.record.id);
     }
   } catch (err) { console.log("aviso proyecto:", err); }
 }, "proyectos");
@@ -138,7 +138,7 @@ onRecordCreateRequest((e) => {
     const urgente = r.getString("prioridad") === "urgente" ? "Urgente: " : "";
     for (const u of gente) {
       if (u.id === r.getString("solicitante")) continue;
-      lib.notificar(e.app, u.id, "solicitud", urgente + "Nueva solicitud: " + r.getString("titulo"),
+      lib.aviso(e, u.id, "solicitud", urgente + "Nueva solicitud: " + r.getString("titulo"),
         lib.primerNombre(e.auth) + " la pidió" + (r.getString("fechaNecesaria") ? " para el " + lib.fechaCorta(r.getString("fechaNecesaria")) : "") + ".", "#solicitudes");
     }
   } catch (err) { console.log("aviso solicitud:", err); }
@@ -155,7 +155,7 @@ onRecordUpdateRequest((e) => {
     if (estado === antes || !quien || (e.auth && quien === e.auth.id)) return;
     const textos = { aceptada: "aceptó", lista: "terminó", rechazada: "no pudo tomar" };
     if (!textos[estado]) return;
-    lib.notificar(e.app, quien, "solicitud", lib.primerNombre(e.auth) + " " + textos[estado] + " tu solicitud: " + r.getString("titulo"), r.getString("respuesta"), "#solicitudes");
+    lib.aviso(e, quien, "solicitud", lib.primerNombre(e.auth) + " " + textos[estado] + " tu solicitud: " + r.getString("titulo"), r.getString("respuesta"), "#solicitudes");
   } catch (err) { console.log("aviso solicitud:", err); }
 }, "solicitudes");
 
@@ -172,7 +172,7 @@ onRecordUpdateRequest((e) => {
     const destino = {};
     for (const u of [r.getString("responsable"), p.getString("leader")]) if (u && (!e.auth || u !== e.auth.id)) destino[u] = true;
     for (const u in destino) {
-      lib.notificar(e.app, u, "tramite", "Licencia de " + p.getString("name") + ": " + (NOMBRES[r.getString("estado")] || r.getString("estado")),
+      lib.aviso(e, u, "tramite", "Licencia de " + p.getString("name") + ": " + (NOMBRES[r.getString("estado")] || r.getString("estado")),
         r.getString("estado") === "observaciones" && r.getString("fechaLimite") ? "Hay que responder antes del " + lib.fechaCorta(r.getString("fechaLimite")) + "." : "", "#proyecto/" + p.id + "/licencias");
     }
   } catch (err) { console.log("aviso trámite:", err); }

@@ -44,7 +44,9 @@
     const src = q.avatar(u) || (L.PIX && u && u.muneco ? L.PIX.faceUrl(u) : "");
     const inner = src ? html`<img class=${"av " + cls} src=${src} alt="" title=${title} />` : html`<span class=${"av " + cls} title=${title}>${L.initials(u && u.name)}</span>`;
     if (!dot) return inner;
-    return html`<span class="av-wrap">${inner}${q.online(u) && html`<span class="dot" title="Conectado ahora"></span>`}</span>`;
+    if (!q.online(u)) return html`<span class="av-wrap">${inner}</span>`;
+    const pr = q.presenceInfo(u);
+    return html`<span class="av-wrap">${inner}<span class=${L.cx("dot", pr.id === "no_molestar" && "dnd")} style=${pr.id === "disponible" ? null : { background: pr.color }} title=${pr.id === "disponible" ? "Conectado ahora" : pr.label}></span></span>`;
   }
   const Faces = ({ ids = [], max = 4, cls = "" }) => {
     if (!ids.length) return null;

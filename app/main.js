@@ -5,6 +5,7 @@ const path = require("path");
 const fs = require("fs/promises");
 const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
+const { createBubble } = require("./bubble");
 // El servidor integrado se carga solo cuando se usa: si algo faltara, la app igual abre y se puede actualizar.
 const hostModule = () => require("./host");
 
@@ -19,6 +20,8 @@ const OLD_FLAG = "--oculta";
 let win = null;
 let tray = null;
 let quitting = false;
+let bubble = null;
+let unread = 0;
 
 /* ---------- servidor del estudio dentro de la app ---------- */
 // En el PC elegido como servidor, la app arranca PocketBase por dentro cada vez que abre.
@@ -128,9 +131,13 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: true,
       spellcheck: false,
+      // Minimizada o en la bandeja sigue recibiendo avisos al instante y puede sonar.
+      backgroundThrottling: false,
+      autoplayPolicy: "no-user-gesture-required",
     },
   });
   win.once("ready-to-show", () => win.show());
+  win.on("focus", () => win.flashFrame(false));
   win.loadFile(path.join(__dirname, "src", "index.html"));
   // Los enlaces web (Meet, Google Calendar) se abren en el navegador; la ventana nunca navega fuera de la app.
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -159,9 +166,10 @@ function createTray() {
 function updateTray() {
   if (!tray) return;
   const serving = !!(host && host.running());
-  tray.setToolTip(serving ? "LAP Cerebro · este PC es el servidor del estudio" : "LAP Cerebro · conectado con el equipo");
+  tray.setToolTip((serving ? "LAP Cerebro · este PC es el servidor del estudio" : "LAP Cerebro · conectado con el equipo") + (unread ? ` · ${unread} sin leer` : ""));
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: "Abrir LAP Cerebro", click: showWindow },
+    { label: "Mostrar la burbuja", type: "checkbox", checked: !!(bubble && bubble.visible()), click: (it) => setBubbleVisible(it.checked) },
     { type: "separator" },
     { label: serving ? "Salir (el equipo se queda sin servidor)" : "Salir", click: () => { quitting = true; app.quit(); } },
   ]));
@@ -170,11 +178,12 @@ function updateTray() {
 nativeTheme.on("updated", () => { if (win) { win.setTitleBarOverlay(colors()); win.setBackgroundColor(colors().color); } });
 app.on("second-instance", showWindow);
 app.on("before-quit", () => { quitting = true; });
-app.on("will-quit", () => { if (host) host.stop(); });
+app.on("will-quit", () => { if (host) host.stop(); if (bubble) bubble.stop(); });
 app.whenReady().then(async () => {
   // Si este PC es el servidor, se arranca antes de abrir la ventana para que todos se conecten cuanto antes.
   if (await isHosting()) getHost().start().then(updateTray);
   createWindow();
+  startBubble();
   createTray();
   if (app.isPackaged) {
     setAutostartOnce();
@@ -339,12 +348,58 @@ ipcMain.handle("autostart-set", (_e, on) => {
 });
 
 // Avisos nativos de Windows; al hacer clic se abre la app en lo que corresponde.
-ipcMain.on("notify", (_e, title, body, route) => {
+// El sonido lo pone la app (uno suave y otro para lo urgente), por eso el aviso de Windows va en silencio.
+ipcMain.on("notify", (_e, title, body, route, urgent) => {
+  if (win && !win.isFocused()) win.flashFrame(true);
   if (!Notification.isSupported() || (win && win.isFocused())) return;
-  const n = new Notification({ title: String(title || "").slice(0, 120), body: String(body || "").slice(0, 300), icon: iconPath(), silent: false });
+  const n = new Notification({ title: String(title || "").slice(0, 120), body: String(body || "").slice(0, 300), icon: iconPath(), silent: true, urgency: urgent ? "critical" : "normal" });
   n.on("click", () => {
     showWindow();
     if (win && typeof route === "string" && /^#[\w/-]*$/.test(route)) win.webContents.send("navigate", route);
   });
   n.show();
+});
+
+/* ---------- burbuja de escritorio ---------- */
+// La app (ventana principal) es la que habla con el servidor; la burbuja solo muestra y pide acciones.
+function startBubble() {
+  bubble = createBubble({
+    app,
+    onAction: (a) => {
+      if (a.type === "open" || a.type === "bell") showWindow();
+      if (a.type === "visibility") updateTray();
+      if (win && !win.isDestroyed()) win.webContents.send("bubble-action", a);
+    },
+  });
+  bubble.start().then(updateTray).catch(() => {});
+}
+function setBubbleVisible(on) {
+  if (!bubble) return false;
+  bubble.setVisible(on);
+  updateTray();
+  if (win && !win.isDestroyed()) win.webContents.send("bubble-action", { type: "visibility", value: !!on });
+  return !!on;
+}
+ipcMain.on("bubble-sync", (e, st) => {
+  if (!bubble || !win || e.sender !== win.webContents || !st || typeof st !== "object") return;
+  const n = Math.max(0, Math.min(999, Number(st.unread) || 0));
+  if (n !== unread) { unread = n; updateTray(); }
+  bubble.setState(st);
+});
+ipcMain.on("bubble-notify", (e, n) => {
+  if (!bubble || !win || e.sender !== win.webContents || !n || typeof n !== "object") return;
+  // Con la app al frente el aviso ya se ve adentro; el globito es para cuando está minimizada o en la bandeja.
+  if (n.id && win.isVisible() && !win.isMinimized() && win.isFocused()) return;
+  bubble.notify(n);
+});
+ipcMain.handle("bubble-visible", () => !!(bubble && bubble.visible()));
+ipcMain.handle("bubble-set-visible", (_e, on) => setBubbleVisible(on));
+ipcMain.handle("screen-busy", () => !!(bubble && bubble.busy()));
+// Número de avisos sin leer sobre el ícono de la barra de tareas (la imagen la dibuja la app).
+ipcMain.on("set-badge", (e, dataUrl, count) => {
+  if (!win || e.sender !== win.webContents) return;
+  try {
+    if (!count || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/png;base64,")) win.setOverlayIcon(null, "");
+    else win.setOverlayIcon(nativeImage.createFromDataURL(dataUrl), `${count} avisos sin leer`);
+  } catch (err) { /* no todas las plataformas tienen ícono superpuesto */ }
 });

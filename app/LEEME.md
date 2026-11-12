@@ -35,6 +35,22 @@ El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sist
 
 **Agentes** son seis muñequitos que revisan el estudio con reglas fijas: Vigía (atrasos y tareas bloqueadas), Agenda (reuniones, actas y avances de comité), Plan (planes y vistos buenos), Equipo (carga y ausencias), Trámites (licencias, planos y revisiones de imagen) y Cuentas (cobros vencidos y por facturar; solo Dirección y Administración). No usan inteligencia artificial ni internet ni consumo de ningún servicio: corren en cada PC con los datos que ya están sincronizados. Viven en el **laboratorio de agentes** de la oficina, disponibles para todos (clic en uno para ver lo que encontró), y lo urgente aparece en Inicio.
 
+## Burbuja, estados y tocar el hombro
+
+**Burbuja.** Al instalar, el muñeco de cada persona queda en el borde de la pantalla, siempre encima, aunque la app esté minimizada o cerrada en la bandeja (junto al reloj). Se arrastra a cualquier borde o esquina (también a otro monitor) y recuerda dónde quedó. No tapa clics: solo responde con el mouse encima. Cuando llega un aviso, el muñeco salta, aparece un globito con el texto y un número rojo con los pendientes; clic en el globito abre la app en eso. Un clic en el muñeco abre el menú de estados; doble clic abre la app. Se esconde sola mientras alguien presenta o tiene algo a pantalla completa, y se puede ocultar desde su menú, el ícono de la bandeja o el perfil. Además: aviso de Windows, parpadeo y número sobre el ícono de la barra de tareas.
+
+**Estados.** Disponible, No molestar (audífonos), En reunión (va a la sala de juntas), Almuerzo (va a la cafetería) y Fuera (sale de la oficina). Se eligen en la burbuja, en la barra superior o en el perfil. Las reuniones agendadas en la app ponen «En reunión» solas a la hora de inicio y lo quitan al terminar. En No molestar y En reunión los avisos solo suman al contador, sin globito ni sonido; **lo urgente pasa igual**: cambios de fecha de tareas y reuniones, y los mensajes directos de Dirección. Volver caminando al puesto deja a la persona Disponible.
+
+**Sonido.** Un tono suave para lo normal y otro más notorio para lo urgente. Se silencia desde la burbuja o el perfil; lo urgente suena igual.
+
+**Tocar el hombro.** Clic en otra persona en la oficina (o en su perfil) → Tocar el hombro, con un mensaje corto opcional. Le llega a su burbuja con tres botones: Voy, En 10 min, Ahora no; la respuesta vuelve a quien tocó.
+
+## Mi semana y línea de tiempo
+
+**Mi semana** muestra lo que vence en la semana (por día), lo atrasado, lo bloqueado esperando a otros, quién te espera a ti, las reuniones y quién del equipo no estará. Dirección ve además las entregas y atrasos de todo el estudio y la carga de cada persona. Cada lunes llega un aviso con el resumen y la app lo ofrece al abrir la primera vez en la semana.
+
+**Línea de tiempo** junta todos los proyectos en un calendario: por proyecto (con entregas, reuniones con cliente y plazos de licencias) o por persona (tareas, ausencias y carga por semana, en amarillo desde 4 tareas y en rojo desde 6). Escalas de semanas, meses o trimestre y filtro por área. Por ahora es para mirar: las fechas se cambian en cada tarea.
+
 ## Actualizaciones
 
 En tu perfil, abajo, está la versión instalada y el botón **Buscar actualizaciones**, que muestra si está buscando, el porcentaje de descarga o el error si algo falla. Los errores también quedan en `%APPDATA%\LAP Cerebro\actualizaciones.log`.

@@ -257,16 +257,18 @@
     const footer = html`<span class="spacer"></span><button type="button" class="btn ghost" onClick=${L.closeSheet}>${can ? "Cancelar" : "Cerrar"}</button>${can && html`<button type="submit" class="btn primary">Guardar</button>`}`;
     return html`
       <${Sheet} title=${isMe ? "Tu perfil" : "Persona"} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
-        <div class="profile-head"><${Avatar} id=${u.id} cls="xl" dot /><div><b>${u.name}</b><span class="muted">${u.email || ""}</span><span class="tag">${q.roleLabel(u)}</span></div></div>
+        <div class="profile-head"><${Avatar} id=${u.id} cls="xl" dot /><div><b>${u.name}</b><span class="muted">${u.email || ""}</span><span class="tag">${q.roleLabel(u)}${q.online(u) && q.presence(u) !== "disponible" ? " · " + q.presenceInfo(u).label : ""}</span></div>
+          ${!isMe && u.role !== "maestro" && html`<button type="button" class="btn sm push" onClick=${() => L.openSheet("toque", u.id)}><${L.Icon} name="bell" size=${13} /> Tocar el hombro</button>`}</div>
         ${isMe && html`<${Field} label="Nombre" id="u-name"><input id="u-name" value=${f.name} onInput=${set("name")} /><//>`}
         <${Field} label="Cargo" id="u-cargo"><input id="u-cargo" value=${f.cargo} onInput=${set("cargo")} disabled=${!can} placeholder="Arquitecta, visualizador, coordinadora…" /><//>
         <div class="fld"><span class="lbl">${u.role === "director" || f.role === "director" ? "Áreas, además de Dirección" : "Equipo"}</span><${Pills} options=${areaOptions} value=${f.areas} attr="data-a" disabled=${!can} onChange=${(a) => setF((x) => ({ ...x, areas: toggleIn(x.areas, a) }))} /></div>
-        ${isMe && html`<${Field} label="Estado" id="u-estado" hint="Lo ve el equipo junto a tu nombre. Por ejemplo: en obra hasta las 3."><input id="u-estado" value=${f.estado} onInput=${set("estado")} maxlength="80" /><//>`}
+        ${isMe && html`<${Field} label="Nota para el equipo" id="u-estado" hint="Lo ve el equipo junto a tu nombre. Por ejemplo: en obra hasta las 3."><input id="u-estado" value=${f.estado} onInput=${set("estado")} maxlength="80" /><//>`}
         ${director && !isMe && (u.role !== "maestro" || q.isMaestro()) && html`<${Field} label="Rol" id="u-role" hint="La Dirección creativa ve todo y aprueba cualquier plan. Para pasarla a otra persona, primero quítasela a quien la tiene.">
           <select id="u-role" value=${f.role} onChange=${set("role")}>${roleOptions.map((o) => html`<option key=${o.id} value=${o.id}>${o.label}</option>`)}</select><//>`}
         ${isMe && html`
           <div class="settings">
             <div class="fld"><span class="lbl">Muñeco de la oficina</span><div class="inline">${L.MunecoPreview && html`<span class="pix-mini"><${L.MunecoPreview} cfg=${L.PIX.config(s.me)} /></span>`}<button type="button" class="btn sm" onClick=${() => L.openSheet("muneco")}>${s.me.muneco && s.me.muneco.ropa ? "Cambiar mi muñeco" : "Crear mi muñeco"}</button></div></div>
+            ${L.DeskSettings && html`<${L.DeskSettings} />`}
             <div class="fld"><span class="lbl">Apariencia</span><${L.Seg} label="Apariencia" value=${s.theme} onChange=${L.setTheme} options=${L.THEMES} /></div>
             ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}
             ${hosting ? html`
@@ -326,6 +328,7 @@
     if (sh.type === "project") return html`<${ProjectSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "profile") return html`<${ProfileSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "muneco") return html`<${L.MunecoSheet} key=${k} />`;
+    if (sh.type === "toque") return html`<${L.ToqueSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "tool") { const { col, ...d } = sh.defaults; return html`<${L.ToolSheet} key=${k + col} col=${col} id=${sh.id} defaults=${d} />`; }
     return null;
   }

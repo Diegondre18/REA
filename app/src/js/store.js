@@ -31,6 +31,15 @@
     serverUrl: "",
   };
 
+  // Estados de cada persona (definidos en pixel-core.js, compartidos con la burbuja).
+  L.PRESENCIAS = window.PIXCORE.PRESENCIAS;
+  L.PRESENCIA = Object.fromEntries(L.PRESENCIAS.map((p) => [p.id, p]));
+  const MUTE_KEY = "lap-cerebro-silencio";
+  state.muted = (() => { try { return localStorage.getItem(MUTE_KEY) === "1"; } catch (e) { return false; } })();
+  state.bubbleVisible = true;
+  state.screenBusy = false;
+  state.bellOpen = false;
+
   /* ---------- suscripción de la interfaz ---------- */
   const listeners = new Set();
   let raf = 0;
@@ -49,6 +58,7 @@
     return state;
   }
   function set(patch) { Object.assign(state, patch); emit(); }
+  listeners.add(() => syncBubble());
 
   let toastTimer = 0;
   function toast(msg) {
@@ -170,15 +180,95 @@
       .then(() => { if (state.mode === "offline") loadAll().catch(() => {}); })
       .catch((e) => { if (e && e.status === 0) set({ mode: "offline" }); });
     // Al abrir la app, cada quien llega a su puesto en la oficina.
-    pb.collection("users").update(state.me.id, { lastSeen: new Date().toISOString(), puesto: true, pos: null })
+    // Si la app estuvo cerrada más de 3 horas, el estado de ayer (almuerzo, reunión, fuera) no sigue.
+    const stale = !state.me.lastSeen || Date.now() - Date.parse(String(state.me.lastSeen).replace(" ", "T")) > 3 * 3600e3;
+    const fresh = stale && ["reunion", "almuerzo", "fuera"].includes(q.presence(state.me)) ? { presencia: "disponible", presenciaRef: "" } : {};
+    pb.collection("users").update(state.me.id, { lastSeen: new Date().toISOString(), puesto: true, pos: null, ...fresh })
       .then((rec) => { upsert("users", rec); state.me = rec; emit(); }).catch(() => {});
     beatTimer = setInterval(beat, 60000);
+    setTimeout(autoMeeting, 3000);
   }
 
+  // Avisos nuevos: en "No molestar" o "En reunión" solo suma al contador, salvo lo urgente
+  // (cambios de fecha y lo que dice Dirección), que suena y aparece igual.
   function announce(n) {
+    const pres = q.presence(state.me);
+    const quiet = (pres === "no_molestar" || pres === "reunion") && !n.urgente;
+    if (quiet) { syncBubble(); return; }
     toast(n.title);
-    if (desk && desk.notify) desk.notify(n.title, n.body || "", n.route || "");
+    if (!(state.muted && !n.urgente) && !(state.screenBusy && !n.urgente)) sound(!!n.urgente);
+    if (desk && desk.notify) desk.notify(n.title, n.body || "", n.route || "", !!n.urgente);
+    if (desk && desk.bubbleNotify) {
+      desk.bubbleNotify({ id: n.id, title: n.title, body: n.body || "", route: n.route || "", kind: n.kind || "", urgente: !!n.urgente, respuesta: n.respuesta || "" });
+    }
   }
+
+  // Sonidos propios, sin archivos: uno suave para lo normal y otro más notorio para lo urgente.
+  let audio = null;
+  function sound(urgent) {
+    try {
+      audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+      if (audio.state === "suspended") audio.resume();
+      const t0 = audio.currentTime + 0.02;
+      const notes = urgent ? [[880, 0], [1175, 0.13], [880, 0.32], [1175, 0.45]] : [[660, 0], [990, 0.12]];
+      for (const [f, at] of notes) {
+        const o = audio.createOscillator(), g = audio.createGain();
+        o.type = urgent ? "triangle" : "sine";
+        o.frequency.value = f;
+        const v = urgent ? 0.22 : 0.12, start = t0 + at, end = start + (urgent ? 0.16 : 0.22);
+        g.gain.setValueAtTime(0.0001, start);
+        g.gain.exponentialRampToValueAtTime(v, start + 0.015);
+        g.gain.exponentialRampToValueAtTime(0.0001, end);
+        o.connect(g).connect(audio.destination);
+        o.start(start); o.stop(end + 0.02);
+      }
+    } catch (e) { /* sin audio */ }
+  }
+
+  // Estado que ve la burbuja: el muñeco, el estado, cuántos avisos sin leer y el sonido.
+  let bubbleSig = "";
+  function syncBubble() {
+    if (!desk || !desk.bubbleSync) return;
+    const live = !!state.me && (state.mode === "live" || state.mode === "offline");
+    const me = live ? { id: state.me.id, name: state.me.name, muneco: state.me.muneco || null } : null;
+    const st = { me, presencia: live ? q.presence(state.me) : "", unread: live ? q.unread() : 0, muted: !!state.muted, theme: state.theme || "system" };
+    const sig = JSON.stringify(st);
+    if (sig === bubbleSig) return;
+    const prev = bubbleSig ? JSON.parse(bubbleSig).unread : -1;
+    bubbleSig = sig;
+    desk.bubbleSync(st);
+    if (desk.setBadge && st.unread !== prev) desk.setBadge(st.unread ? badgeImage(st.unread) : null, st.unread);
+  }
+  function badgeImage(n) {
+    const cv = document.createElement("canvas");
+    cv.width = cv.height = 32;
+    const c = cv.getContext("2d");
+    c.fillStyle = "#e5484d"; c.beginPath(); c.arc(16, 16, 15, 0, Math.PI * 2); c.fill();
+    c.fillStyle = "#fff"; c.font = "bold " + (n > 9 ? 16 : 20) + "px Segoe UI, sans-serif"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillText(n > 99 ? "99+" : String(n), 16, 17);
+    return cv.toDataURL("image/png");
+  }
+
+  // Reuniones del calendario de la app: a la hora de inicio quedas "En reunión" y al terminar vuelves.
+  const AUTO_SKIP = "lap-cerebro-reunion-omitida";
+  const mins = (h) => { const [a, b] = String(h || "").split(":").map(Number); return (a || 0) * 60 + (b || 0); };
+  function meetingNow(uid) {
+    const now = new Date(), t = L.todayIso(), m = now.getHours() * 60 + now.getMinutes();
+    return state.eventos.find((e) => e.date === t && e.time && e.kind !== "entrega" && (e.attendees || []).includes(uid)
+      && m >= mins(e.time) && m < mins(e.time) + (Number(e.duration) || 60)) || null;
+  }
+  function autoMeeting() {
+    if (state.mode !== "live" || !state.me) return;
+    const me = state.me, ev = meetingNow(me.id), pres = q.presence(me);
+    let skip = ""; try { skip = localStorage.getItem(AUTO_SKIP) || ""; } catch (e) { /* bloqueado */ }
+    if (ev && pres !== "reunion" && pres !== "fuera" && me.presenciaRef !== ev.id && skip !== ev.id) {
+      act.setPresence("reunion", ev.id);
+      toast("Empezó " + ev.title + ": quedaste En reunión");
+    } else if (!ev && pres === "reunion" && me.presenciaRef) {
+      act.setPresence("disponible");
+    }
+  }
+  setInterval(autoMeeting, 30000);
 
   // Conecta con un servidor ya guardado. "offline" si no responde, "login" si hay que entrar.
   async function connectTo(url) {
@@ -327,6 +417,9 @@
     isMember: (p) => !!p && !!state.me && (p.members || []).includes(state.me.id),
     // En su puesto: si se paró del escritorio en la oficina, está "fuera" (almuerzo, una vuelta).
     atDesk: (u) => !!u && u.puesto !== false,
+    // Estado elegido en la burbuja o en el perfil (disponible, no molestar, en reunión, almuerzo, fuera).
+    presence: (u) => (u && u.presencia) || "disponible",
+    presenceInfo: (u) => L.PRESENCIA[(u && u.presencia) || "disponible"] || L.PRESENCIA.disponible,
     online: (u) => !!u && ((state.me && u.id === state.me.id) || (!!u.lastSeen && Date.now() - Date.parse(u.lastSeen) < ONLINE_MS)),
     workingOn: (taskId) => state.users.filter((u) => u.taskId === taskId),
     viewing: (taskId) => state.users.filter((u) => u.id !== state.me.id && u.viewing === taskId && q.online(u)),
@@ -499,12 +592,14 @@
     },
     // ---- notificaciones ----
     async readNotif(n) {
+      if (desk && desk.bubbleNotify) desk.bubbleNotify({ clear: n.id });
       if (n.read) return;
       upsert("notifs", { ...n, read: true }); emit();
       pb.collection("notificaciones").update(n.id, { read: true }).catch(() => {});
     },
     async readAll() {
       const unread = state.notifs.filter((n) => !n.read);
+      if (desk && desk.bubbleNotify) desk.bubbleNotify({ clearAll: true });
       state.notifs = state.notifs.map((n) => ({ ...n, read: true })); emit();
       for (const n of unread) pb.collection("notificaciones").update(n.id, { read: true }).catch(() => {});
     },
@@ -517,9 +612,50 @@
       });
     },
     reconnect() { if (pb) loadAll().catch(fail); },
+    // Estado de la persona. Disponible y No molestar la dejan en su puesto; Reunión y Almuerzo la llevan
+    // a la sala de juntas o la cafetería de la oficina; Fuera la saca de la oficina.
+    async setPresence(value, ref) {
+      if (!L.PRESENCIA[value]) return null;
+      const me = state.me;
+      // Si la persona cambia el estado durante una reunión automática, no se vuelve a poner solo.
+      if (me.presenciaRef && !ref) { try { localStorage.setItem(AUTO_SKIP, me.presenciaRef); } catch (e) { /* bloqueado */ } }
+      const body = { presencia: value, presenciaRef: ref || "", pos: null, puesto: value === "disponible" || value === "no_molestar" };
+      upsert("users", { ...me, ...body }); state.me = { ...me, ...body }; emit();
+      return run(async () => {
+        const rec = await pb.collection("users").update(me.id, { ...body, lastSeen: now() });
+        upsert("users", rec); state.me = rec; emit();
+        return rec;
+      });
+    },
+    setMuted(on) {
+      try { localStorage.setItem(MUTE_KEY, on ? "1" : ""); } catch (e) { /* bloqueado */ }
+      set({ muted: !!on });
+      toast(on ? "Sonido silenciado. Lo urgente suena igual." : "Sonido activado");
+    },
+    testSound(urgent) { sound(!!urgent); },
+    // Tocar el hombro: le llega a la otra persona en su burbuja aunque tenga la app minimizada.
+    async toque(to, mensaje) {
+      return run(async () => {
+        const r = await pb.send("/api/lap/toque", { method: "POST", body: { to, mensaje: mensaje || "" } });
+        return r;
+      });
+    },
+    async replyToque(n, respuesta) {
+      return run(async () => {
+        await pb.send("/api/lap/toque/responder", { method: "POST", body: { notif: n.id, respuesta } });
+        upsert("notifs", { ...n, read: true, respuesta }); emit();
+        toast(respuesta === "voy" ? "Le avisaste que vas" : respuesta === "10" ? "Le avisaste que vas en 10 minutos" : "Le avisaste que ahora no puedes");
+        return true;
+      });
+    },
     // Oficina: posición del muñeco y si está en su puesto. Sin avisos de error: se reintenta al moverse.
     movePresence(data) {
       if (!pb || !state.me) return Promise.resolve(null);
+      // Volver caminando al puesto termina el almuerzo, la reunión o el "fuera".
+      if (data.puesto === true && ["reunion", "almuerzo", "fuera"].includes(q.presence(state.me))) {
+        if (state.me.presenciaRef) { try { localStorage.setItem(AUTO_SKIP, state.me.presenciaRef); } catch (e) { /* bloqueado */ } }
+        data = { ...data, presencia: "disponible", presenciaRef: "" };
+      }
       Object.assign(state.me, data);
       return pb.collection("users").update(state.me.id, data).then((rec) => { upsert("users", rec); state.me = rec; emit(); return rec; }).catch(() => null);
     },
@@ -613,7 +749,7 @@
   applyTheme(state.theme);
 
   /* ---------- rutas ---------- */
-  const VIEWS = ["inicio", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
+  const VIEWS = ["inicio", "semana", "linea", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
     "solicitudes", "directorio", "ausencias", "finanzas", "revision", "oficina", "agentes"];
   function parseRoute() {
     const [name, id, tab] = location.hash.replace(/^#/, "").split("/");
@@ -634,6 +770,23 @@
   const openSheet = (type, id, defaults) => { set({ sheet: { type, id: id || null, defaults: defaults || {} } }); };
   const closeSheet = () => { set({ sheet: null }); };
   if (desk && desk.onNavigate) desk.onNavigate((route) => { if (route) go(route); });
+  // Lo que se pide desde la burbuja de escritorio.
+  if (desk && desk.onBubbleAction) {
+    desk.onBubbleAction((a) => {
+      if (!a) return;
+      if (a.type === "screen-busy") { set({ screenBusy: !!a.value }); return; }
+      if (a.type === "visibility") { set({ bubbleVisible: !!a.value }); return; }
+      if (!state.me || !pb) return;
+      const n = a.id ? state.notifs.find((x) => x.id === a.id) : null;
+      if (a.type === "presence") act.setPresence(a.value);
+      else if (a.type === "mute") act.setMuted(!!a.value);
+      else if (a.type === "reply" && n) act.replyToque(n, a.respuesta);
+      else if (a.type === "bell") set({ bellOpen: true });
+      else if (a.type === "open") { if (n) act.readNotif(n); if (a.route) go(a.route); }
+    });
+    if (desk.bubbleVisible) desk.bubbleVisible().then((v) => set({ bubbleVisible: !!v })).catch(() => {});
+    if (desk.screenBusy) desk.screenBusy().then((v) => set({ screenBusy: !!v })).catch(() => {});
+  }
   // Versión nueva descargada en segundo plano: se ofrece reiniciar para instalarla.
   if (desk && desk.onUpdateReady) {
     desk.onUpdateReady((v) => set({ update: v }));

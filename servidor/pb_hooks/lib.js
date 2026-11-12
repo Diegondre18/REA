@@ -72,7 +72,8 @@ function validarPersona(app, record, auth, nuevo) {
   record.set("areas", finales);
 }
 
-function notificar(app, userId, kind, title, body, route) {
+// opts: { de: quien lo provoca, urgente: suena y aparece aunque la persona esté en "No molestar" }.
+function notificar(app, userId, kind, title, body, route, opts) {
   if (!userId) return;
   const n = new Record(app.findCollectionByNameOrId("notificaciones"));
   n.set("user", userId);
@@ -81,7 +82,15 @@ function notificar(app, userId, kind, title, body, route) {
   n.set("body", String(body || "").slice(0, 600));
   n.set("route", route || "");
   n.set("read", false);
+  if (opts && opts.de) n.set("de", opts.de);
+  if (opts && opts.urgente) n.set("urgente", true);
   app.save(n);
+}
+
+// Aviso provocado por una persona. Urgente = suena aunque esté en "No molestar" (cambios de fecha;
+// los mensajes directos de Dirección se marcan en toque()).
+function aviso(e, userId, kind, title, body, route, urgente) {
+  notificar(e.app, userId, kind, title, body, route, { de: e.auth ? e.auth.id : "", urgente: !!urgente });
 }
 
 function registrar(app, byId, kind, title, ref, projectId, to) {
@@ -350,7 +359,7 @@ function avisarRevision(e, nueva) {
   const yo = e.auth ? e.auth.id : "";
   const titulo = nueva ? "Revisión nueva: " + r.getString("titulo") : "Comentarios en " + r.getString("titulo");
   for (const u of arr(t.getStringSlice("assignees"))) {
-    if (u !== yo) notificar(e.app, u, "revision", titulo, primerNombre(e.auth) + " " + (nueva ? "pidió revisar esta imagen." : "dejó comentarios."), "#revision/" + r.id);
+    if (u !== yo) aviso(e, u, "revision", titulo, primerNombre(e.auth) + " " + (nueva ? "pidió revisar esta imagen." : "dejó comentarios."), "#revision/" + r.id);
   }
 }
 
@@ -396,8 +405,60 @@ function validarMuneco(app, record) {
   }
 }
 
+// Tocar el hombro: un aviso corto a otra persona, que puede responder "Voy", "En 10 min" o "Ahora no".
+function cuerpo(e) {
+  const info = e.requestInfo();
+  return (info && info.body) || {};
+}
+function toque(e) {
+  const b = cuerpo(e);
+  const to = String(b.to || "");
+  const msg = String(b.mensaje || "").trim().slice(0, 200);
+  if (!to || to === e.auth.id) throw new BadRequestError("Elige a quién tocarle el hombro.");
+  let dest = null;
+  try { dest = e.app.findRecordById("users", to); } catch (err) { throw new BadRequestError("Esa persona ya no está en el equipo."); }
+  const hace = new Date(Date.now() - 20000).toISOString().replace("T", " ");
+  const prev = e.app.findRecordsByFilter("notificaciones", "user = {:u} && de = {:d} && kind = 'toque' && created > {:t}", "", 1, 0, { u: to, d: e.auth.id, t: hace });
+  if (prev.length) throw new BadRequestError("Ya le tocaste el hombro hace un momento. Espera su respuesta.");
+  notificar(e.app, to, "toque", primerNombre(e.auth) + " te tocó el hombro", msg || "¿Tienes un momento?", "#oficina", { de: e.auth.id, urgente: esDirector(e.auth) });
+  return e.json(200, { ok: true, presencia: dest.getString("presencia") || "disponible" });
+}
+const RESPUESTAS = { voy: " va para allá", "10": " te busca en 10 minutos", no: " ahora no puede" };
+function responderToque(e) {
+  const b = cuerpo(e);
+  const r = String(b.respuesta || "");
+  if (!RESPUESTAS[r]) throw new BadRequestError("Respuesta no válida.");
+  let n = null;
+  try { n = e.app.findRecordById("notificaciones", String(b.notif || "")); } catch (err) { throw new BadRequestError("Ese aviso ya no existe."); }
+  if (n.getString("user") !== e.auth.id || n.getString("kind") !== "toque" || !n.getString("de")) throw new ForbiddenError("Ese aviso no es tuyo.");
+  if (n.getString("respuesta")) throw new BadRequestError("Ya respondiste.");
+  n.set("respuesta", r);
+  n.set("read", true);
+  e.app.save(n);
+  notificar(e.app, n.getString("de"), "toque_resp", primerNombre(e.auth) + RESPUESTAS[r], n.getString("body"), "#oficina", { de: e.auth.id, urgente: esDirector(e.auth) });
+  return e.json(200, { ok: true });
+}
+
+// Lunes por la mañana: a cada persona, un resumen de su semana (vence, atrasado, reuniones).
+function resumenSemana(app) {
+  const lunes = hoy(0), domingo = hoy(6);
+  const gente = arr(app.findRecordsByFilter("users", "role != 'maestro'", "", 500, 0));
+  for (const u of gente) {
+    const tareas = arr(app.findRecordsByFilter("tareas", "status != 'terminado' && due != '' && assignees ~ {:u} && due <= {:d}", "due", 500, 0, { u: u.id, d: domingo }));
+    const atrasadas = tareas.filter((t) => t.getString("due") < lunes).length;
+    const vencen = tareas.length - atrasadas;
+    const reuniones = app.findRecordsByFilter("eventos", "attendees ~ {:u} && date >= {:a} && date <= {:b} && kind != 'entrega'", "", 200, 0, { u: u.id, a: lunes, b: domingo }).length;
+    if (!vencen && !atrasadas && !reuniones) continue;
+    const partes = [];
+    if (vencen) partes.push(vencen + (vencen === 1 ? " entrega" : " entregas"));
+    if (atrasadas) partes.push(atrasadas + (atrasadas === 1 ? " atrasada" : " atrasadas"));
+    if (reuniones) partes.push(reuniones + (reuniones === 1 ? " reunión" : " reuniones"));
+    notificar(app, u.id, "semana", "Tu semana: " + partes.join(", "), "Mira qué vence, qué está bloqueado y quién del equipo no estará.", "#semana");
+  }
+}
+
 module.exports = {
-  conflictoAusencia, validarMuneco,
+  conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
   avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
   DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,

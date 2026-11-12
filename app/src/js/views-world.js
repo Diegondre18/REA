@@ -5,7 +5,7 @@
   "use strict";
   const L = LAP;
   const { html, hooks, q } = L;
-  const { useEffect, useRef } = hooks;
+  const { useEffect, useRef, useState } = hooks;
 
   /* ================= geometría isométrica (pixeles reales, sin suavizado) ================= */
   const TW = 16, TH = 8;
@@ -129,7 +129,7 @@
     block(coffee.x, coffee.y, coffee.w, coffee.d);
     const bar = { x: RX + 1, y: D - 5, w: 3, d: 1 };
     block(bar.x, bar.y, bar.w, bar.d);
-    const plants = [[DX - 1, 0], [RX, 0], [RX + 10, 3], [RX + 10, D - 2], [W - 1, 8], [4, 1], [0, D - 1], [DX - 1, D - 1], [RX + 5, 6]];
+    const plants = [[DX - 1, 0], [RX + 6, 0], [RX + 10, 3], [RX + 10, D - 2], [W - 1, 8], [4, 1], [0, D - 1], [DX - 1, D - 1], [RX + 5, 6]];
     for (const [x, y] of plants) block(x, y);
     const lamp = { x: RX + 9, y: D - 4 };
     block(lamp.x, lamp.y);
@@ -139,7 +139,15 @@
     for (const [x, y] of stools) block(x, y);
     const armchairs = [[1, 5], [3, 5]];
     for (const [x, y] of armchairs) block(x, y);
-    return { W, D, DX, RX, N, rows, desks, seats, blocked, glass, labSpots, meet, maq, shelf, sofa, coffee, bar, plants, lamp, chairs, stools, armchairs };
+    // Puestos de quien está "En reunión" (sillas de la sala, luego de pie) y "Almuerzo" (cafetería).
+    const tableKey = meet.x + meet.y + meet.w + meet.d - 1;
+    const meetSpots = [
+      ...[0, 2, 4].map((i) => ({ x: meet.x + i + 0.5, y: 1.5, sit: true, view: "front", key: tableKey - 0.5 })),
+      ...[0, 2, 4].map((i) => ({ x: meet.x + i + 0.5, y: 4.5, sit: true, view: "back", key: tableKey + 0.5 })),
+      ...[1, 3, 5].map((i) => ({ x: meet.x + i + 0.5, y: 5.5, key: tableKey + 0.7 })),
+    ];
+    const cafeSpots = [0, 1, 2].map((i) => ({ x: bar.x + i + 0.5, y: bar.y + 1.5 })).concat([{ x: coffee.x - 0.5, y: coffee.y + 0.5 }, { x: coffee.x + 0.5, y: coffee.y - 0.5 }, { x: coffee.x + 1.5, y: coffee.y - 0.5 }]);
+    return { W, D, DX, RX, N, rows, desks, seats, blocked, glass, labSpots, meet, maq, shelf, sofa, coffee, bar, plants, lamp, chairs, stools, armchairs, meetSpots, cafeSpots, tableKey };
   }
   const walkable = (m, x, y) => x >= 0 && y >= 0 && x < m.W && y < m.D && !m.blocked.has(x + "," + y);
 
@@ -288,13 +296,15 @@
   function personState(u) {
     if (q.absent(u.id)) return "absent";
     if (!q.online(u)) return "offline";
+    if (q.presence(u) === "fuera") return "offline";
     if (!q.atDesk(u)) return "away";
     if (u.taskId && q.task(u.taskId)) return "working";
     return "online";
   }
 
   /* ================= motor: dibujo, movimiento y clics ================= */
-  function createEngine(canvas, overlay) {
+  const PRES_TXT = { no_molestar: " · no molestar", reunion: " · en reunión", almuerzo: " · almuerzo" };
+  function createEngine(canvas, overlay, opts = {}) {
     const ctx = canvas.getContext("2d");
     let map = null, raf = 0, last = 0, dirty = true, mapKey = "", box0 = { w: 1000, h: 600 }, DPR = 1;
     const actors = new Map(); // uid → { x, y, path, dir, frame, flip, user, state }
@@ -319,25 +329,43 @@
       dirty = true;
     }
     const seatOf = (uid) => map && map.seats[uid];
-    const isSeatTile = (x, y) => Object.values(map.seats).some((s) => Math.floor(s.x) === x && Math.floor(s.y) === y);
+    const isSeatTile = (x, y) => Object.values(map.seats).some((s) => Math.floor(s.x) === x && Math.floor(s.y) === y)
+      || map.meetSpots.some((s) => Math.floor(s.x) === x && Math.floor(s.y) === y);
     const free = (x, y) => walkable(map, x, y) || isSeatTile(x, y);
 
     function syncActors(users) {
       const seen = new Set();
+      // Quien está en reunión o almorzando ocupa un lugar fijo de la sala o la cafetería (mismo orden en todos los PC).
+      const spotOf = {};
+      for (const [pres, list] of [["reunion", map.meetSpots], ["almuerzo", map.cafeSpots]]) {
+        users.filter((u) => u.role !== "maestro" && q.presence(u) === pres && personState(u) !== "offline" && personState(u) !== "absent")
+          .sort((x, y) => x.id.localeCompare(y.id)).forEach((u, i) => { spotOf[u.id] = list[i % list.length]; });
+      }
       for (const u of users) {
         if (u.role === "maestro") continue;
         const st = personState(u);
         if (st === "offline" || st === "absent") { actors.delete(u.id); continue; }
         seen.add(u.id);
-        const seat = seatOf(u.id);
-        let tx, ty;
+        const seat = seatOf(u.id), spot = spotOf[u.id];
+        const pos = u.pos && typeof u.pos.x === "number" && free(Math.floor(u.pos.x), Math.floor(u.pos.y)) ? u.pos : null;
+        let tx, ty, fromPos = false;
         if (q.atDesk(u) && seat) { tx = seat.x; ty = seat.y; }
-        else if (u.pos && typeof u.pos.x === "number" && free(Math.floor(u.pos.x), Math.floor(u.pos.y))) { tx = u.pos.x; ty = u.pos.y; }
+        else if (spot && (!pos || (Math.abs(pos.x - spot.x) < 0.3 && Math.abs(pos.y - spot.y) < 0.3))) { tx = spot.x; ty = spot.y; }
+        else if (pos) { tx = pos.x; ty = pos.y; fromPos = true; }
         else if (seat) { tx = seat.x + 1; ty = seat.y; }
         else { tx = map.DX - 1.5; ty = map.D - 2.5; }
         let a = actors.get(u.id);
         if (!a) { a = { x: tx, y: ty, tx, ty, path: [], dir: "back", frame: 0, flip: false, t: 0 }; actors.set(u.id, a); }
+        a.spot = spot && Math.abs(tx - spot.x) < 0.01 && Math.abs(ty - spot.y) < 0.01 ? spot : null;
         const isMe = me && u.id === me.id;
+        const key = q.presence(u) + ":" + q.atDesk(u);
+        // Mi muñeco camina solo cuando cambia mi estado (desde la burbuja o una reunión que empieza).
+        if (isMe && a.key && a.key !== key && !fromPos) {
+          const p = findPath(a.x, a.y, Math.floor(tx), Math.floor(ty));
+          a.path = p && p.length ? [...p.slice(0, -1), [tx, ty]] : [[tx, ty]];
+          a.auto = true; a.tx = tx; a.ty = ty;
+        }
+        a.key = key;
         if (!isMe && (Math.abs(a.tx - tx) > 0.01 || Math.abs(a.ty - ty) > 0.01)) {
           // Los demás caminan hasta donde dice el servidor (o aparecen si el salto es grande).
           if (Math.hypot(a.x - tx, a.y - ty) > 8) { a.x = tx; a.y = ty; a.path = []; }
@@ -393,8 +421,10 @@
       const now = performance.now();
       if (!changedSeat && !force && now - sendAt < 700) return;
       sendAt = now; lastSig = sig;
+      const pres = q.presence(L.state.me);
       L.act.movePresence({ puesto: atSeat, pos: atSeat ? null : pos });
-      if (changedSeat) L.toast(atSeat ? "De vuelta en tu puesto" : "Saliste de tu puesto: el equipo te ve fuera (almuerzo, una vuelta)");
+      if (changedSeat && !a.auto) L.toast(atSeat ? (pres === "disponible" || pres === "no_molestar" ? "De vuelta en tu puesto" : "De vuelta en tu puesto: quedaste Disponible") : "Saliste de tu puesto: el equipo te ve fuera (almuerzo, una vuelta)");
+      if (!a.path.length) a.auto = false;
     }
 
     function step(dt) {
@@ -434,8 +464,8 @@
       for (const [x, y, dir] of m.glass) add(x + y + 0.8, () => drawGlass(ctx, x, y, dir));
       for (const [x, y] of m.plants) add(x + y + 1, () => drawPlant(ctx, x, y, (x + y) % 3 === 0));
       for (const [x, y] of m.armchairs) add(x + y + 1, () => drawArmchair(ctx, x, y));
-      add(m.meet.x + m.meet.y + m.meet.w + m.meet.d - 1, () => drawMeeting(ctx, m.meet));
-      for (const [x, y] of m.chairs) { add(x + y + 0.7, () => drawChairSeat(ctx, x + 0.5, y + 0.5)); if (y > m.meet.y) add(x + y + 1.1, () => drawChairBack(ctx, x + 0.5, y + 0.5)); }
+      add(m.tableKey, () => drawMeeting(ctx, m.meet));
+      for (const [x, y] of m.chairs) { add(x + y + 0.7, () => drawChairSeat(ctx, x + 0.5, y + 0.5)); if (y > m.meet.y) add(m.tableKey + 0.6 + x * 0.001, () => drawChairBack(ctx, x + 0.5, y + 0.5)); }
       add(m.maq.x + m.maq.y + m.maq.w + m.maq.d - 1, () => drawMaqueta(ctx, m.maq));
       for (const [x, y] of m.stools) add(x + y + 1, () => box(ctx, x + 0.3, y + 0.3, 0, 0.4, 0.4, 7, "#5a5560", "#4a4650", "#3e3a44"));
       add(m.shelf.x + m.shelf.y + m.shelf.w, () => drawShelf(ctx, m.shelf));
@@ -448,13 +478,15 @@
       for (const [, a] of actors) {
         const seat = seatOf(a.user.id);
         a.seated = a.state !== "away" && !!seat && !a.path.length && Math.hypot(a.x - seat.x, a.y - seat.y) < 0.3;
-        add(a.x + a.y + 0.1, () => {
+        const atSpot = a.spot && !a.path.length && Math.hypot(a.x - a.spot.x, a.y - a.spot.y) < 0.3 ? a.spot : null;
+        add(atSpot && atSpot.key ? atSpot.key + a.x * 0.001 : a.x + a.y + 0.1, () => {
           const [px, py] = P(a.x, a.y);
-          const cfg = L.PIX.config(a.user);
+          const cfg = L.PIX.withExtra(L.PIX.config(a.user), q.presence(a.user));
           const k = Math.max(1, Math.round(U)), ow = Math.max(1, Math.round(k * 0.4));
           ctx.fillStyle = "rgba(40,30,35,0.22)"; ctx.fillRect(px - 4 * k, py - k, 9 * k, 2 * k);
           if (a.seated) L.PIX.drawFigure(ctx, px - 6 * k, py - 19 * k, cfg, "back", 0, true, false, k, ow);
-          else L.PIX.drawFigure(ctx, px - 6 * k, py - 21 * k, cfg, a.dir, a.frame, false, a.flip, k, ow);
+          else if (atSpot && atSpot.sit) L.PIX.drawFigure(ctx, px - 6 * k, py - 19 * k, cfg, atSpot.view, 0, true, false, k, ow);
+          else L.PIX.drawFigure(ctx, px - 6 * k, py - 21 * k, cfg, atSpot ? "front" : a.dir, a.frame, false, atSpot ? false : a.flip, k, ow);
         });
       }
       list.sort((A, B) => A.key - B.key);
@@ -470,7 +502,9 @@
         const u = a.user, isMe = me && id === me.id;
         const task = a.state === "working" && a.seated ? q.task(u.taskId) : null;
         const p = task && q.project(task.project);
-        want.set("u" + id, { x: px, y: py - 23 * U, cls: L.cx("o-name", isMe && "me", a.state === "away" && "away"), text: (isMe ? "Tú" : L.first(u.name)) + (a.state === "away" ? " · fuera" : "") });
+        const pres = q.presence(u);
+        const extra = PRES_TXT[pres] || (a.state === "away" ? " · fuera" : "");
+        want.set("u" + id, { x: px, y: py - 23 * U, cls: L.cx("o-name", isMe && "me", (a.state === "away" || pres !== "disponible") && "away", pres === "no_molestar" && "dnd"), text: (isMe ? "Tú" : L.first(u.name)) + extra });
         if (task) want.set("b" + id, { x: px, y: py - 33 * U, cls: "o-bubble", text: (p && p.code ? p.code + " · " : "") + task.title });
       }
       for (const sp of map.labSpots) {
@@ -483,7 +517,7 @@
       for (const row of map.rows) { const [x, y] = P(map.DX - 0.1, row.y + 2.7); want.set("z" + row.id, { x, y: y + 4 * U, cls: "o-zone o-row", text: row.label, left: true }); }
       { const [x, y] = P(0, 3.5, 43); zl("dir", x, y, "Dirección"); }
       { const [x, y] = P(0, 12.3, 43); zl("lab", x, y, "Laboratorio de agentes"); }
-      { const [x, y] = P(map.meet.x + 2.5, map.meet.y + 1); zl("meet", x, y - 22 * U, data.meet ? "Reunión: " + data.meet.title : "Sala de juntas"); }
+      { const [x, y] = P(map.meet.x + 2.5, 0, 43); zl("meet", x, y, data.meet ? "Reunión: " + data.meet.title : "Sala de juntas"); }
       { const [x, y] = P(map.maq.x + 2, map.maq.y + 1); zl("maq", x, y - 34 * U, "Maquetas"); }
       { const [x, y] = P(map.bar.x + 1.5, map.bar.y + 0.5); zl("cafe", x, y - 18 * U, "Cafetería"); }
       for (const [k, v] of want) {
@@ -530,10 +564,15 @@
           if (working) L.openTask(u.taskId);
           else if (!hit.a.seated) goToDesk();
           else L.toast("Marca en una tarea «Estoy trabajando en esto» y aparecerá en tu puesto.");
+        } else if (opts.onPerson) {
+          const r = canvas.getBoundingClientRect();
+          const [px, py] = P(hit.a.x, hit.a.y);
+          opts.onPerson(u, px / DPR, (py - 22 * U) / DPR, !!working, r);
         } else if (working) L.openTask(u.taskId);
         else L.openSheet("profile", u.id);
         return;
       }
+      if (opts.onPerson) opts.onPerson(null);
       if (hit.kind === "agent") { L.go("#agentes/" + hit.a.id); return; }
       if (free(hit.x, hit.y)) walkMeTo(hit.x, hit.y);
     }
@@ -579,13 +618,15 @@
   function Oficina() {
     const s = L.useStore();
     const cv = useRef(null), ov = useRef(null), wrap = useRef(null), eng = useRef(null);
+    // Menú al hacer clic en otra persona: tocar el hombro, ver su tarea o su perfil.
+    const [menu, setMenu] = useState(null);
     const meetNow = () => {
       const now = new Date(), t = L.todayIso(), mins = now.getHours() * 60 + now.getMinutes();
       const mm = (h) => { const [a, b] = String(h || "").split(":").map(Number); return (a || 0) * 60 + (b || 0); };
       return s.eventos.find((e) => e.date === t && e.time && mins >= mm(e.time) && mins < mm(e.time) + (Number(e.duration) || 60)) || null;
     };
     useEffect(() => {
-      eng.current = createEngine(cv.current, ov.current);
+      eng.current = createEngine(cv.current, ov.current, { onPerson: (u, x, y, working) => setMenu(u ? { u, x, y, working } : null) });
       // El recuadro ocupa el alto disponible de la ventana; la oficina se ajusta y no se desplaza.
       const size = () => {
         const el = wrap.current; if (!el || !eng.current) return;
@@ -619,9 +660,15 @@
         <div class="office-stage">
           <canvas ref=${cv} class="office-canvas" aria-label="Oficina del estudio. Usa las flechas para caminar."></canvas>
           <div ref=${ov} class="office-overlay" aria-hidden="true"></div>
+          ${menu && html`<div class="o-menu glass" role="menu" style=${{ left: menu.x + "px", top: menu.y + "px" }} onMouseLeave=${() => setMenu(null)}>
+            <div class="o-menu-head"><b>${menu.u.name}</b><small><${L.PresDot} id=${q.presence(menu.u)} /> ${q.presenceInfo(menu.u).label}</small></div>
+            <button type="button" role="menuitem" onClick=${() => { setMenu(null); L.openSheet("toque", menu.u.id); }}>Tocar el hombro</button>
+            ${menu.working && html`<button type="button" role="menuitem" onClick=${() => { setMenu(null); L.openTask(menu.u.taskId); }}>Ver en qué trabaja</button>`}
+            <button type="button" role="menuitem" onClick=${() => { setMenu(null); L.openSheet("profile", menu.u.id); }}>Ver perfil</button>
+          </div>`}
         </div>
       </div>
-      <div class="office-legend"><span>Clic en tu muñeco sentado: abre tu tarea</span><span>Clic en otra persona: su tarea o su perfil</span><span>Fuera del puesto = almuerzo o una vuelta; el equipo lo ve en Equipo</span><span>Clic en un agente del laboratorio: lo que encontró</span></div>`;
+      <div class="office-legend"><span>Clic en tu muñeco sentado: abre tu tarea</span><span>Clic en otra persona: tocarle el hombro, su tarea o su perfil</span><span>En reunión van a la sala de juntas; en almuerzo, a la cafetería; con audífonos = no molestar</span><span>Fuera del puesto = almuerzo o una vuelta; el equipo lo ve en Equipo</span><span>Clic en un agente del laboratorio: lo que encontró</span></div>`;
   }
 
   Object.assign(L, { Oficina });
