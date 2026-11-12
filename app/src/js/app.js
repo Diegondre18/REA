@@ -277,6 +277,7 @@
         </div>
         <${L.SheetHost} />` : s.mode === "gate" ? null : html`<div class="boot"><${Sym} /><p>Conectando con el estudio…</p></div>`}
       ${s.mode === "gate" && html`<${Gate} key=${s.gate.mode} />`}
+      ${live && L.BigAlert && html`<${L.BigAlert} />`}
       ${s.toast && html`<div class="toast" role="status">${s.toast}</div>`}`;
   }
 

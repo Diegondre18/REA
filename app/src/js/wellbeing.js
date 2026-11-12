@@ -21,19 +21,23 @@
 
   /* ================= alertas propias ================= */
   // Los descansos son clave: suenan aunque el sonido esté silenciado y su globito no se cierra solo.
-  function alertUser({ id, title, body = "", soundKind = "descanso", actions = [], route = "" }) {
+  // big: aviso grande en el centro de la pantalla (pausas activas y descansos), con dos botones.
+  function alertUser({ id, title, body = "", soundKind = "descanso", actions = [], route = "", big = "" }) {
     if (!L.state.screenBusy) L.sound(soundKind);
     if (L.desk && L.desk.notify) L.desk.notify(title, body, route, true);
     if (L.desk && L.desk.bubbleNotify) L.desk.bubbleNotify({ id, title, body, route, kind: "bienestar", sticky: true, actions });
-    L.set({ wellAlert: { id, title, body, actions } });
+    if (big) { L.set({ bigAlert: { id, kind: big, title, body, actions, at: Date.now() } }); if (L.desk && L.desk.showApp && big) L.desk.showApp(); }
+    else L.set({ wellAlert: { id, title, body, actions } });
   }
   function clearAlert(id) {
     if (L.desk && L.desk.bubbleNotify) L.desk.bubbleNotify({ clear: id });
     if (L.state.wellAlert && (!id || L.state.wellAlert.id === id)) L.set({ wellAlert: null });
+    if (L.state.bigAlert && (!id || L.state.bigAlert.id === id)) L.set({ bigAlert: null });
   }
   function nag(id) {
     if (!L.state.screenBusy) L.sound("descanso");
     if (L.desk && L.desk.bubbleNotify) L.desk.bubbleNotify({ nag: id });
+    if (L.state.bigAlert && L.state.bigAlert.id === id) L.set({ bigAlert: { ...L.state.bigAlert, at: Date.now() } });
   }
   const showApp = () => { if (L.desk && L.desk.showApp) L.desk.showApp(); };
 
@@ -74,6 +78,12 @@
       const rec = mine().find((b) => b.fecha === f);
       const data = rec ? { [field]: (Number(rec[field]) || 0) + 1 } : { user: L.state.me.id, fecha: f, pausas: 0, descansos: 0, bloques: 0, agua: 0, [field]: 1 };
       await act.save("bienestar", rec ? rec.id : null, data);
+      // Para el ranking de la oficina: solo los totales de la semana (lo demás sigue privado).
+      if (field === "pausas" || field === "descansos") {
+        const [a, b] = weekRange(0);
+        const wk = mine().filter((x) => x.fecha >= a && x.fecha <= b);
+        await act.movePresence({ puntos: { semana: a, pausas: wk.reduce((s2, x) => s2 + (Number(x.pausas) || 0), 0), descansos: wk.reduce((s2, x) => s2 + (Number(x.descansos) || 0), 0) } });
+      }
     }).catch(() => {});
     return wellQueue;
   }
@@ -178,8 +188,8 @@
       savePomo();
       const c = cfg();
       const mins = pomo.ciclo % 4 === 0 ? c.largo : c.descanso;
-      alertUser({ id: BREAK_ID, title: "Hora de descansar", body: `Llevas ${c.trabajo} minutos concentrado. Tómate ${mins} minutos lejos de la pantalla: es parte del trabajo.`,
-        actions: [{ a: "pomo-descanso", label: "Descansar ahora" }, ...(pomo.snoozed ? [] : [{ a: "pomo-5", label: "5 min más" }])] });
+      alertUser({ id: BREAK_ID, big: "descanso", title: "Hora de descansar", body: `Llevas ${c.trabajo} minutos concentrado. Tómate ${mins} minutos lejos de la pantalla: es parte del trabajo.`,
+        actions: [{ a: "pomo-descanso", label: "Tomar el descanso" }, { a: "pomo-omitir", label: "Omitir descanso" }] });
     } else if (pomo.phase === "espera" && t >= pomo.nagAt && pomo.nags < 5) {
       // Si no lo atiende, insiste cada 2 minutos (hasta 5 veces).
       pomo = { ...pomo, nagAt: t + 120e3, nags: pomo.nags + 1 };
@@ -225,8 +235,8 @@
       if (pres === "reunion") continue; // se corre a cuando termine la reunión
       if (pres === "fuera" || (pomo && pomo.phase === "descanso") || q.presence(L.state.me) === "pausa") { ls.set(pkey(h), { skip: true }); continue; }
       ls.set(pkey(h), { shown: true, shownAt: Date.now(), nags: 0, snoozed: !!(st && st.snoozeTo) });
-      alertUser({ id: "pausa-" + h, title: `Pausa activa · ${pausaMin()} minutos`, body: "Cuello, hombros, espalda y vista. Tu cuerpo te lo agradece.",
-        actions: [{ a: "pausa-empezar:" + h, label: "Empezar" }, ...(st && st.snoozeTo ? [] : [{ a: "pausa-10:" + h, label: "En 10 min" }])] });
+      alertUser({ id: "pausa-" + h, big: "pausa", title: "Es hora de la pausa activa", body: `${pausaMin()} minutos para todo el equipo: cuello, hombros, espalda y vista.`,
+        actions: [{ a: "pausa-empezar:" + h, label: "Asistir" }, { a: "pausa-omitir:" + h, label: "Omitir pausa activa" }] });
       break;
     }
   }
@@ -276,6 +286,8 @@
     else if (name === "pomo-5" && pomo) { pomo = { ...pomo, phase: "trabajo", endsAt: Date.now() + 5 * 60e3, snoozed: true }; clearAlert(BREAK_ID); savePomo(); L.toast("Cinco minutos más. Después, a descansar."); }
     else if (name === "pausa-ahora") pausaStart("");
     else if (name === "pausa-empezar") pausaStart(arg);
+    else if (name === "pomo-omitir") { clearAlert(BREAK_ID); pomoNext(); L.toast("Descanso omitido: no cuenta para tu racha ni el ranking."); }
+    else if (name === "pausa-omitir") { const st = ls.get(pkey(arg), {}); ls.set(pkey(arg), { ...st, skip: true }); clearAlert("pausa-" + arg); L.toast("Pausa activa omitida"); }
     else if (name === "pausa-10") { ls.set(pkey(arg), { snoozeTo: nowMin() + 10 }); clearAlert("pausa-" + arg); L.toast("Te aviso en 10 minutos"); }
     else if (name === "agua-tome") aguaTome();
     else if (name === "cierre-abrir") { clearAlert("cierre"); showApp(); L.go("#cierre"); }
@@ -581,5 +593,54 @@
         <span class="hint">Solo día y mes. Ese día tu puesto tiene globos y el equipo recibe un aviso.</span></div>`;
   }
 
+  // Aviso grande en el centro (sin tapar el resto: lo de alrededor sigue funcionando).
+  function BigAlert() {
+    const s = L.useStore();
+    const a = s.bigAlert;
+    if (!a) return null;
+    const team = a.kind === "pausa" ? q.staff().filter((u) => q.presence(u) === "pausa" && q.online(u) && u.id !== s.me.id) : [];
+    return html`<div class="big-alert-wrap" role="alertdialog" aria-labelledby="ba-t">
+      <div class=${L.cx("big-alert glass", a.kind)} key=${a.at}>
+        <${BigDoll} k=${7} pose=${a.kind === "pausa" ? "estira" : ""} />
+        <div class="ba-body">
+          <span class="eyebrow">${a.kind === "pausa" ? "Pausa activa del equipo" : "Pomodoro"}</span>
+          <h2 id="ba-t">${a.title}</h2>
+          <p>${a.body}</p>
+          ${team.length > 0 && html`<p class="ba-team"><${L.Faces} ids=${team.map((u) => u.id)} max=${6} /> Ya se sumaron ${team.map((u) => L.first(u.name)).join(", ")}</p>`}
+          <div class="ba-acts">${(a.actions || []).map((x, i) => html`<button type="button" key=${x.a} class=${L.cx("btn", i === 0 ? "primary" : "ghost")} onClick=${() => runAction(x.a)}>${x.label}</button>`)}</div>
+          <span class="hint">${a.kind === "pausa" ? "Asistir cuenta para tu racha, tus premios y el ranking de la oficina." : "Tomar el descanso cuenta para tu racha, tus premios y el ranking."}</span>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  /* ================= ranking de la oficina ================= */
+  // Puntos de la semana: entrega a tiempo 3, agradecimiento recibido 2, pausa activa asistida 1, descanso tomado 1.
+  function ranking() {
+    const [a, b] = weekRange(0);
+    return q.staff().map((u) => {
+      const pt = u.puntos && u.puntos.semana === a ? u.puntos : {};
+      const entregas = L.state.tareas.filter((t) => (t.assignees || []).includes(u.id) && t.status === "terminado" && t.doneAt >= a && t.doneAt <= b && t.due && t.doneAt <= t.due).length;
+      const gracias = (L.state.reconocimientos || []).filter((r) => r.para === u.id && String(r.created).slice(0, 10) >= a).length;
+      const pausas = Number(pt.pausas) || 0, descansos = Number(pt.descansos) || 0;
+      return { u, entregas, gracias, pausas, descansos, premios: (u.premios || []).length, total: entregas * 3 + gracias * 2 + pausas + descansos };
+    }).sort((x, y) => y.total - x.total || y.premios - x.premios || (x.u.name || "").localeCompare(y.u.name || "", "es"));
+  }
+  function Ranking({ big = false, limit = 10 }) {
+    L.useStore();
+    const list = ranking().slice(0, limit);
+    const medal = ["#f2c94c", "#c0c6cf", "#c8874a"];
+    return html`<div class=${L.cx("ranking", big && "big")}>
+      ${list.map((r, i) => html`<div class=${L.cx("rk-row", r.u.id === L.state.me.id && "me")} key=${r.u.id}>
+        <span class="rk-pos" style=${i < 3 && r.total ? { background: medal[i], color: "#1f1f1f" } : null}>${i + 1}</span>
+        <${L.Avatar} id=${r.u.id} cls=${big ? "lg" : ""} />
+        <span class="rk-name"><b>${big ? r.u.name : L.first(r.u.name)}</b><small>${[r.entregas && L.plural(r.entregas, "entrega a tiempo", "entregas a tiempo"), r.gracias && L.plural(r.gracias, "gracias", "gracias"), (r.pausas + r.descansos) && L.plural(r.pausas + r.descansos, "pausa", "pausas")].filter(Boolean).join(" · ") || "Aún sin puntos esta semana"}</small></span>
+        <span class="rk-prem">${(r.u.premios || []).slice(0, big ? 7 : 4).map((p) => html`<${PremioIcon} key=${p} id=${p} on=${true} />`)}</span>
+        <span class="rk-pts"><b>${r.total}</b><small>pts</small></span>
+      </div>`)}
+    </div>`;
+  }
+
+  Object.assign(L, { BigAlert, Ranking, ranking, PremioIcon, BigDoll });
   Object.assign(L, { celebrate, PomodoroChip, WellAlert, PausaView, CierreView, Bienestar, Premios, WellSettings, PREMIOS, wellRun: runAction });
 })();

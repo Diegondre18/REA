@@ -38,6 +38,7 @@
     const away = staff.filter((u) => q.absent(u.id));
     const bdays = staff.filter((u) => u.cumple && u.cumple === t.slice(5));
     const exit = s.me.role !== "pantalla";
+    const [board, setBoard] = useState(false);
     return html`
       <div class="tv">
         <div class="tv-office glass" ref=${wrap}>
@@ -47,7 +48,8 @@
         <aside class="tv-side">
           <div class="tv-brand"><${L.Sym} /><b>LAP</b><span>Cerebro</span>${exit && html`<button type="button" class="btn sm ghost" onClick=${() => L.go("#oficina")}>Salir</button>`}</div>
           <${Clock} />
-          ${L.anunciosActivos && L.anunciosActivos().slice(0, 2).map((a) => html`<div class=${L.cx("tv-card anuncio", a.importante && "imp")} key=${a.id}><h3>${a.importante ? "Anuncio importante" : "Anuncio"}</h3><p class="tv-anuncio">${a.texto}</p></div>`)}
+          ${L.anunciosActivos && L.anunciosActivos().slice(0, 2).map((a) => html`<button type="button" class=${L.cx("tv-card anuncio click", a.importante && "imp")} key=${a.id} onClick=${() => setBoard(true)}><h3>${a.importante ? "Anuncio importante" : "Anuncio"}</h3><p class="tv-anuncio">${a.texto}</p></button>`)}
+          ${L.Ranking && html`<button type="button" class="tv-card click" onClick=${() => setBoard(true)}><h3>Ranking de la semana · ver en grande</h3><${L.Ranking} limit=${5} /></button>`}
           ${bdays.length > 0 && html`<div class="tv-card bday"><h3>¡Cumpleaños!</h3>${bdays.map((u) => html`<div class="tv-row" key=${u.id}><${Avatar} id=${u.id} cls="lg" /><b>${u.name}</b></div>`)}</div>`}
           <div class="tv-card"><h3>Hoy</h3>${hoy.length ? hoy.map((e) => { const live = e.time && nowM >= mins(e.time) && nowM < mins(e.time) + (Number(e.duration) || 60); return html`
             <div class=${L.cx("tv-row", live && "live")} key=${e.id}><span class="mono">${e.time || "—"}</span><span><b>${e.title}</b><small>${live ? "En curso · " : ""}${L.EVENT_KIND[e.kind].label}${q.project(e.project) ? " · " + (q.project(e.project).code || q.project(e.project).name) : ""}</small></span></div>`; })
@@ -58,6 +60,7 @@
             <div class="tv-person" key=${u.id}><${Avatar} id=${u.id} dot /><span><b>${L.first(u.name)}</b><small>${pr.id !== "disponible" ? pr.label : task ? task.title : "Disponible"}</small></span></div>`; })}</div>
             ${away.length > 0 && html`<p class="tv-foot">Ausentes: ${away.map((u) => L.first(u.name)).join(", ")}</p>`}</div>
         </aside>
+        ${board && L.BoardModal && html`<${L.BoardModal} onClose=${() => setBoard(false)} />`}
       </div>`;
   }
 

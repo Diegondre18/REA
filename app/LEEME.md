@@ -31,7 +31,15 @@ El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sist
 
 ## Oficina y agentes
 
-**Oficina** es el estudio en pixel art, en vista isométrica. Cada persona arma su muñeco (hombre o mujer, peinado, color de pelo, piel y un color de ropa que nadie más tenga) y tiene su puesto en la fila de su área; Dirección tiene su oficina de vidrio. Se camina con las flechas (o WASD) o haciendo clic en el piso. La oficina se ve completa y centrada: se dibuja a la resolución de la pantalla y se ajusta sola al tamaño de la ventana. Si el muñeco se para de su puesto, el equipo lo ve **fuera del puesto** (almuerzo, una vuelta), también en Equipo; al volver a sentarse aparece la burbuja con la tarea en que está trabajando. Al abrir la app, cada quien llega sentado a su puesto.
+**Oficina** es el estudio en pixel art, en vista isométrica. Cada persona arma su muñeco y tiene su puesto en la fila de su área; Dirección tiene su oficina de vidrio. Se camina con las flechas (o WASD) o haciendo clic en el piso.
+
+- **Menos texto:** en la vista general cada persona es un punto de color con su estado; con el mouse encima se ve su nombre, estado y tarea. *Mostrar nombres* los deja fijos.
+- **Zoom:** clic en el nombre de un área (o en Dirección, Laboratorio, Sala de juntas, Cafetería, Nuevas tecnologías) para verla aislada, con la lista de en qué está trabajando cada persona. Clic en un puesto o en una persona → *Ver su puesto y premios*. *Mi puesto* va al tuyo. Esc o *Ver toda la oficina* para volver.
+- **Sala de nuevas tecnologías:** impresoras 3D trabajando, estación de realidad virtual, cortadora láser, granja de render, dron y mesa holográfica.
+- **Marca:** símbolo LAP en las paredes y en el piso, *Left Angle Partnership* y la frase *// Diseño de vanguardia con perspectiva global.* en azul brillante, con los signos + y círculos del manual.
+- **TV de la sala de estar:** clic en ella (o en *Ranking y anuncios*) para ver en grande los anuncios vigentes y el **ranking de la semana**: entrega a tiempo 3 puntos, agradecimiento recibido 2, pausa activa asistida 1, descanso del Pomodoro 1. El ranking también está en la pantalla de la TV.
+
+Si el muñeco se para de su puesto, el equipo lo ve **fuera del puesto**; En reunión va a la sala de juntas, Almuerzo y En pausa a la cafetería, No molestar lleva audífonos.
 
 **Agentes** son seis muñequitos que revisan el estudio con reglas fijas: Vigía (atrasos y tareas bloqueadas), Agenda (reuniones, actas y avances de comité), Plan (planes y vistos buenos), Equipo (carga y ausencias), Trámites (licencias, planos y revisiones de imagen) y Cuentas (cobros vencidos y por facturar; solo Dirección y Administración). No usan inteligencia artificial ni internet ni consumo de ningún servicio: corren en cada PC con los datos que ya están sincronizados. Viven en el **laboratorio de agentes** de la oficina, disponibles para todos (clic en uno para ver lo que encontró), y lo urgente aparece en Inicio.
 
@@ -49,7 +57,7 @@ El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sist
 
 **Pomodoro.** Desde la burbuja o el botón *Pomodoro* de arriba: bloques de 25/5, 50/10 o 90/20 (cada 4 bloques, un descanso largo). Mientras trabajas quedas en No molestar y la burbuja muestra la cuenta regresiva. **El descanso es clave:** suena aunque el sonido esté silenciado, su globito no se cierra solo e insiste cada 2 minutos; se puede pedir 5 minutos más una sola vez. En el descanso quedas "En pausa" y tu muñeco va a la cafetería.
 
-**Pausas activas.** Dirección fija las horas para todo el estudio (Tu perfil → Pausas activas de todo el estudio) y cada quien puede sumar las suyas. A esa hora (lunes a viernes) llega el aviso; si estás en una reunión, espera a que termine. "Empezar" abre seis ejercicios guiados con tu muñeco (cuello, brazos, hombros, espalda, vista 20-20-20 y caminar).
+**Pausas activas.** Dirección fija las horas para todo el estudio (Tu perfil → Pausas activas de todo el estudio) y cada quien puede sumar las suyas. A esa hora (lunes a viernes) aparece a todos un aviso grande en el centro de la pantalla, sin bloquear lo demás, con **Asistir** u **Omitir pausa activa** (y quién ya se sumó); si estás en una reunión, espera a que termine. Los descansos del Pomodoro usan el mismo aviso (Tomar el descanso / Omitir descanso). Solo lo asistido cuenta para la racha, los premios y el ranking. "Empezar" abre seis ejercicios guiados con tu muñeco (cuello, brazos, hombros, espalda, vista 20-20-20 y caminar).
 
 **Cierre del día.** A la hora que elijas (por defecto 6 p. m.) se pregunta cuánto avanzaste en tus tareas y qué sigue mañana. Actualiza las tareas y queda guardado; en el comité, el botón *Traer mis cierres del día* llena tu avance.
 
