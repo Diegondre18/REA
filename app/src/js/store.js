@@ -13,16 +13,16 @@
     plan_items: "planItems", vistos: "vistos", reportes: "reportes", notificaciones: "notifs", actividad: "actividad",
     // herramientas del estudio
     tramites: "tramites", planos: "planos", envios: "envios", visitas: "visitas", contactos: "contactos", materiales: "materiales",
-    horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones",
+    horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones", respaldos: "respaldos",
   };
-  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones"];
+  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
     gate: null, // { mode: server|login|register, error }
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
-    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [],
+    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,

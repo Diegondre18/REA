@@ -284,8 +284,10 @@
                     : html`<button type="button" class="btn sm ghost danger" onClick=${() => setLeaveHost(true)}>Dejar de ser el servidor</button>`}
                 </div>
                 ${leaveHost && html`<p class="hint">Los datos se quedan guardados en este PC. Mientras no haya otro servidor, nadie podrá conectarse.</p>`}
-              </div>` : html`
-              <div class="fld"><span class="lbl">Servidor</span><p class="mono">${s.serverUrl.replace(/^https?:\/\//, "")}</p></div>`}
+              </div>
+              ${L.BackupBox && html`<${L.BackupBox} />`}` : html`
+              <div class="fld"><span class="lbl">Servidor</span><p class="mono">${s.serverUrl.replace(/^https?:\/\//, "")}</p></div>
+              ${L.BackupSummary && html`<${L.BackupSummary} />`}`}
             <div class="inline">${!hosting && html`<button type="button" class="btn sm" onClick=${() => { L.closeSheet(); L.auth.changeServer(); }}>Cambiar de servidor</button>`}<button type="button" class="btn sm" onClick=${L.auth.logout}>Cerrar sesión</button></div>
             ${L.desk && L.desk.checkUpdates ? html`<${UpdateBox} version=${version} />` : version && html`<p class="meta-line">LAP Cerebro ${version}</p>`}
           </div>`}

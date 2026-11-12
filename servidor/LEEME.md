@@ -16,6 +16,7 @@ Mientras ese PC esté prendido y con la app abierta (aunque sea en la bandeja ju
 
 - **Perfil maestro:** en el PC servidor, en la pantalla de entrar, aparece **Crear perfil maestro**; o ya dentro, en **Tu perfil → Crear o recuperar perfil maestro**.
 - **Datos y copias:** quedan en `%APPDATA%\LAP Cerebro\servidor\pb_data`. Cada madrugada se hace una copia automática y se guardan las últimas 14, en `pb_data\backups`.
+- **Respaldo externo (recomendado):** en el PC servidor, **Tu perfil → Respaldo del estudio → Elegir carpeta** (un disco externo o una carpeta del NAS). Una vez al día se copia todo ahí y se guardan las últimas 30. Si la carpeta no está, se reintenta cada media hora y Dirección recibe aviso; si lleva más de 2 días sin respaldo, también. Desde la misma pantalla se restaura cualquier respaldo: los datos de ese momento quedan guardados aparte (`pb_data_antes_…`).
 - **Cambiar de PC servidor:** en el PC actual, **Tu perfil → Dejar de ser el servidor**; copia la carpeta `pb_data` al mismo lugar del PC nuevo y actívalo ahí.
 
 ## En el NAS (igual de fácil, y nunca se apaga)

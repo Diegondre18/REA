@@ -45,6 +45,10 @@ El botón del sol y la luna arriba cambia entre modo claro, oscuro o el del sist
 
 **Tocar el hombro.** Clic en otra persona en la oficina (o en su perfil) → Tocar el hombro, con un mensaje corto opcional. Le llega a su burbuja con tres botones: Voy, En 10 min, Ahora no; la respuesta vuelve a quien tocó.
 
+## Respaldo del estudio
+
+En el PC servidor, **Tu perfil → Respaldo del estudio**: se elige una carpeta en un disco externo o en el NAS y una vez al día se guarda ahí una copia completa (las últimas 30). Hay botones para respaldar ahora, abrir la carpeta y restaurar cualquier respaldo; al restaurar, los datos de ese momento quedan guardados aparte en el PC servidor. Si el respaldo falla o lleva más de 2 días sin hacerse, Dirección recibe un aviso y ve un letrero arriba en la app.
+
 ## Mi semana y línea de tiempo
 
 **Mi semana** muestra lo que vence en la semana (por día), lo atrasado, lo bloqueado esperando a otros, quién te espera a ti, las reuniones y quién del equipo no estará. Dirección ve además las entregas y atrasos de todo el estudio y la carga de cada persona. Cada lunes llega un aviso con el resumen y la app lo ofrece al abrir la primera vez en la semana.

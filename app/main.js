@@ -6,6 +6,7 @@ const fs = require("fs/promises");
 const { spawn } = require("child_process");
 const { autoUpdater } = require("electron-updater");
 const { createBubble } = require("./bubble");
+const { createBackups } = require("./respaldo");
 // El servidor integrado se carga solo cuando se usa: si algo faltara, la app igual abre y se puede actualizar.
 const hostModule = () => require("./host");
 
@@ -184,6 +185,7 @@ app.whenReady().then(async () => {
   if (await isHosting()) getHost().start().then(updateTray);
   createWindow();
   startBubble();
+  backups.start().catch(() => {});
   createTray();
   if (app.isPackaged) {
     setAutostartOnce();
@@ -402,4 +404,37 @@ ipcMain.on("set-badge", (e, dataUrl, count) => {
     if (!count || typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/png;base64,")) win.setOverlayIcon(null, "");
     else win.setOverlayIcon(nativeImage.createFromDataURL(dataUrl), `${count} avisos sin leer`);
   } catch (err) { /* no todas las plataformas tienen ícono superpuesto */ }
+});
+
+/* ---------- respaldo externo (solo en el PC servidor) ---------- */
+const backups = createBackups({
+  app, getHost, isHosting,
+  onChange: () => { if (win && !win.isDestroyed()) backups.status().then((st) => win.webContents.send("backup-changed", st)).catch(() => {}); },
+});
+app.on("will-quit", () => backups.stop());
+ipcMain.handle("backup-status", () => backups.status());
+ipcMain.handle("backup-pick", async () => {
+  const st = await backups.status();
+  const r = await dialog.showOpenDialog(win, { title: "Carpeta del respaldo (disco externo o NAS)", properties: ["openDirectory", "createDirectory"], defaultPath: st.dir || undefined });
+  if (r.canceled || !r.filePaths.length) return st;
+  return backups.setDir(r.filePaths[0]);
+});
+ipcMain.handle("backup-now", () => backups.run("manual"));
+ipcMain.handle("backup-open", async () => {
+  const st = await backups.status();
+  if (st.dir) await shell.openPath(st.dir);
+  return !!st.dir;
+});
+ipcMain.handle("backup-restore", async (_e, name) => {
+  const st = await backups.status();
+  const f = st.files.find((x) => x.name === name);
+  if (!f) return { ok: false, error: "Ese respaldo ya no está en la carpeta." };
+  const when = new Date(f.at).toLocaleString("es-CO", { dateStyle: "long", timeStyle: "short" });
+  const ok = await dialog.showMessageBox(win, {
+    type: "warning", buttons: ["Restaurar", "Cancelar"], defaultId: 1, cancelId: 1, title: "Restaurar respaldo",
+    message: "¿Volver los datos del estudio al " + when + "?",
+    detail: "Todo lo que se hizo después se reemplaza por ese respaldo. Los datos de ahora no se borran: quedan guardados aparte en el PC servidor. Los demás PC se desconectan unos segundos y vuelven solos.",
+  });
+  if (ok.response !== 0) return { ok: false, canceled: true };
+  try { return await backups.restore(path.join(st.dir, name)); } catch (err) { return { ok: false, error: err.message }; }
 });

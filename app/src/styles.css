@@ -930,3 +930,14 @@ a.fin-row:hover { background: var(--lo); border-radius: 8px; }
 .tl-load .cell.high b { color: var(--red); }
 .dot.dnd::after { content: ""; position: absolute; left: 2px; right: 2px; top: 50%; height: 2px; margin-top: -1px; background: #fff; border-radius: 1px; }
 .av.xl + .dot { width: 13px; height: 13px; }
+
+/* ---------- respaldo ---------- */
+.backup-box { display: grid; gap: 8px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; margin-top: 10px; }
+.backup-box p { margin: 0; font-size: 13px; }
+.bk-dir { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; }
+.bk-pill { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; }
+.bk-pill.ok { color: #1a7f4e; background: color-mix(in srgb, #22a06b 14%, transparent); }
+.bk-pill.bad { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.bk-list { display: grid; gap: 2px; }
+.bk-row { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; font-size: 12.5px; padding: 4px 0; border-top: 1px solid var(--line); }
+.banner.bk-banner { border-left: 3px solid var(--red); }

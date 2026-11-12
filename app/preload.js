@@ -34,4 +34,10 @@ contextBridge.exposeInMainWorld("lap", {
   hostFirewall: () => ipcRenderer.invoke("host-firewall"),
   hostMaestro: (email, password, name) => ipcRenderer.invoke("host-maestro", email, password, name),
   discover: () => ipcRenderer.invoke("discover"),
+  backupStatus: () => ipcRenderer.invoke("backup-status"),
+  backupPick: () => ipcRenderer.invoke("backup-pick"),
+  backupNow: () => ipcRenderer.invoke("backup-now"),
+  backupOpen: () => ipcRenderer.invoke("backup-open"),
+  backupRestore: (name) => ipcRenderer.invoke("backup-restore", name),
+  onBackupChanged: (fn) => ipcRenderer.on("backup-changed", (_e, st) => fn(st)),
 });
