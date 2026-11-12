@@ -17,7 +17,7 @@
     const dpr = window.devicePixelRatio || 1;
     const w = place.D.w, h = place.D.h;
     if (cv.width !== Math.round(w * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
-    const ctx = cv.getContext("2d");
+    const ctx = cv.getContext("2d", { willReadFrequently: true });
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, cv.width, cv.height);
     ctx.imageSmoothingEnabled = false;
@@ -41,30 +41,55 @@
       if (vertical) { ctx.fillRect(X + Math.round(WW / 3), Y, Math.max(1, Math.round(u / 3)), Math.round(HH * 0.7)); ctx.fillRect(X + Math.round((2 * WW) / 3), Y, Math.max(1, Math.round(u / 3)), Math.round(HH * 0.7)); }
       else { ctx.fillRect(X, Y + Math.round(HH / 3), Math.round(WW * 0.7), Math.max(1, Math.round(u / 3))); ctx.fillRect(X, Y + Math.round((2 * HH) / 3), Math.round(WW * 0.7), Math.max(1, Math.round(u / 3))); }
     };
+    let box;
     ctx.save();
     if (side === "left" || side === "right") {
       if (side === "left") { ctx.translate(W, 0); ctx.scale(-1, 1); }
       const x0 = W - peek * 20 * u - 2 * u, y0 = Math.round(H * 0.4 - 8 * u);
+      const t0 = y0 - 3.5 * u - ow, b0 = y0 + 19.7 * u + ow;
+      box = side === "right" ? { l: x0 - ow, r: W, t: t0, b: b0 } : { l: 0, r: W - x0 + ow, t: t0, b: b0 };
       PX.drawHead(ctx, Math.round(x0), y0, cfg, k, ow);
       hand(W - 3.2 * u, y0 - 3.5 * u, 3.4 * u, 4.2 * u, false);
       hand(W - 3.2 * u, y0 + 15.5 * u, 3.4 * u, 4.2 * u, false);
     } else {
       if (side === "top") { ctx.translate(W, H); ctx.rotate(Math.PI); }
       const x0 = Math.round((W - 24 * u) / 2), y0 = Math.round(H - Math.min(1, peek + 0.18) * 16 * u);
+      box = side === "bottom" ? { l: x0 - ow, r: x0 + 24 * u + ow, t: y0 - ow, b: H } : { l: W - x0 - 24 * u - ow, r: W - x0 + ow, t: 0, b: H - y0 + ow };
       PX.drawHead(ctx, x0, y0, cfg, k, ow);
       hand(x0 + 0.5 * u, H - 3.2 * u, 4.2 * u, 3.4 * u, true);
       hand(x0 + 19.3 * u, H - 3.2 * u, 4.2 * u, 3.4 * u, true);
     }
     ctx.restore();
-    // Vaso de agua que se llena durante el día.
+    // Vaso de agua que se llena durante el día, al lado de la cabeza (hacia la pantalla).
     if (state.agua) {
-      const u = Math.max(2, Math.round(2 * dpr)), gx = Math.round(4 * dpr), gh = 9 * u, gw = 6 * u, gy = Math.round(h * dpr - 18 * dpr) - gh;
+      const u = Math.max(2, Math.round(2 * dpr)), gh = 9 * u, gw = 6 * u;
+      const gx = side === "left" ? Math.round(box.r + 3 * u) : side === "right" ? Math.round(box.l - gw - 4 * u) : Math.round(box.l - gw - 4 * u);
+      const gy = side === "top" ? Math.round(box.t + 2 * u) : Math.round(box.b - gh - u);
       const lvl = Math.min(1, state.agua.n / Math.max(1, state.agua.meta));
       ctx.fillStyle = "#2a2228"; ctx.fillRect(gx - u, gy, u, gh); ctx.fillRect(gx + gw, gy, u, gh); ctx.fillRect(gx - u, gy + gh, gw + 2 * u, u);
       ctx.fillStyle = "rgba(200,225,238,0.55)"; ctx.fillRect(gx, gy, gw, gh);
       const fh = Math.round(gh * lvl);
       ctx.fillStyle = "#4aa8ff"; ctx.fillRect(gx, gy + gh - fh, gw, fh);
     }
+    placeBadges(box, dpr, side);
+  }
+  // Contador de avisos y etiqueta del estado pegados a la cabeza, no a la caja.
+  let lastBadges = "";
+  function placeBadges(box, dpr, side) {
+    const l = box.l / dpr, r = box.r / dpr, t = box.t / dpr, b = box.b / dpr, cx = (l + r) / 2;
+    let c, pl;
+    if (side === "right") { c = { left: l - 10, top: t - 4 }; pl = { right: 2, top: b + 3 }; }
+    else if (side === "left") { c = { left: r - 10, top: t - 4 }; pl = { left: 2, top: b + 3 }; }
+    else if (side === "bottom") { c = { left: r - 12, top: t - 8 }; pl = { cx, top: t - 22 }; }
+    else { c = { left: r - 12, top: b - 12 }; pl = { cx, top: b + 3 }; }
+    const key = JSON.stringify([c, pl]);
+    if (key === lastBadges) return;
+    lastBadges = key;
+    Object.assign(count.style, { left: Math.round(c.left) + "px", top: Math.round(c.top) + "px", right: "auto" });
+    Object.assign(pill.style, { top: Math.round(pl.top) + "px", bottom: "auto",
+      left: pl.cx !== undefined ? Math.round(pl.cx) + "px" : pl.left !== undefined ? pl.left + "px" : "auto",
+      right: pl.right !== undefined ? pl.right + "px" : "auto",
+      transform: pl.cx !== undefined ? "translateX(-50%)" : "none" });
   }
   // Redibujo liviano: 10 cuadros por segundo bastan para respirar; al saltar, cada cuadro.
   let lastPaint = 0;
@@ -242,6 +267,16 @@
 
   /* ---------- mouse: clics pasan de largo salvo sobre el muñeco, los globitos o el menú ---------- */
   let interactive = false, press = null, dragging = false, clickTimer = 0, leaveTimer = 0;
+  // ¿Hay dibujo bajo el mouse? (con 3 px de margen para que sea fácil de agarrar)
+  function painted(x, y) {
+    const r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
+    const px = Math.round((x - r.left) * dpr), py = Math.round((y - r.top) * dpr), m = Math.round(3 * dpr);
+    const x0 = Math.max(0, px - m), y0 = Math.max(0, py - m), w = Math.min(cv.width, px + m + 1) - x0, h = Math.min(cv.height, py + m + 1) - y0;
+    if (w <= 0 || h <= 0) return false;
+    const d = cv.getContext("2d", { willReadFrequently: true }).getImageData(x0, y0, w, h).data;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 40) return true;
+    return false;
+  }
   function setInteractive(on) { if (on !== interactive) { interactive = on; B.interactive(on); } }
   window.addEventListener("mousemove", (ev) => {
     if (press && !dragging && Math.hypot(ev.screenX - press.x, ev.screenY - press.y) > 4) {
@@ -249,7 +284,8 @@
     }
     if (dragging) return;
     const el = document.elementFromPoint(ev.clientX, ev.clientY);
-    const hit = !!(el && el.closest("[data-hit]"));
+    let hit = !!(el && el.closest("[data-hit]"));
+    if (hit && (el === cv || el === doll)) hit = painted(ev.clientX, ev.clientY);
     setInteractive(hit);
     if (menuOpen) {
       clearTimeout(leaveTimer);

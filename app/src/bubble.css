@@ -66,4 +66,6 @@ body { font: 13px/1.35 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-ser
 
 /* Se asoma por el borde: sin sombra de piso. */
 #doll::before { display: none; }
-#count { top: 2px; right: auto; left: 6px; }
+#count { top: 2px; right: auto; left: 6px; z-index: 2; }
+#pill { z-index: 2; }
+#doll { overflow: visible; }
