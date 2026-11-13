@@ -358,10 +358,17 @@
       return "";
     },
     async login(email, password) {
-      try { await pb.collection("users").authWithPassword(email, password); await startLive(); return ""; }
-      catch (e) { return e && e.status === 0 ? "No hay conexión con el servidor." : "Correo o contraseña incorrectos."; }
+      // El correo da igual en mayúsculas o minúsculas: se prueba como se escribió y en minúsculas.
+      const raw = String(email || "").trim(), low = raw.toLowerCase();
+      let last = null;
+      for (const id of raw === low ? [raw] : [low, raw]) {
+        try { await pb.collection("users").authWithPassword(id, password); await startLive(); return ""; }
+        catch (e) { last = e; if (e && e.status === 0) break; }
+      }
+      return last && last.status === 0 ? "No hay conexión con el servidor." : "Correo o contraseña incorrectos. Revisa que la contraseña tenga las mayúsculas y minúsculas correctas.";
     },
     async register(name, email, password, team) {
+      email = String(email || "").trim().toLowerCase();
       try {
         await pb.collection("users").create({ name, email, password, passwordConfirm: password, areas: [team] });
         await pb.collection("users").authWithPassword(email, password);

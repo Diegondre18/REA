@@ -308,7 +308,10 @@
   // Campo de contraseña con el ojito para verla mientras se escribe.
   function PassInput(props) {
     const [show, setShow] = useState(false);
-    return html`<span class="pass-wrap"><input ...${props} type=${show ? "text" : "password"} /><button type="button" class="pass-eye" tabindex="-1" aria-label=${show ? "Ocultar la contraseña" : "Ver la contraseña"} aria-pressed=${show} title=${show ? "Ocultar" : "Ver"} onClick=${() => setShow(!show)}><${Icon} name=${show ? "eyeOff" : "eye"} size=${16} /></button></span>`;
+    const [caps, setCaps] = useState(false);
+    const check = (e) => { if (e.getModifierState) setCaps(e.getModifierState("CapsLock")); };
+    const onKeyDown = (e) => { check(e); if (props.onKeyDown) props.onKeyDown(e); };
+    return html`<span class="pass-field"><span class="pass-wrap"><input ...${props} type=${show ? "text" : "password"} onKeyDown=${onKeyDown} onKeyUp=${check} onBlur=${() => setCaps(false)} /><button type="button" class="pass-eye" tabindex="-1" aria-label=${show ? "Ocultar la contraseña" : "Ver la contraseña"} aria-pressed=${show} title=${show ? "Ocultar" : "Ver"} onClick=${() => setShow(!show)}><${Icon} name=${show ? "eyeOff" : "eye"} size=${16} /></button></span>${caps && html`<small class="caps-note">Mayúsculas activadas</small>`}</span>`;
   }
   const state = () => L.state;
 
