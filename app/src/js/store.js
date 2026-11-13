@@ -15,15 +15,16 @@
     tramites: "tramites", planos: "planos", envios: "envios", visitas: "visitas", contactos: "contactos", materiales: "materiales",
     horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones", respaldos: "respaldos",
     bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes", reconocimientos: "reconocimientos", anuncios: "anuncios",
+    libretas: "libretas", libreta_items: "libretaItems", actas: "actas",
   };
-  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios"];
+  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios", "libretas", "libreta_items", "actas"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
     gate: null, // { mode: server|login|register, error }
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
-    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [], reconocimientos: [], anuncios: [],
+    tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [], reconocimientos: [], anuncios: [], libretas: [], libretaItems: [], actas: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
@@ -802,7 +803,9 @@
 
   /* ---------- rutas ---------- */
   const VIEWS = ["inicio", "semana", "linea", "pausa", "cierre", "pantalla", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
-    "solicitudes", "directorio", "ausencias", "finanzas", "revision", "oficina", "agentes"];
+    "solicitudes", "directorio", "ausencias", "finanzas", "revision", "oficina", "agentes", "libretas", "libreta", "acta"];
+  // Dirección de un archivo guardado en el servidor (fotos de libretas y actas). thumb: "480x0".
+  L.pbFile = (rec, name, thumb) => (pb && rec && name ? pb.files.getURL(rec, name, thumb ? { thumb } : {}) : "");
   function parseRoute() {
     const [name, id, tab] = location.hash.replace(/^#/, "").split("/");
     if (name === "tarea" && id) {

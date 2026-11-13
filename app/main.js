@@ -444,6 +444,33 @@ ipcMain.handle("backup-restore", async (_e, name) => {
   try { return await backups.restore(path.join(st.dir, name)); } catch (err) { return { ok: false, error: err.message }; }
 });
 
+/* ---------- PDF (actas de obra): HTML → PDF y se guarda donde la persona elija ---------- */
+ipcMain.handle("print-pdf", async (e, html, name) => {
+  if (!win || e.sender !== win.webContents) return { ok: false };
+  const os = require("os");
+  const tmp = path.join(os.tmpdir(), "lap-pdf-" + Date.now() + ".html");
+  let w = null;
+  try {
+    await fs.writeFile(tmp, html, "utf8");
+    w = new BrowserWindow({ show: false, width: 900, height: 1200, webPreferences: { sandbox: true, contextIsolation: true, nodeIntegration: false } });
+    await w.loadFile(tmp);
+    // Espera a que carguen las fotos del servidor.
+    await w.webContents.executeJavaScript("Promise.all([...document.images].map((i) => i.complete ? 0 : new Promise((r) => { i.onload = i.onerror = r; setTimeout(r, 15000); })))");
+    const data = await w.webContents.printToPDF({ printBackground: true, pageSize: "Letter", preferCSSPageSize: true });
+    const safe = String(name).replace(/[\\/:*?"<>|]/g, "").slice(0, 120) || "documento.pdf";
+    const r = await dialog.showSaveDialog(win, { title: "Guardar PDF", defaultPath: path.join(app.getPath("documents"), safe), filters: [{ name: "PDF", extensions: ["pdf"] }] });
+    if (r.canceled || !r.filePath) return { ok: false, canceled: true };
+    await fs.writeFile(r.filePath, data);
+    shell.openPath(r.filePath);
+    return { ok: true, path: r.filePath };
+  } catch (err) {
+    return { ok: false, error: String(err && err.message || err) };
+  } finally {
+    if (w && !w.isDestroyed()) w.destroy();
+    fs.unlink(tmp).catch(() => {});
+  }
+});
+
 /* ---------- aviso a pantalla completa (pausas activas y descansos) ---------- */
 const alerta = createAlerta({
   isBusy: () => !!(bubble && bubble.busy()),

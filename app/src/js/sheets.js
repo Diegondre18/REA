@@ -87,7 +87,12 @@
         ${id && html`<div class="stack">
           ${others.length > 0 && html`<div class="presence-note"><${Faces} ids=${others.map((u) => u.id)} /><p>${others.map((u) => L.first(u.name)).join(", ")} ${others.length === 1 ? "también tiene" : "también tienen"} abierta esta tarea. Si varios guardan, queda el último cambio.</p></div>`}
           <div class="work-box"><p>${workers.length ? html`<b>${workers.map((u) => q.first(u.id)).join(", ")}</b> ${workers.length === 1 && !mine ? "está" : workers.length === 1 ? "estás" : "están"} trabajando en esto ahora.` : "Nadie la tiene marcada como su trabajo de ahora."}</p>
-            <button type="button" class=${L.cx("btn sm", mine && "on")} onClick=${() => act.setWorking(mine ? null : id)}>${mine ? "Dejar de trabajar en esto" : "Estoy trabajando en esto"}</button></div>
+            <div class="inline wrap">
+              ${q.task(id) && q.task(id).status !== "terminado" && html`<button type="button" class=${L.cx("btn sm", mine && "on")} onClick=${() => act.setWorking(mine ? null : id)}>${mine ? "Dejar de trabajar en esto" : "Estoy trabajando en esto"}</button>`}
+              ${q.task(id) && q.task(id).status !== "terminado"
+                ? html`<button type="button" class="btn sm primary" onClick=${async () => { if (await act.saveTask(id, { status: "terminado" })) { L.toast("Entregada: " + q.task(id).title); L.closeSheet(); } }}><${L.Icon} name="check" size=${13} /> Entregar</button>`
+                : q.task(id) && html`<span class="tag">Entregada${q.task(id).doneAt ? " el " + L.fmtShort(q.task(id).doneAt) : ""}</span><button type="button" class="btn sm ghost" onClick=${() => act.saveTask(id, { status: "en_curso" })}>Reabrir</button>`}
+            </div></div>
         </div>`}
         <${Field} label="Qué hay que hacer" id="t-title" error=${err && !f.title.trim() ? err : ""}><input id="t-title" value=${f.title} onInput=${set("title")} placeholder="Renders de fachada, planos de licencia, moodboard…" /><//>
         <div class="two">
@@ -373,6 +378,7 @@
     if (sh.type === "toque") return html`<${L.ToqueSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "gracias") return html`<${L.GraciasSheet} key=${k} id=${sh.id} />`;
     if (sh.type === "anuncio") return html`<${L.AnuncioSheet} key=${k} id=${sh.id} />`;
+    if (L.EXTRA_SHEETS && L.EXTRA_SHEETS[sh.type]) return html`<${L.EXTRA_SHEETS[sh.type]} key=${k} id=${sh.id} defaults=${sh.defaults} />`;
     if (sh.type === "tool") { const { col, ...d } = sh.defaults; return html`<${L.ToolSheet} key=${k + col} col=${col} id=${sh.id} defaults=${d} />`; }
     return null;
   }

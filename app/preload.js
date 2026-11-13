@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld("lap", {
   bigAlertShow: (data) => ipcRenderer.invoke("big-alert-show", data),
   bigAlertHide: (id) => ipcRenderer.send("big-alert-hide", id),
   bubbleSync: (st) => ipcRenderer.send("bubble-sync", st),
+  printPdf: (html, name) => ipcRenderer.invoke("print-pdf", String(html || ""), String(name || "documento.pdf")),
   bubbleNotify: (n) => ipcRenderer.send("bubble-notify", n),
   onBubbleAction: (fn) => ipcRenderer.on("bubble-action", (_e, a) => fn(a)),
   bubbleVisible: () => ipcRenderer.invoke("bubble-visible"),

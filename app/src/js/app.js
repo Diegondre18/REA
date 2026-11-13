@@ -105,6 +105,7 @@
         <nav class="side-nav" aria-label="Principal">
           ${item("#inicio", "home", "Inicio", r.name === "inicio", nPend || null)}
           ${item("#semana", "flag", "Mi semana", r.name === "semana")}
+          ${item("#libretas", "note", "Libretas", r.name === "libretas" || r.name === "libreta")}
           ${item("#agenda", "calendar", "Mi cronograma", r.name === "agenda")}
           ${item("#linea", "folder", "Línea de tiempo", r.name === "linea")}
           ${item("#oficina", "office", "Oficina", r.name === "oficina")}
@@ -152,6 +153,8 @@
       ...s.tareas.filter((t) => has(t.title, t.path, t.notes)).slice(0, 6).map((t) => ({ k: "t" + t.id, icon: "check", title: t.title, sub: L.taskMeta(t, true) || "Tarea", go: () => L.openTask(t.id) })),
       ...s.eventos.filter((e) => has(e.title)).slice(0, 3).map((e) => ({ k: "e" + e.id, icon: "meet", title: e.title, sub: L.fmtDay(e.date), go: () => L.go("#evento/" + e.id) })),
       ...q.staff().filter((u) => has(u.name, u.cargo)).slice(0, 3).map((u) => ({ k: "u" + u.id, icon: "users", title: u.name, sub: u.cargo || "Persona", go: () => L.openSheet("profile", u.id) })),
+      ...s.libretas.filter((l) => has(l.titulo)).slice(0, 3).map((l) => ({ k: "l" + l.id, icon: l.tipo === "tablero" ? "board" : "note", title: l.titulo, sub: l.tipo === "tablero" ? "Tablero" : "Libreta", go: () => L.go("#libreta/" + l.id) })),
+      ...s.actas.filter((a) => has("acta " + a.numero, a.lugar, a.temas)).slice(0, 3).map((a) => ({ k: "a" + a.id, icon: "plan", title: "Acta de obra #" + a.numero, sub: (q.project(a.proyecto) || {}).name || "Acta", go: () => L.go("#acta/" + a.id) })),
     ];
     const pick = (r) => { r.go(); setText(""); setOpen(false); };
     return html`
@@ -254,6 +257,9 @@
       case "oficina": return html`<${L.Oficina} />`;
       case "agentes": return html`<${L.Agentes} key=${r.id} id=${r.id} />`;
       case "revision": return html`<${L.RevisionView} key=${r.id} id=${r.id} />`;
+      case "libretas": return html`<${L.Libretas} />`;
+      case "libreta": return html`<${L.LibretaView} key=${r.id} id=${r.id} />`;
+      case "acta": return html`<${L.ActaView} key=${r.id} id=${r.id} />`;
       default: return html`<${L.Inicio} />`;
     }
   }

@@ -161,3 +161,13 @@ git tag v2.1.1 && git push origin v2.1.1
 | `build/icon.ico` | Ícono de la app, con el símbolo de LAP. |
 
 La tipografía corporativa Whyte es de pago; la app usa Hanken Grotesk como sustituta con los mismos pesos (Light, Book, Medium). Con una licencia de escritorio de Whyte se puede cambiar en `src/styles.css`.
+
+## Libretas y actas de obra (2.20)
+
+- **Libretas** (menú lateral): cada persona tiene **Mi libreta**, su página personal con notas, pendientes propios y bloques vivos (mis tareas, reuniones de la semana, próximas entregas, mis proyectos). Puede crear más libretas:
+  - **Página**: bloques como en Notion. `/` para elegir el tipo (título, lista, casilla, destacado, imagen, enlace…), atajos `#`, `-`, `1.`, `[]`, `>`, `---`; `@` para mencionar a una persona (le llega un aviso) o un proyecto. Se pegan imágenes con Ctrl+V. Los bloques se reordenan arrastrando.
+  - **Tablero libre** (mini Miro): notas de colores, textos, imágenes, enlaces y marcos donde se quiera; rueda para acercar, arrastrar el fondo para moverse, soltar o pegar imágenes.
+  - Plantillas: notas de reunión, pendientes, brief de cliente, checklist antes de entregar, referentes, lluvia de ideas, moodboard.
+  - **Compartir**: la dueña elige quién puede **ver** y quién puede **editar**. Quien edita no puede borrarla ni compartirla. Aparece en *Compartidas conmigo* y llega un aviso.
+- **Actas de obra** (proyecto → Obra): numeradas por proyecto; datos de la visita, avance, asistentes del equipo y externos, temas, compromisos del equipo (se vuelven tareas) y de contratistas o cliente, pendientes del acta anterior, fotos con nota, firmas en pantalla y **PDF con la marca LAP**. Al cerrarla ya no se cambia, salvo Dirección.
+- **Entregar** en cada tarea, junto a «Estoy trabajando en esto»: la marca como terminada.

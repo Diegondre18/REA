@@ -339,7 +339,8 @@
     return html`
       <div class="toolbar">${last ? html`<span class="obra-avance"><b>${last.avance || 0}%</b> de avance según la visita del ${L.fmtShort(last.fecha)}</span>` : html`<span class="muted light">La bitácora de las visitas de obra.</span>`}<span class="spacer"></span>
         <button type="button" class="btn primary" onClick=${() => openTool("visitas", null, { project: project.id })}><${Icon} name="plus" size=${12} /> Registrar visita</button></div>
-      ${visitas.length ? html`<div class="grid">${visitas.map((v) => html`
+      <div class="grid">${L.ActasSection && html`<${L.ActasSection} project=${project} />`}</div>
+      ${visitas.length ? html`<h2 class="sub-h"><span class="sl">/</span>Bitácora de visitas</h2><div class="grid">${visitas.map((v) => html`
         <article class="glass panel span-12" key=${v.id}>
           <div class="panel-head"><h2><span class="sl">/</span>Visita del ${L.fmtLong(v.fecha)}</h2><div class="inline"><span class="tag">${v.avance || 0}% de avance</span><button type="button" class="btn sm" onClick=${() => openTool("visitas", v.id)}><${Icon} name="edit" /> Editar</button></div></div>
           <div class="row-meta"><${Avatar} id=${v.by} /><span>${q.name(v.by)}</span>${v.asistentes && html`<span>· con ${v.asistentes}</span>`}</div>
