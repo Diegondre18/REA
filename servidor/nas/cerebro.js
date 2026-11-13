@@ -4,6 +4,7 @@
 //
 //   node /data/cerebro.js                         arranca el servidor (lo usa docker-compose.yml)
 //   node /data/cerebro.js maestro correo clave "Nombre"   crea o recupera el perfil maestro
+//   node /data/cerebro.js clave correo clave-nueva        cambia la contraseña de una persona
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -84,7 +85,11 @@ function makeHost() {
 }
 
 async function serve() {
-  try { await installLatest(); } catch (e) {
+  try {
+    const u = await installLatest();
+    // Si cambió este mismo programa, se reinicia para usar ya la versión nueva (Docker lo vuelve a arrancar).
+    if (u.selfChanged) { log("reiniciando con la versión nueva"); process.exit(0); }
+  } catch (e) {
     if (!fs.existsSync(path.join(APP, "bin", "pocketbase"))) { log("no se pudo instalar el servidor: " + e.message + ". Se reintenta en 1 minuto."); setTimeout(() => process.exit(1), 60000); return; }
     log("sin conexión para buscar versiones nuevas (" + e.message + "); sigue la versión instalada");
   }
@@ -93,6 +98,11 @@ async function serve() {
   if (!r.ok) { log("el servidor no arrancó: " + r.error); setTimeout(() => process.exit(1), 30000); return; }
   log(`servidor listo en el puerto ${host.PORT} (${host.status().addresses.join(", ") || "sin red"}) · versión ${read(path.join(APP, "VERSION"))}`);
 
+  try { const res = await host.resumen(); if (res) log(res); } catch (e) { /* no es grave */ }
+  if (process.env.CLAVE_EMAIL && process.env.CLAVE_PASSWORD) {
+    const c = await host.clave(process.env.CLAVE_EMAIL, process.env.CLAVE_PASSWORD);
+    log("cambio de contraseña: " + c.message);
+  }
   if (process.env.MAESTRO_EMAIL && process.env.MAESTRO_PASSWORD) {
     const m = await host.maestro(process.env.MAESTRO_EMAIL, process.env.MAESTRO_PASSWORD, process.env.MAESTRO_NAME || "Soporte LAP");
     log("perfil maestro: " + m.message);
@@ -122,5 +132,12 @@ async function maestro([email, password, ...name]) {
   process.exit(r.ok ? 0 : 1);
 }
 
+async function clave([email, password]) {
+  if (!email || !password) { console.log("Uso: node /data/cerebro.js clave correo contraseña-nueva"); process.exit(1); }
+  const r = await makeHost().clave(email, password);
+  console.log(r.message);
+  process.exit(r.ok ? 0 : 1);
+}
+
 const [cmd, ...rest] = process.argv.slice(2);
-(cmd === "maestro" ? maestro(rest) : serve()).catch((e) => { log("error: " + e.message); process.exit(1); });
+(cmd === "maestro" ? maestro(rest) : cmd === "clave" ? clave(rest) : serve()).catch((e) => { log("error: " + e.message); process.exit(1); });

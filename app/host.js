@@ -140,6 +140,17 @@ function createHost({ bin, dataDir, migrationsDir, hooksDir, logFile }) {
       const line = r.out.split("\n").map((l) => l.replace(/^\S+ \S+ /, "").trim()).filter(Boolean).pop() || "";
       return { ok: /Listo:/.test(r.out), message: line };
     },
+    // Cambia la contraseña de cualquier persona, sin tocar su rol.
+    async clave(email, password) {
+      const r = await run(["clave", email, password]);
+      const line = r.out.split("\n").map((l) => l.replace(/^\S+ \S+ /, "").trim()).filter(Boolean).pop() || "";
+      return { ok: /Listo:/.test(r.out), message: line };
+    },
+    // Cuántas personas y proyectos tiene la base (para comprobar que los datos son los del estudio).
+    async resumen() {
+      const r = await run(["resumen"]);
+      return (r.out.split("\n").find((l) => l.includes("Resumen:")) || "").replace(/^.*Resumen:/, "Resumen:").trim();
+    },
   };
 }
 

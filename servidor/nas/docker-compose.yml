@@ -16,3 +16,6 @@ services:
       # Para crear el perfil maestro al arrancar: completa las dos líneas, arranca una vez y luego bórralas.
       # - MAESTRO_EMAIL=soporte@laparq.com
       # - MAESTRO_PASSWORD=una-clave-de-al-menos-10
+      # Si alguien olvida su contraseña: completa las dos líneas, arranca una vez y luego bórralas.
+      # - CLAVE_EMAIL=correo@laparq.com
+      # - CLAVE_PASSWORD=clave-nueva-de-8-o-mas

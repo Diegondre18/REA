@@ -41,6 +41,15 @@ El perfil maestro es la cuenta de soporte por si algo falla. Elige una de estas 
 
 Para recuperar la contraseña se hace lo mismo con una nueva.
 
+## Si alguien olvida su contraseña
+
+1. *Container Manager → Proyecto → lap-cerebro → Detener*.
+2. En la configuración YAML del proyecto (o en `docker-compose.yml` de la carpeta), quita el `#` de las líneas `CLAVE_EMAIL` y `CLAVE_PASSWORD` y escribe el correo de la persona y su contraseña nueva (8 caracteres o más). Respeta los espacios del principio de la línea.
+3. *Iniciar* (o *Construir*). En el registro debe salir «cambio de contraseña: Listo…». Su rol no cambia.
+4. Vuelve a poner el `#` en esas dos líneas (o bórralas) y reinicia, para que la contraseña no quede escrita.
+
+Al arrancar, el registro también muestra un **Resumen** (personas, proyectos y tareas): sirve para comprobar que el servidor tiene los datos del estudio.
+
 ## 4. Conectar los PC
 
 Instala la app en cada PC. Al abrirla, encuentra sola el servidor del NAS y se conecta. Si algún PC no lo encuentra, por ejemplo si el NAS está en otra subred, usa **Escribir la dirección a mano** con la IP del NAS y el puerto, por ejemplo `192.168.1.50:8090`.
