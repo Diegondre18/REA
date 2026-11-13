@@ -125,6 +125,7 @@
       return msg && !/^(Failed|Something went wrong)/i.test(msg) ? msg : "No tienes permiso para esto o faltan datos.";
     }
     if (status === 401) return "Tu sesión expiró. Vuelve a entrar.";
+    if (status === 404 && /missing collection/i.test(String(msg || ""))) return "El servidor del estudio todavía no tiene esta función. Se actualiza solo en unos minutos (o reinicia el contenedor del NAS) y vuelve a intentar.";
     if (status === 403 || status === 404) return "No tienes permiso para hacer esto.";
     return "No se pudo guardar. Inténtalo de nuevo.";
   }
