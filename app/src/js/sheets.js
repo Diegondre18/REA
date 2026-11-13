@@ -235,6 +235,35 @@
   }
 
   /* ---------- perfil ---------- */
+  // Contraseñas: Dirección le pone una nueva a otra persona; cada uno cambia la suya.
+  function ClaveBox({ u, isMe }) {
+    const [open, setOpen] = useState(false);
+    const [old, setOld] = useState("");
+    const [nueva, setNueva] = useState("");
+    const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState("");
+    const noEnter = (e) => { if (e.key === "Enter") { e.preventDefault(); go(); } };
+    const reset = () => { setOpen(false); setOld(""); setNueva(""); setErr(""); };
+    async function go() {
+      if (nueva.length < 8) { setErr("La contraseña necesita al menos 8 caracteres."); return; }
+      setBusy(true); setErr("");
+      const msg = isMe ? await L.act.changeMyPassword(old, nueva) : await L.act.setUserPassword(u.id, nueva);
+      setBusy(false);
+      if (msg) { setErr(msg); return; }
+      L.toast(isMe ? "Listo: tu contraseña cambió." : `Listo. Dile a ${u.name.split(" ")[0]} su contraseña nueva.`);
+      reset();
+    }
+    if (!open) return html`<div class="fld"><span class="lbl">Contraseña</span><div class="inline"><button type="button" class="btn sm" onClick=${() => setOpen(true)}>${isMe ? "Cambiar mi contraseña" : "Poner una contraseña nueva"}</button></div></div>`;
+    return html`<div class="fld clave-box">
+      <span class="lbl">${isMe ? "Cambiar mi contraseña" : `Contraseña nueva para ${u.name}`}</span>
+      ${isMe && html`<input type="password" placeholder="Contraseña actual" autocomplete="current-password" value=${old} onInput=${(e) => setOld(e.target.value)} onKeyDown=${noEnter} />`}
+      <input type="password" placeholder="Contraseña nueva (8 o más caracteres)" autocomplete="new-password" value=${nueva} onInput=${(e) => setNueva(e.target.value)} onKeyDown=${noEnter} />
+      ${!isMe && html`<small class="muted">Su rol y sus datos no cambian. Luego dile la contraseña en persona.</small>`}
+      ${err && html`<p class="err">${err}</p>`}
+      <div class="inline"><button type="button" class="btn sm primary" disabled=${busy} onClick=${go}>${busy ? "Guardando…" : "Guardar contraseña"}</button><button type="button" class="btn sm ghost" onClick=${reset}>Cancelar</button></div>
+    </div>`;
+  }
+
   function ProfileSheet({ id }) {
     const s = L.useStore();
     const u = q.user(id) || s.me;
@@ -273,11 +302,13 @@
         ${isMe && html`<${Field} label="Nota para el equipo" id="u-estado" hint="Lo ve el equipo junto a tu nombre. Por ejemplo: en obra hasta las 3."><input id="u-estado" value=${f.estado} onInput=${set("estado")} maxlength="80" /><//>`}
         ${director && !isMe && (u.role !== "maestro" || q.isMaestro()) && html`<${Field} label="Rol" id="u-role" hint="La Dirección creativa ve todo y aprueba cualquier plan. Para pasarla a otra persona, primero quítasela a quien la tiene.">
           <select id="u-role" value=${f.role} onChange=${set("role")}>${roleOptions.map((o) => html`<option key=${o.id} value=${o.id}>${o.label}</option>`)}</select><//>`}
+        ${director && !isMe && (u.role !== "maestro" || q.isMaestro()) && html`<${ClaveBox} u=${u} isMe=${false} />`}
         ${isMe && html`
           <div class="settings">
             <div class="fld"><span class="lbl">Muñeco de la oficina</span><div class="inline">${L.MunecoPreview && html`<span class="pix-mini"><${L.MunecoPreview} cfg=${L.PIX.config(s.me)} /></span>`}<button type="button" class="btn sm" onClick=${() => L.openSheet("muneco")}>${s.me.muneco && s.me.muneco.ropa ? "Cambiar mi muñeco" : "Crear mi muñeco"}</button></div></div>
             ${L.DeskSettings && html`<${L.DeskSettings} />`}
             ${L.WellSettings && html`<${L.WellSettings} />`}
+            <${ClaveBox} u=${u} isMe=${true} />
             <div class="fld"><span class="lbl">Apariencia</span><${L.Seg} label="Apariencia" value=${s.theme} onChange=${L.setTheme} options=${L.THEMES} /></div>
             ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}
             ${hosting ? html`

@@ -43,6 +43,10 @@ Para recuperar la contraseña se hace lo mismo con una nueva.
 
 ## Si alguien olvida su contraseña
 
+Lo normal: Dirección (o el perfil maestro) entra a la app → **Equipo** → la persona → **Poner una contraseña nueva**. Cada uno cambia la suya en **Tu perfil → Cambiar mi contraseña**.
+
+Si nadie de Dirección puede entrar, se hace desde el NAS:
+
 1. En tu PC, abre el Bloc de notas y escribe una línea con el correo de la persona y su contraseña nueva (8 caracteres o más), separados por un espacio: `correo@laparq.com ClaveNueva123`. Puedes poner varias personas, una por línea.
 2. Guárdalo como **`clave.txt`** y súbelo a la carpeta del Cerebro en el NAS (File Station → *Cargar*).
 3. En menos de medio minuto el servidor cambia la contraseña y **borra el archivo**. En el registro sale «cambio de contraseña: Listo…». Su rol no cambia.

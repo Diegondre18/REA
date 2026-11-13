@@ -658,6 +658,25 @@
     },
     testSound(urgent) { sound(!!urgent); },
     // Tocar el hombro: le llega a la otra persona en su burbuja aunque tenga la app minimizada.
+    // Dirección o el maestro le pone una contraseña nueva a otra persona.
+    async setUserPassword(userId, password) {
+      try { await pb.send("/api/lap/clave", { method: "POST", body: { user: userId, password } }); return ""; }
+      catch (e) { return (e && e.response && e.response.message) || "No se pudo cambiar la contraseña."; }
+    },
+    // Cambiar la propia contraseña (pide la actual). La sesión sigue abierta con la nueva.
+    async changeMyPassword(oldPassword, password) {
+      if (password.length < 8) return "La contraseña nueva necesita al menos 8 caracteres.";
+      try {
+        const email = state.me.email;
+        await pb.collection("users").update(state.me.id, { oldPassword, password, passwordConfirm: password });
+        await pb.collection("users").authWithPassword(email, password);
+        return "";
+      } catch (e) {
+        const d = (e && e.response && e.response.data) || {};
+        if (d.oldPassword) return "La contraseña actual no es correcta.";
+        return (e && e.response && e.response.message) || "No se pudo cambiar la contraseña.";
+      }
+    },
     async toque(to, mensaje) {
       return run(async () => {
         const r = await pb.send("/api/lap/toque", { method: "POST", body: { to, mensaje: mensaje || "" } });
