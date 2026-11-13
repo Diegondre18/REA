@@ -9,7 +9,7 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { execFileSync } = require("child_process");
-const { createHost } = require("./host");
+const { createHost, health } = require("./host");
 
 const DATA = process.env.DATA_DIR || "/data";
 const APP = path.join(DATA, "app");
@@ -94,7 +94,7 @@ async function serve() {
     log("sin conexión para buscar versiones nuevas (" + e.message + "); sigue la versión instalada");
   }
   let host = makeHost();
-  const r = await host.start(60000);
+  const r = await host.start(180000);
   if (!r.ok) { log("el servidor no arrancó: " + r.error); setTimeout(() => process.exit(1), 30000); return; }
   log(`servidor listo en el puerto ${host.PORT} (${host.status().addresses.join(", ") || "sin red"}) · versión ${read(path.join(APP, "VERSION"))}`);
 
@@ -131,10 +131,21 @@ async function serve() {
       host.stop();
       if (u.selfChanged) { log("reiniciando con la versión nueva"); process.exit(0); }
       host = makeHost();
-      const again = await host.start(60000);
-      log(again.ok ? "servidor actualizado y en marcha" : "el servidor no arrancó tras actualizar: " + again.error);
+      const again = await host.start(180000);
+      if (again.ok) log("servidor actualizado y en marcha");
+      else { log("el servidor no arrancó tras actualizar: " + again.error + ". Se reinicia el contenedor."); process.exit(1); }
     } catch (e) { log("búsqueda de versiones: " + e.message); }
   }, CHECK_HOURS * 3600 * 1000);
+
+  // Vigilante: si el servidor deja de responder 3 minutos seguidos (se colgó, no arrancó tras una
+  // actualización, el NAS estuvo muy lento…), el contenedor se reinicia solo y vuelve a arrancar.
+  let fallos = 0;
+  setInterval(async () => {
+    if (await health(r.url, 10000)) { fallos = 0; return; }
+    fallos += 1;
+    log(`el servidor no responde (${fallos}/3)`);
+    if (fallos >= 3) { log("reiniciando el contenedor para recuperar el servidor"); host.stop(); process.exit(1); }
+  }, Number(process.env.LAP_WATCH_MS || 60000));
 
   const stop = () => { host.stop(); process.exit(0); };
   process.on("SIGTERM", stop);
