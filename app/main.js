@@ -367,6 +367,8 @@ ipcMain.on("notify", (_e, title, body, route, urgent) => {
 // La app (ventana principal) es la que habla con el servidor; la burbuja solo muestra y pide acciones.
 function startBubble() {
   bubble = createBubble({
+    // Mientras está el aviso grande de pausa, la burbuja no se pone encima de él.
+    isBlocked: () => { try { return alerta.visible(); } catch (e) { return false; } },
     app,
     onAction: (a) => {
       if (a.type === "open" || a.type === "bell") showWindow();
@@ -446,5 +448,15 @@ const alerta = createAlerta({
   isBusy: () => !!(bubble && bubble.busy()),
   onAction: (a) => { if (win && !win.isDestroyed()) win.webContents.send("bubble-action", a); },
 });
-ipcMain.handle("big-alert-show", (e, data) => (win && e.sender === win.webContents ? alerta.show(data) : false));
-ipcMain.on("big-alert-hide", (e, id) => { if (win && e.sender === win.webContents) alerta.hide(id); });
+ipcMain.handle("big-alert-show", async (e, data) => {
+  if (!win || e.sender !== win.webContents) return false;
+  if (bubble) bubble.setBlocked(true); // el aviso grande queda encima de la burbuja
+  const ok = await alerta.show(data);
+  if (!ok && bubble) bubble.setBlocked(false);
+  return ok;
+});
+ipcMain.on("big-alert-hide", (e, id) => {
+  if (!win || e.sender !== win.webContents) return;
+  alerta.hide(id);
+  if (bubble) bubble.setBlocked(alerta.visible());
+});

@@ -10,7 +10,7 @@ const W = 380, H = 440; // ventana transparente; el muñeco ocupa una esquina
 const D = { w: 84, h: 120 }; // caja del muñeco dentro de la ventana
 const MARGIN = 0; // pegada al borde: el muñeco se asoma desde ahí
 
-function createBubble({ app, onAction }) {
+function createBubble({ app, onAction, isBlocked }) {
   const file = () => path.join(app.getPath("userData"), "burbuja.json");
   let prefs = { visible: true, anchor: { side: "right", t: 0.78, display: null } };
   let win = null, ready = false, state = null, busy = false, drag = null, dragTimer = 0, placed = null;
@@ -64,10 +64,22 @@ function createBubble({ app, onAction }) {
     place();
   }
 
+  // Windows a veces le quita el "siempre encima" a una ventana cuando otro programa se pone al frente
+  // o después de esconderla y mostrarla. Cada segundo y medio se vuelve a poner al frente, sin robar el foco.
+  // No lo hace mientras está el aviso grande de pausa (ese debe quedar encima) ni mientras se arrastra.
+  let blocked = false;
+  function keepTop() {
+    if (!win || win.isDestroyed() || !win.isVisible() || blocked || drag) return;
+    if (isBlocked && isBlocked()) return;
+    if (!win.isAlwaysOnTop()) win.setAlwaysOnTop(true, "screen-saver");
+    win.moveTop();
+  }
+  const topTimer = setInterval(keepTop, 1500);
+
   function shouldShow() { return !!(prefs.visible && state && state.me && !busy); }
   function refresh() {
     if (!win || win.isDestroyed()) return;
-    if (shouldShow()) { if (!win.isVisible()) { place(); win.showInactive(); } }
+    if (shouldShow()) { if (!win.isVisible()) { place(); win.showInactive(); win.setAlwaysOnTop(true, "screen-saver"); win.moveTop(); } }
     else if (win.isVisible()) win.hide();
   }
 
@@ -81,7 +93,8 @@ function createBubble({ app, onAction }) {
         spellcheck: false, backgroundThrottling: false,
       },
     });
-    win.setAlwaysOnTop(true, "floating");
+    // El nivel más alto: queda encima de cualquier programa (Revit, Chrome, el Explorador…).
+    win.setAlwaysOnTop(true, "screen-saver");
     win.setIgnoreMouseEvents(true, { forward: true });
     win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     win.webContents.on("will-navigate", (e) => e.preventDefault());
@@ -161,7 +174,8 @@ function createBubble({ app, onAction }) {
     setVisible,
     visible: () => prefs.visible,
     busy: () => busy,
-    stop() { stopped = true; clearInterval(dragTimer); if (watcher) { try { watcher.kill(); } catch (e) { /* ya cerró */ } } },
+    setBlocked(v) { blocked = !!v; if (!blocked) keepTop(); },
+    stop() { stopped = true; clearInterval(dragTimer); clearInterval(topTimer); if (watcher) { try { watcher.kill(); } catch (e) { /* ya cerró */ } } },
   };
 }
 
