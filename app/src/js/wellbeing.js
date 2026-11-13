@@ -91,7 +91,9 @@
       if (field === "pausas" || field === "descansos") {
         const [a, b] = weekRange(0);
         const wk = mine().filter((x) => x.fecha >= a && x.fecha <= b);
-        await act.movePresence({ puntos: { semana: a, pausas: wk.reduce((s2, x) => s2 + (Number(x.pausas) || 0), 0), descansos: wk.reduce((s2, x) => s2 + (Number(x.descansos) || 0), 0) } });
+        const old = L.state.me.puntos || {};
+        const anterior = old.semana && old.semana !== a ? { semana: old.semana, pausas: Number(old.pausas) || 0, descansos: Number(old.descansos) || 0 } : old.anterior || null;
+        await act.movePresence({ puntos: { anterior, semana: a, pausas: wk.reduce((s2, x) => s2 + (Number(x.pausas) || 0), 0), descansos: wk.reduce((s2, x) => s2 + (Number(x.descansos) || 0), 0) } });
       }
     }).catch(() => {});
     return wellQueue;
@@ -365,6 +367,7 @@
       pomoTick();
       if (ticks % 20 === 0) { pausasTick(); cierreTick(); aguaTick(); }
       if (ticks % 15 === 3) { syncPremios(); birthdayCheck(); }
+      if (ticks % 60 === 7) premioSemanaTick();
     } catch (e) { /* sigue */ }
   }, 1000);
   L.set({ pomo });
@@ -419,7 +422,7 @@
       const ctx = cv.getContext("2d");
       ctx.imageSmoothingEnabled = false;
       ctx.clearRect(0, 0, cv.width, cv.height);
-      const c = { ...PX.withExtra(PX.config(me), "", me.premios), ...(cfgOver || {}), pose };
+      const c = { ...PX.withExtra(PX.config(me), "", premiosDe(me)), ...(cfgOver || {}), pose };
       ctx.fillStyle = "rgba(40,30,35,0.14)"; ctx.fillRect(3 * k, 24 * k, 10 * k, k);
       PX.drawFigure(ctx, 2 * k, 4 * k, c, view, frame, false, flip, k, Math.max(1, Math.round(k * 0.35)));
     });
@@ -632,31 +635,64 @@
 
   /* ================= ranking de la oficina ================= */
   // Puntos de la semana: entrega a tiempo 3, agradecimiento recibido 2, pausa activa asistida 1, descanso tomado 1.
-  function ranking() {
-    const [a, b] = weekRange(0);
+  function ranking(offset = 0) {
+    const [a, b] = weekRange(offset);
     return q.staff().map((u) => {
-      const pt = u.puntos && u.puntos.semana === a ? u.puntos : {};
+      const p0 = u.puntos || {};
+      const pt = p0.semana === a ? p0 : p0.anterior && p0.anterior.semana === a ? p0.anterior : {};
       const entregas = L.state.tareas.filter((t) => (t.assignees || []).includes(u.id) && t.status === "terminado" && t.doneAt >= a && t.doneAt <= b && t.due && t.doneAt <= t.due).length;
-      const gracias = (L.state.reconocimientos || []).filter((r) => r.para === u.id && String(r.created).slice(0, 10) >= a).length;
+      const gracias = (L.state.reconocimientos || []).filter((r) => r.para === u.id && String(r.created).slice(0, 10) >= a && String(r.created).slice(0, 10) <= b).length;
       const pausas = Number(pt.pausas) || 0, descansos = Number(pt.descansos) || 0;
       return { u, entregas, gracias, pausas, descansos, premios: (u.premios || []).length, total: entregas * 3 + gracias * 2 + pausas + descansos };
     }).sort((x, y) => y.total - x.total || y.premios - x.premios || (x.u.name || "").localeCompare(y.u.name || "", "es"));
+  }
+  /* ================= premio de la semana ================= */
+  // El lunes, el primer computador que abre la app guarda quién ganó el ranking de la semana anterior
+  // (una sola vez por semana: el servidor no deja repetir). Esa persona lleva corona toda la semana.
+  const campeon = () => { const [a] = weekRange(-1); return (L.state.premiosSemana || []).find((p) => p.semana === a) || null; };
+  const premiosDe = (u) => { const c = campeon(); const base = (u && u.premios) || []; return c && u && c.user === u.id ? [...base, "corona"] : base; };
+  let premioBusy = false;
+  async function premioSemanaTick() {
+    if (!live() || premioBusy || !L.state.premiosSemana) return;
+    const [a] = weekRange(-1);
+    if (!campeon()) {
+      const top = ranking(-1)[0];
+      if (top && top.total > 0) {
+        premioBusy = true;
+        // Si otro computador ya lo guardó, llega solo por tiempo real.
+        await act.premioSemana({ semana: a, user: top.u.id, puntos: top.total });
+        premioBusy = false;
+      }
+    }
+    const c = campeon();
+    const k = "lap-cerebro-corona-" + a;
+    if (c && c.user === L.state.me.id && !ls.get(k, false)) {
+      ls.set(k, true);
+      setTimeout(() => celebrate(`¡Ganaste el ranking de la semana pasada con ${c.puntos} puntos! Llevas corona toda esta semana.`, true), 2500);
+    }
+  }
+  function Campeon() {
+    L.useStore();
+    const c = campeon();
+    if (!c) return null;
+    return html`<div class="rk-champ"><span class="crown" aria-hidden="true">👑</span><span>Premio de la semana pasada: <b>${q.name(c.user)}</b> · ${c.puntos} pts</span></div>`;
   }
   function Ranking({ big = false, limit = 10 }) {
     L.useStore();
     const list = ranking().slice(0, limit);
     const medal = ["#f2c94c", "#c0c6cf", "#c8874a"];
-    return html`<div class=${L.cx("ranking", big && "big")}>
+    const camp = campeon();
+    return html`<div class=${L.cx("ranking", big && "big")}><${Campeon} />
       ${list.map((r, i) => html`<div class=${L.cx("rk-row", r.u.id === L.state.me.id && "me")} key=${r.u.id}>
         <span class="rk-pos" style=${i < 3 && r.total ? { background: medal[i], color: "#1f1f1f" } : null}>${i + 1}</span>
         <${L.Avatar} id=${r.u.id} cls=${big ? "lg" : ""} />
-        <span class="rk-name"><b>${big ? r.u.name : L.first(r.u.name)}</b><small>${[r.entregas && L.plural(r.entregas, "entrega a tiempo", "entregas a tiempo"), r.gracias && L.plural(r.gracias, "gracias", "gracias"), (r.pausas + r.descansos) && L.plural(r.pausas + r.descansos, "pausa", "pausas")].filter(Boolean).join(" · ") || "Aún sin puntos esta semana"}</small></span>
+        <span class="rk-name"><b>${big ? r.u.name : L.first(r.u.name)}${camp && camp.user === r.u.id ? html` <span class="crown" title="Ganó la semana pasada">👑</span>` : ""}</b><small>${[r.entregas && L.plural(r.entregas, "entrega a tiempo", "entregas a tiempo"), r.gracias && L.plural(r.gracias, "gracias", "gracias"), (r.pausas + r.descansos) && L.plural(r.pausas + r.descansos, "pausa", "pausas")].filter(Boolean).join(" · ") || "Aún sin puntos esta semana"}</small></span>
         <span class="rk-prem">${(r.u.premios || []).slice(0, big ? 7 : 4).map((p) => html`<${PremioIcon} key=${p} id=${p} on=${true} />`)}</span>
         <span class="rk-pts"><b>${r.total}</b><small>pts</small></span>
       </div>`)}
     </div>`;
   }
 
-  Object.assign(L, { BigAlert, Ranking, ranking, PremioIcon, BigDoll });
+  Object.assign(L, { BigAlert, Ranking, ranking, PremioIcon, BigDoll, campeon, premiosDe, Campeon });
   Object.assign(L, { celebrate, PomodoroChip, WellAlert, PausaView, CierreView, Bienestar, Premios, WellSettings, PREMIOS, wellRun: runAction });
 })();

@@ -278,7 +278,7 @@
       ${cur === "licencias" && html`<${L.LicenciasTab} project=${p} />`}
       ${cur === "planos" && html`<${L.PlanosTab} project=${p} />`}
       ${cur === "obra" && html`<${L.ObraTab} project=${p} />`}
-      ${cur === "finanzas" && (q.canSeeMoney(p) ? html`<${L.FinanzasTab} project=${p} />` : html`<div class="glass"><${Empty} small title="Solo para quien lidera, Dirección y Administración" /></div>`)}`;
+      ${cur === "finanzas" && (q.canSeeMoney(p) ? (L.FinanzasProyecto ? html`<${L.FinanzasProyecto} project=${p} />` : html`<${L.FinanzasTab} project=${p} />`) : html`<div class="glass"><${Empty} small title="Solo para quien lidera, Dirección y Administración" /></div>`)}`;
   }
 
   Object.assign(L, { ProjectRow, Proyectos, Proyecto, PlanTab });

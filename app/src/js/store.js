@@ -16,8 +16,11 @@
     horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones", respaldos: "respaldos",
     bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes", reconocimientos: "reconocimientos", anuncios: "anuncios",
     libretas: "libretas", libreta_items: "libretaItems", actas: "actas",
+    proyecto_finanzas: "pfin", presupuesto: "presupuesto", contratos: "contratos", adicionales: "adicionales", pagos_proveedor: "pagosProv",
+    costos: "costos", flujo: "flujo", gastos_fijos: "gastosFijos", tiempos: "tiempos", premios_semana: "premiosSemana",
   };
-  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios", "libretas", "libreta_items", "actas"];
+  const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios", "libretas", "libreta_items", "actas",
+    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
@@ -25,6 +28,7 @@
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
     tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [], reconocimientos: [], anuncios: [], libretas: [], libretaItems: [], actas: [],
+    pfin: [], presupuesto: [], contratos: [], adicionales: [], pagosProv: [], costos: [], flujo: [], gastosFijos: [], tiempos: [], premiosSemana: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
@@ -248,7 +252,7 @@
     const live = !!state.me && (state.mode === "live" || state.mode === "offline") && state.me.role !== "pantalla";
     const me = live ? { id: state.me.id, name: state.me.name, muneco: state.me.muneco || null } : null;
     const st = { me, presencia: live ? q.presence(state.me) : "", unread: live ? q.unread() : 0, muted: !!state.muted, theme: state.theme || "system",
-      premios: live ? state.me.premios || [] : [], timer: live && L.bubbleTimer ? L.bubbleTimer() : null, agua: live && L.bubbleAgua ? L.bubbleAgua() : null };
+      premios: live ? (L.premiosDe ? L.premiosDe(state.me) : state.me.premios || []) : [], timer: live && L.bubbleTimer ? L.bubbleTimer() : null, agua: live && L.bubbleAgua ? L.bubbleAgua() : null };
     const sig = JSON.stringify(st);
     if (sig === bubbleSig) return;
     const prev = bubbleSig ? JSON.parse(bubbleSig).unread : -1;
@@ -418,7 +422,7 @@
     // El equipo del estudio, sin el perfil maestro de soporte.
     staff: () => state.users.filter((u) => u.role !== "maestro" && u.role !== "pantalla"),
     // Finanzas: Dirección, perfil maestro y el área de Administración (el líder ve los cobros de su proyecto).
-    isFin: () => q.isDirector() || ((state.me && state.me.areas) || []).includes("administracion"),
+    isFin: () => q.isDirector() || ((state.me && state.me.areas) || []).some((a) => a === "administracion" || a === "gestion"),
     canSeeMoney: (p) => q.isFin() || (!!p && !!state.me && (p.leader === state.me.id || p.apoyo === state.me.id)),
     contacto: (id) => state.contactos.find((c) => c.id === id) || null,
     revision: (id) => state.revisiones.find((r) => r.id === id) || null,
@@ -720,6 +724,11 @@
         return rec;
       });
     },
+    // Premio de la semana: lo guarda el primero que llega; si ya existe, el servidor lo rechaza en silencio.
+    premioSemana(data) {
+      if (!pb) return Promise.resolve(null);
+      return pb.collection("premios_semana").create(data).then((rec) => { upsert("premiosSemana", rec); emit(); return rec; }).catch(() => null);
+    },
     async remove(col, id) {
       return run(async () => { await pb.collection(col).delete(id); remove(COLS[col], id); emit(); return true; });
     },
@@ -804,7 +813,7 @@
 
   /* ---------- rutas ---------- */
   const VIEWS = ["inicio", "semana", "linea", "pausa", "cierre", "pantalla", "agenda", "proyectos", "proyecto", "reuniones", "evento", "area", "equipo",
-    "solicitudes", "directorio", "ausencias", "finanzas", "revision", "oficina", "agentes", "libretas", "libreta", "acta"];
+    "solicitudes", "directorio", "ausencias", "finanzas", "revision", "oficina", "agentes", "libretas", "libreta", "acta", "gestion"];
   // Dirección de un archivo guardado en el servidor (fotos de libretas y actas). thumb: "480x0".
   L.pbFile = (rec, name, thumb) => (pb && rec && name ? pb.files.getURL(rec, name, thumb ? { thumb } : {}) : "");
   function parseRoute() {

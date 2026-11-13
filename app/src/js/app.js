@@ -120,6 +120,7 @@
           ${item("#ausencias", "calendar", "Ausencias", r.name === "ausencias")}
           ${item("#directorio", "users", "Directorio", r.name === "directorio")}
           ${q.isFin() && item("#finanzas", "flag", "Finanzas", r.name === "finanzas")}
+          ${q.isFin() && item("#gestion", "coin", "Gestión", r.name === "gestion", L.gestionFindings ? L.gestionFindings().filter((f) => f.level === "alta").length || null : null)}
         </nav>
         <div class="side-label">Áreas</div>
         <nav class="side-nav" aria-label="Áreas">
@@ -260,6 +261,7 @@
       case "libretas": return html`<${L.Libretas} />`;
       case "libreta": return html`<${L.LibretaView} key=${r.id} id=${r.id} />`;
       case "acta": return html`<${L.ActaView} key=${r.id} id=${r.id} />`;
+      case "gestion": return L.Gestion ? html`<${L.Gestion} tab=${r.id} />` : null;
       default: return html`<${L.Inicio} />`;
     }
   }

@@ -444,6 +444,8 @@ ipcMain.handle("backup-restore", async (_e, name) => {
   try { return await backups.restore(path.join(st.dir, name)); } catch (err) { return { ok: false, error: err.message }; }
 });
 
+ipcMain.handle("idle-seconds", () => { try { return require("electron").powerMonitor.getSystemIdleTime(); } catch (e) { return 0; } });
+
 /* ---------- PDF (actas de obra): HTML → PDF y se guarda donde la persona elija ---------- */
 ipcMain.handle("print-pdf", async (e, html, name) => {
   if (!win || e.sender !== win.webContents) return { ok: false };

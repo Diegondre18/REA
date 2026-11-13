@@ -153,7 +153,11 @@
 
     // Accesorios del estado y premios.
     const ex = cfg.extra;
-    if (cfg.gorra && ex !== "audifonos") { r(5, 1, 14, 4, "#ea0029"); d(7, 2, 4, 1, "#ff4d6a"); if (front) r(12, 5, 9, 1, "#b8001f"); }
+    if (cfg.corona && ex !== "audifonos") {
+      // Corona del premio de la semana: aro dorado con tres puntas y una piedra roja.
+      r(7, 1, 10, 2, "#e8b923"); r(7, -1, 2, 2, "#e8b923"); r(11, -2, 2, 3, "#e8b923"); r(15, -1, 2, 2, "#e8b923");
+      d(8, 1, 1, 1, "#fff2a8"); d(11, 1, 2, 1, "#ea0029"); d(7, 2, 10, 1, "#b8860b");
+    } else if (cfg.gorra && ex !== "audifonos") { r(5, 1, 14, 4, "#ea0029"); d(7, 2, 4, 1, "#ff4d6a"); if (front) r(12, 5, 9, 1, "#b8001f"); }
     if (ex === "audifonos") { r(6, 0, 12, 1, "#2d2f36"); r(4, 1, 2, 4, "#2d2f36"); r(18, 1, 2, 4, "#2d2f36"); r(2, 7, 4, 6, "#3a3d46"); r(18, 7, 4, 6, "#3a3d46"); d(3, 8, 1, 4, "#ff5a6e"); d(20, 8, 1, 4, "#ff5a6e"); }
     else if (ex === "taza" && front) { r(19, 24, 4, 5, "#f4f1ea"); r(23, 25, 1, 3, "#f4f1ea"); d(19, 24, 4, 1, "#8b5a2b"); }
     else if (ex === "libreta" && front) { r(19, 19, 3, 11, "#f4f1ea"); d(19, 19, 3, 1, "#d9d4cb"); d(20, 22, 1, 5, "#5c7fb8"); }
@@ -171,6 +175,7 @@
     const out = { ...cfg };
     if (EXTRA[presencia]) out.extra = EXTRA[presencia];
     if (Array.isArray(premios) && premios.includes("gorra")) out.gorra = true;
+    if (Array.isArray(premios) && premios.includes("corona")) out.corona = true;
     if (presencia === "pausa" && t !== undefined) out.pose = ["", "medio", "estira", "estira", "medio"][Math.floor(t / 420) % 5];
     return out;
   };

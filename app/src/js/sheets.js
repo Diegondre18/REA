@@ -313,6 +313,7 @@
             <div class="fld"><span class="lbl">Muñeco de la oficina</span><div class="inline">${L.MunecoPreview && html`<span class="pix-mini"><${L.MunecoPreview} cfg=${L.PIX.config(s.me)} /></span>`}<button type="button" class="btn sm" onClick=${() => L.openSheet("muneco")}>${s.me.muneco && s.me.muneco.ropa ? "Cambiar mi muñeco" : "Crear mi muñeco"}</button></div></div>
             ${L.DeskSettings && html`<${L.DeskSettings} />`}
             ${L.WellSettings && html`<${L.WellSettings} />`}
+            <div class="fld"><span class="lbl">Almuerzo del viernes</span><${L.Seg} label="Turno de almuerzo del viernes" value=${s.me.almuerzoViernes || "12"} onChange=${(v) => L.act.saveUser(s.me.id, { almuerzoViernes: v })} options=${[{ id: "12", label: "12:00 a 1:00" }, { id: "13", label: "1:00 a 2:00" }]} /><span class="hint">Las horas que trabajes en tu almuerzo cuentan como extra.</span></div>
             <${ClaveBox} u=${u} isMe=${true} />
             <div class="fld"><span class="lbl">Apariencia</span><${L.Seg} label="Apariencia" value=${s.theme} onChange=${L.setTheme} options=${L.THEMES} /></div>
             ${L.desk && autostart !== null && html`<label class="check"><input type="checkbox" checked=${autostart} onChange=${(e) => { setAutostart(e.target.checked); L.desk.setAutostart(e.target.checked); }} /><span><b>Abrir al iniciar Windows</b><small>La app se abre sola al prender el PC y te deja conectado con el equipo. Al cerrar la ventana sigue en la bandeja, junto al reloj.</small></span></label>`}

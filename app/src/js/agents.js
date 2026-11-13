@@ -19,6 +19,8 @@
       intro: "Vigilo plazos de curaduría, vigencias, planos en revisión y comentarios sin resolver." },
     { id: "cuentas", name: "Cuentas", job: "Cobros vencidos y por facturar", color: "#3d3d3d", prop: "grid", fin: true,
       intro: "Llevo los cobros vencidos y lo que toca facturar pronto." },
+    { id: "gestion", name: "Gestión", job: "Presupuesto, costos, horas, proveedores y caja", color: "#b0601e", prop: "coin", fin: true,
+      intro: "Comparo lo presupuestado con lo gastado, cuento las horas (y las extra) de cada proyecto, reviso lo que se debe a proveedores y aviso si la caja se pone en rojo." },
   ];
   const AGENT = Object.fromEntries(AGENTS.map((a) => [a.id, a]));
   const LEVELS = { alta: 0, media: 1, info: 2 };
@@ -126,12 +128,17 @@
 
     /* Cuentas: solo Dirección y Administración */
     if (q.isFin()) {
-      const fin = q.staff().filter((u) => u.role === "director" || (u.areas || []).includes("administracion")).map((u) => u.id);
+      const fin = q.staff().filter((u) => u.role === "director" || (u.areas || []).some((a) => a === "administracion" || a === "gestion")).map((u) => u.id);
       for (const c of s.cobros.filter((x) => x.estado !== "pagado" && x.fechaEsperada)) {
         const go = "#proyecto/" + c.project + "/finanzas";
         if (c.fechaEsperada < t) add("cuentas", days(c.fechaEsperada, t) > 15 ? "alta" : "media", "venc" + c.id, `Cobro vencido: ${c.concepto} · ${L.money(c.valor)}`, `${pname(c.project)} · esperado el ${L.fmtShort(c.fechaEsperada)}${c.estado === "facturado" ? " · ya facturado" : " · sin facturar"}`, fin, c.project, go);
         else if (c.fechaEsperada <= plus(7) && c.estado === "pendiente") add("cuentas", "info", "prox" + c.id, `Toca facturar ${c.concepto} · ${L.money(c.valor)}`, `${pname(c.project)} · ${L.relDay(c.fechaEsperada)}`, fin, c.project, go);
       }
+    }
+    /* Gestión: reglas en gestion.js (presupuesto, costos, horas, proveedores, caja) */
+    if (q.isFin() && L.gestionFindings) {
+      const finIds = q.staff().filter((u) => u.role === "director" || (u.areas || []).some((a) => a === "administracion" || a === "gestion")).map((u) => u.id);
+      for (const f of L.gestionFindings()) add("gestion", f.level, f.key, f.title, f.detail, [...finIds, ...(f.who || [])], f.project, f.go);
     }
     return out.sort((a, b) => LEVELS[a.level] - LEVELS[b.level]);
   }
@@ -143,7 +150,7 @@
   const visibleAgents = () => AGENTS.filter((a) => !a.fin || q.isFin());
 
   /* ---------- muñequito: figura propia, hecha con formas simples ---------- */
-  const PROP_PATHS = { clock: "M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 5v3l2 1.5", calendar: "M2.5 4h11v9.5h-11zM2.5 6.5h11M5.5 2.5v3M10.5 2.5v3", plan: "M3 3.5h10M3 8h10M3 12.5h6", users: "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM1.5 13c0-2.2 1.8-4 4-4s4 1.8 4 4M11 7a1.8 1.8 0 1 0 0-3.6M12 9c1.6.4 2.5 1.9 2.5 4", flag: "M3.5 14V2.5M3.5 3h8l-1.5 3 1.5 3h-8", grid: "M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z" };
+  const PROP_PATHS = { coin: "M8 2a6 6 0 1 0 0 12A6 6 0 0 0 8 2zM9.8 5.6C9.4 5.2 8.8 5 8 5c-1.2 0-2 .6-2 1.5 0 2 4 1 4 3 0 .9-.8 1.5-2 1.5-.9 0-1.6-.3-2-.8M8 4v1M8 11v1", clock: "M8 2.5a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zM8 5v3l2 1.5", calendar: "M2.5 4h11v9.5h-11zM2.5 6.5h11M5.5 2.5v3M10.5 2.5v3", plan: "M3 3.5h10M3 8h10M3 12.5h6", users: "M5.5 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM1.5 13c0-2.2 1.8-4 4-4s4 1.8 4 4M11 7a1.8 1.8 0 1 0 0-3.6M12 9c1.6.4 2.5 1.9 2.5 4", flag: "M3.5 14V2.5M3.5 3h8l-1.5 3 1.5 3h-8", grid: "M2.5 2.5h4.5v4.5h-4.5zM9 2.5h4.5v4.5H9zM2.5 9h4.5v4.5h-4.5zM9 9h4.5v4.5H9z" };
   // Dibujada con el origen en los pies; sirve en la página y dentro de la oficina isométrica.
   function AgentShape({ agent, mood = "ok", bob = true }) {
     const c = agent.color;

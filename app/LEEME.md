@@ -171,3 +171,27 @@ La tipografía corporativa Whyte es de pago; la app usa Hanken Grotesk como sust
   - **Compartir**: la dueña elige quién puede **ver** y quién puede **editar**. Quien edita no puede borrarla ni compartirla. Aparece en *Compartidas conmigo* y llega un aviso.
 - **Actas de obra** (proyecto → Obra): numeradas por proyecto; datos de la visita, avance, asistentes del equipo y externos, temas, compromisos del equipo (se vuelven tareas) y de contratistas o cliente, pendientes del acta anterior, fotos con nota, firmas en pantalla y **PDF con la marca LAP**. Al cerrarla ya no se cambia, salvo Dirección.
 - **Entregar** en cada tarea, junto a «Estoy trabajando en esto»: la marca como terminada.
+
+## Gestión: presupuestos, costos, pagos, caja, horas y rentabilidad (2.21)
+
+**Quién la ve.** El área nueva **Gestión** (en el perfil de cada persona) junto con Dirección y Administración ven el menú *Gestión* y la pestaña *Finanzas* completa de cada proyecto. Quien lidera un proyecto ve la parte de su proyecto. El resto del equipo no ve valores.
+
+**Pestañas de Gestión**
+- **Tablero:** contratado, cobrado, lo que nos deben (y lo vencido), por facturar, lo que debemos a proveedores, gastos fijos, caja al cierre del mes y horas del mes (con las extra). Semáforo de los proyectos, flujo de caja, rentabilidad por proyecto y lo que dice el agente de Gestión.
+- **Mapa de proyectos:** una tarjeta por proyecto con el semáforo y barras de entregas, cobrado, pagado a proveedores, costos y horas.
+- **Estado de pagos:** cliente (contrato, facturado, pagado, nos debe, por facturar) y proveedores (contratos, adicionales, pagado, les debemos).
+- **Presupuesto y costos:** presupuesto por capítulo contra lo gastado. Se importa desde Excel.
+- **Flujo de caja:** ingresos y egresos por mes, reales y proyectados, con el saldo. Suma los cobros, los pagos a proveedores, los gastos fijos y los movimientos que se registren o importen.
+- **Gastos fijos:** arriendo, servicios, nómina, software… Se reparten entre las horas trabajadas para que la rentabilidad incluya lo que cuesta la oficina.
+- **Horas y rentabilidad:** horas de cada persona y de cada proyecto, en horario y extra, con su costo. Aquí se pone el **costo por hora** de cada persona.
+- **Ajustes:** horario (8:45 a 6:00), almuerzo (1:15 a 2:00 de lunes a jueves), **recargo de la hora extra** (se pone a mano), saldo inicial de caja, margen objetivo y si se reparten los gastos fijos.
+
+**Proveedores.** El cliente le paga al estudio el 100 % y el estudio les paga a los proveedores. Cada contrato lleva sus pagos y, **aparte**, sus adicionales (solo los aprobados suman a lo que se debe).
+
+**Importar Excel.** Botón *Importar Excel*: se elige qué es (presupuesto, control de costos o flujo de caja), el proyecto, el archivo y la hoja. La app encuentra la fila de títulos y adivina las columnas; se pueden corregir antes de importar. En el presupuesto, las filas sin cantidades son títulos de capítulo y los subtotales se saltan. Entiende números como `$ 1.234.567,89` y fechas `05/11/2026`.
+
+**Horas automáticas.** Mientras alguien tiene una tarea con «Estoy trabajando en esto» y la app abierta, cada minuto cuenta para el proyecto de esa tarea. Antes de las 8:45, después de las 6:00, en el almuerzo o el fin de semana cuenta como **extra** (y cuesta más con el recargo). No cuenta si la persona lleva más de 10 minutos sin tocar el computador ni si está en almuerzo, pausa o fuera. El viernes cada uno elige en su perfil si almuerza de 12 a 1 o de 1 a 2.
+
+**Semáforo.** Cada proyecto se mide en entregas, cobros, costos, horas y margen; el color general es el peor de los cinco.
+
+**Premio de la semana.** El lunes se guarda quién ganó el ranking de la semana anterior. Esa persona lleva una corona en su muñeco toda la semana y aparece arriba del ranking.

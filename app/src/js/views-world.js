@@ -713,7 +713,7 @@
         const atSpot = a.spot && !a.path.length && Math.hypot(a.x - a.spot.x, a.y - a.spot.y) < 0.3 ? a.spot : null;
         add(atSpot && atSpot.key ? atSpot.key + a.x * 0.001 : a.x + a.y + 0.1, () => {
           const [px, py] = P(a.x, a.y);
-          const cfg = L.PIX.withExtra(L.PIX.config(a.user), q.presence(a.user), a.user.premios, t);
+          const cfg = L.PIX.withExtra(L.PIX.config(a.user), q.presence(a.user), L.premiosDe ? L.premiosDe(a.user) : a.user.premios, t);
           const k = Math.max(1, Math.round(U)), ow = Math.max(1, Math.round(k * 0.4));
           ctx.fillStyle = "rgba(40,30,35,0.22)"; ctx.fillRect(px - 4 * k, py - k, 9 * k, 2 * k);
           if (a.seated) L.PIX.drawFigure(ctx, px - 6 * k, py - 19 * k, cfg, "back", 0, true, false, k, ow);

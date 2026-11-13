@@ -10,6 +10,7 @@ window.LAP = {};
     { id: "interior", label: "Diseño Interior", short: "INT" },
     { id: "visualizacion", label: "Visualización", short: "VIZ" },
     { id: "administracion", label: "Administración", short: "ADM" },
+    { id: "gestion", label: "Gestión", short: "GES" },
   ];
   const AREA = Object.fromEntries(AREAS.map((a) => [a.id, a]));
   AREA.direccion = { id: "direccion", label: "Dirección Creativa", short: "DIR" };
