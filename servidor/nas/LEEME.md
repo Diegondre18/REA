@@ -4,7 +4,7 @@ El NAS hace de servidor del estudio, como un PC que nunca se apaga:
 
 - **Arranca solo** cada vez que el NAS prende.
 - **Los PC lo encuentran solos** en la red; nadie escribe direcciones.
-- **Se actualiza solo**: cada 6 horas revisa si hay una versión nueva publicada y la instala.
+- **Se actualiza solo**: cada 30 minutos revisa si hay una versión nueva publicada y la instala.
 - **Solo guarda texto** (proyectos, tareas, planes, reuniones). Ocupa muy poco: menos de 100 a 200 MB en varios años, incluidas las copias automáticas de cada madrugada.
 - **No da acceso al NAS a nadie.** El Cerebro corre aislado en su propia carpeta; los demás PC solo hablan con él por el puerto 8090, con su cuenta del Cerebro. Las carpetas y permisos del NAS no cambian.
 

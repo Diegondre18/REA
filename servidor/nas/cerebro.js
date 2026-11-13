@@ -17,7 +17,7 @@ const REPO = process.env.LAP_REPO || "Diegondre18/REA";
 const LATEST_URL = process.env.LAP_LATEST_URL || `https://api.github.com/repos/${REPO}/releases/latest`;
 const DOWNLOAD_BASE = process.env.LAP_DOWNLOAD_BASE || `https://github.com/${REPO}/releases/download`;
 const PB_BASE = process.env.PB_DOWNLOAD_BASE || "https://github.com/pocketbase/pocketbase/releases/download";
-const CHECK_HOURS = Number(process.env.LAP_CHECK_HOURS || 6);
+const CHECK_HOURS = Number(process.env.LAP_CHECK_HOURS || 0.5); // cada 30 minutos
 const ARCH = { x64: "amd64", arm64: "arm64", arm: "armv7" }[process.arch] || "amd64";
 
 const log = (msg) => console.log(`[${new Date().toISOString()}] ${msg}`);
