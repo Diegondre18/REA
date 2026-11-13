@@ -43,10 +43,9 @@ Para recuperar la contraseña se hace lo mismo con una nueva.
 
 ## Si alguien olvida su contraseña
 
-1. *Container Manager → Proyecto → lap-cerebro → Detener*.
-2. En la configuración YAML del proyecto (o en `docker-compose.yml` de la carpeta), quita el `#` de las líneas `CLAVE_EMAIL` y `CLAVE_PASSWORD` y escribe el correo de la persona y su contraseña nueva (8 caracteres o más). Respeta los espacios del principio de la línea.
-3. *Iniciar* (o *Construir*). En el registro debe salir «cambio de contraseña: Listo…». Su rol no cambia.
-4. Vuelve a poner el `#` en esas dos líneas (o bórralas) y reinicia, para que la contraseña no quede escrita.
+1. En tu PC, abre el Bloc de notas y escribe una línea con el correo de la persona y su contraseña nueva (8 caracteres o más), separados por un espacio: `correo@laparq.com ClaveNueva123`. Puedes poner varias personas, una por línea.
+2. Guárdalo como **`clave.txt`** y súbelo a la carpeta del Cerebro en el NAS (File Station → *Cargar*).
+3. En menos de medio minuto el servidor cambia la contraseña y **borra el archivo**. En el registro sale «cambio de contraseña: Listo…». Su rol no cambia.
 
 Al arrancar, el registro también muestra un **Resumen** (personas, proyectos y tareas): sirve para comprobar que el servidor tiene los datos del estudio.
 

@@ -103,6 +103,22 @@ async function serve() {
     const c = await host.clave(process.env.CLAVE_EMAIL, process.env.CLAVE_PASSWORD);
     log("cambio de contraseña: " + c.message);
   }
+  // clave.txt en la carpeta del NAS: una línea "correo contraseña-nueva" por persona.
+  // Se revisa cada 20 segundos; al aplicarlo, el archivo se borra para que la clave no quede escrita.
+  const claveFile = path.join(DATA, "clave.txt");
+  const revisarClave = async () => {
+    if (!fs.existsSync(claveFile)) return;
+    const lines = read(claveFile).replace(/^\uFEFF/, "").split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+    try { fs.rmSync(claveFile, { force: true }); } catch (e) { /* sin permiso */ }
+    if (!lines.length) { log("clave.txt estaba vacío: escribe el correo y la contraseña nueva separados por un espacio"); return; }
+    for (const l of lines) {
+      const [email, ...pw] = l.split(/[\s,;]+/);
+      const r = await host.clave(email, pw.join(" ")).catch((e) => ({ message: e.message }));
+      log("cambio de contraseña: " + r.message);
+    }
+  };
+  await revisarClave();
+  setInterval(() => revisarClave().catch((e) => log("clave.txt: " + e.message)), 20000);
   if (process.env.MAESTRO_EMAIL && process.env.MAESTRO_PASSWORD) {
     const m = await host.maestro(process.env.MAESTRO_EMAIL, process.env.MAESTRO_PASSWORD, process.env.MAESTRO_NAME || "Soporte LAP");
     log("perfil maestro: " + m.message);
