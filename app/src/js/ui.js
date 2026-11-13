@@ -13,6 +13,8 @@
     users: "M6 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM1.5 13.5c0-2.2 2-3.5 4.5-3.5s4.5 1.3 4.5 3.5M11 7.2a2.2 2.2 0 0 0 0-4.4M12 10.2c1.5.4 2.5 1.5 2.5 3.3",
     meet: "M2 4.5h8v7H2zM10 7l4-2.2v6.4L10 9",
     bell: "M4 11V7.5a4 4 0 0 1 8 0V11l1.2 1.5H2.8zM6.5 14h3",
+    eye: "M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z",
+    eyeOff: "M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8 12.1 12.5 8 12.5 1.5 8 1.5 8zM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM2.5 2.5l11 11",
     search: "M7 12A5 5 0 1 0 7 2a5 5 0 0 0 0 10zM11 11l3.5 3.5",
     plus: "M8 2.5v11M2.5 8h11",
     close: "m4 4 8 8M12 4l-8 8",
@@ -303,9 +305,15 @@
         </div>
       </div>`;
   }
+  // Campo de contraseña con el ojito para verla mientras se escribe.
+  function PassInput(props) {
+    const [show, setShow] = useState(false);
+    return html`<span class="pass-wrap"><input ...${props} type=${show ? "text" : "password"} /><button type="button" class="pass-eye" tabindex="-1" aria-label=${show ? "Ocultar la contraseña" : "Ver la contraseña"} aria-pressed=${show} title=${show ? "Ocultar" : "Ver"} onClick=${() => setShow(!show)}><${Icon} name=${show ? "eyeOff" : "eye"} size=${16} /></button></span>`;
+  }
   const state = () => L.state;
 
   Object.assign(L, {
+    PassInput,
     Icon, Sym, Avatar, Faces, PeoplePicker, AbsenceNote, Glyph, Chip, TaskChip, AreaTag, Progress, Due, PathBlock, Panel, Empty, Seg, Field, Sheet, DeleteButton,
     TaskRow, Board, Archive, Gantt, taskToRow, EventRow, openTask, taskMeta, copyText, openPath,
   });

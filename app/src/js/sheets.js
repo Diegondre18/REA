@@ -256,8 +256,8 @@
     if (!open) return html`<div class="fld"><span class="lbl">Contraseña</span><div class="inline"><button type="button" class="btn sm" onClick=${() => setOpen(true)}>${isMe ? "Cambiar mi contraseña" : "Poner una contraseña nueva"}</button></div></div>`;
     return html`<div class="fld clave-box">
       <span class="lbl">${isMe ? "Cambiar mi contraseña" : `Contraseña nueva para ${u.name}`}</span>
-      ${isMe && html`<input type="password" placeholder="Contraseña actual" autocomplete="current-password" value=${old} onInput=${(e) => setOld(e.target.value)} onKeyDown=${noEnter} />`}
-      <input type="password" placeholder="Contraseña nueva (8 o más caracteres)" autocomplete="new-password" value=${nueva} onInput=${(e) => setNueva(e.target.value)} onKeyDown=${noEnter} />
+      ${isMe && html`<${L.PassInput} placeholder="Contraseña actual" autocomplete="current-password" value=${old} onInput=${(e) => setOld(e.target.value)} onKeyDown=${noEnter} />`}
+      <${L.PassInput} placeholder="Contraseña nueva (8 o más caracteres)" autocomplete="new-password" value=${nueva} onInput=${(e) => setNueva(e.target.value)} onKeyDown=${noEnter} />
       ${!isMe && html`<small class="muted">Su rol y sus datos no cambian. Luego dile la contraseña en persona.</small>`}
       ${err && html`<p class="err">${err}</p>`}
       <div class="inline"><button type="button" class="btn sm primary" disabled=${busy} onClick=${go}>${busy ? "Guardando…" : "Guardar contraseña"}</button><button type="button" class="btn sm ghost" onClick=${reset}>Cancelar</button></div>

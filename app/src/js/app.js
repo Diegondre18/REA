@@ -64,7 +64,7 @@
           <h1><span class="sl">//</span>Entrar</h1>
           ${notice ? html`<p class="ok-note">${notice}</p>` : html`<p>Usa tu cuenta del Cerebro. Es la misma en todos los PC de la oficina.</p>`}
           <div class="fld"><label for="g-email">Correo</label><input id="g-email" type="email" value=${f.email} onInput=${set("email")} autocomplete="username" required /></div>
-          <div class="fld"><label for="g-pass">Contraseña</label><input id="g-pass" type="password" value=${f.password} onInput=${set("password")} autocomplete="current-password" required /></div>
+          <div class="fld"><label for="g-pass">Contraseña</label><${L.PassInput} id="g-pass" value=${f.password} onInput=${set("password")} autocomplete="current-password" required /></div>
           <button class="btn primary block" type="submit" disabled=${busy}>Entrar</button>
           <div class="alt"><button type="button" onClick=${() => auth.gate("register")}>Crear mi cuenta</button>
             ${hosting ? html`<button type="button" onClick=${() => auth.gate("maestro")}>Crear perfil maestro</button>` : html`<button type="button" onClick=${() => auth.gate("server")}>Cambiar de servidor</button>`}</div>`}
@@ -73,7 +73,7 @@
           <p>Con tu correo del estudio. Tu nombre es el que verá el equipo junto a tu trabajo.</p>
           <div class="fld"><label for="g-name">Nombre y apellido</label><input id="g-name" value=${f.name} onInput=${set("name")} autocomplete="name" required /></div>
           <div class="fld"><label for="g-email">Correo</label><input id="g-email" type="email" value=${f.email} onInput=${set("email")} autocomplete="username" placeholder="nombre@laparq.com" required /></div>
-          <div class="fld"><label for="g-pass">Contraseña</label><input id="g-pass" type="password" value=${f.password} onInput=${set("password")} autocomplete="new-password" minlength="8" required /><span class="hint">Mínimo 8 caracteres.</span></div>
+          <div class="fld"><label for="g-pass">Contraseña</label><${L.PassInput} id="g-pass" value=${f.password} onInput=${set("password")} autocomplete="new-password" minlength="8" required /><span class="hint">Mínimo 8 caracteres.</span></div>
           <div class="fld"><span class="lbl">¿A qué equipo perteneces?</span><${Pills} options=${L.TEAMS} value=${f.team} attr="data-a" onChange=${(t) => setF({ ...f, team: t })} />
             ${f.team === "direccion" && html`<span class="hint">La Dirección creativa tiene un solo cupo. Si ya está ocupado, el registro te lo dirá.</span>`}</div>
           <button class="btn primary block" type="submit" disabled=${busy}>Crear cuenta y entrar</button>
@@ -82,7 +82,7 @@
           <h1><span class="sl">//</span>Perfil maestro</h1>
           <p>Cuenta de soporte por si algo falla: puede cambiar roles, corregir proyectos y aprobar planes. No aparece en el equipo. Solo se crea desde el PC que es el servidor. Si ya existe con ese correo, se le pone esta contraseña nueva.</p>
           <div class="fld"><label for="g-email">Correo</label><input id="g-email" type="email" value=${f.email} onInput=${set("email")} autocomplete="off" required /></div>
-          <div class="fld"><label for="g-pass">Contraseña</label><input id="g-pass" type="password" value=${f.password} onInput=${set("password")} autocomplete="new-password" minlength="10" required /><span class="hint">Mínimo 10 caracteres. Guárdala en un lugar seguro.</span></div>
+          <div class="fld"><label for="g-pass">Contraseña</label><${L.PassInput} id="g-pass" value=${f.password} onInput=${set("password")} autocomplete="new-password" minlength="10" required /><span class="hint">Mínimo 10 caracteres. Guárdala en un lugar seguro.</span></div>
           <div class="fld"><label for="g-mname">Nombre</label><input id="g-mname" value=${f.mname} onInput=${set("mname")} /></div>
           <button class="btn primary block" type="submit" disabled=${busy}>Crear perfil maestro</button>
           <div class="alt"><button type="button" onClick=${() => auth.gate("login")}>Volver</button></div>`}
