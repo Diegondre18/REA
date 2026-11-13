@@ -376,6 +376,7 @@ function startBubble() {
       if (win && !win.isDestroyed()) win.webContents.send("bubble-action", a);
     },
   });
+  global.lapBubble = bubble; // para revisar la burbuja en pruebas
   bubble.start().then(updateTray).catch(() => {});
 }
 function setBubbleVisible(on) {

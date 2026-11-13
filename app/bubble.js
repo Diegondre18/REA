@@ -138,10 +138,29 @@ function createBubble({ app, onAction, isBlocked }) {
     watcher.on("exit", () => { watcher = null; if (!stopped && restarts++ < 3) setTimeout(watchFullscreen, 5000); });
   }
 
-  ipcMain.on("bubble-interactive", (e, on) => {
-    if (!win || e.sender !== win.webContents) return;
-    win.setIgnoreMouseEvents(!on, { forward: true });
+  // El mouse: la ventana deja pasar los clics salvo sobre las zonas que manda la burbuja (muñeco,
+  // globitos, menú). Se revisa la posición del mouse aquí, cada 60 ms, porque los eventos que Windows
+  // reenvía a una ventana transparente a veces dejan de llegar y entonces no se podía hacer clic.
+  let regions = [], interactive = false;
+  ipcMain.on("bubble-regions", (e, rs) => {
+    if (!win || e.sender !== win.webContents || !Array.isArray(rs)) return;
+    regions = rs.slice(0, 40).filter((r) => r && [r.x, r.y, r.w, r.h].every(Number.isFinite));
   });
+  function setInteractive(on) {
+    if (!win || win.isDestroyed() || on === interactive) return;
+    interactive = on;
+    win.setIgnoreMouseEvents(!on, { forward: true });
+    send("bubble-hover", on);
+  }
+  function checkHover() {
+    if (!win || win.isDestroyed() || !win.isVisible()) return;
+    if (drag) return setInteractive(true);
+    const p = screen.getCursorScreenPoint(), b = win.getBounds();
+    const x = p.x - b.x, y = p.y - b.y;
+    setInteractive(regions.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h));
+  }
+  const hoverTimer = setInterval(checkHover, 60);
+  ipcMain.on("bubble-interactive", () => { /* versiones viejas de la burbuja; ahora decide checkHover */ });
   ipcMain.on("bubble-drag", (e, phase) => {
     if (!win || e.sender !== win.webContents) return;
     if (phase === "start") {
@@ -174,8 +193,10 @@ function createBubble({ app, onAction, isBlocked }) {
     setVisible,
     visible: () => prefs.visible,
     busy: () => busy,
+    isInteractive: () => interactive,
+    regions: () => regions.slice(),
     setBlocked(v) { blocked = !!v; if (!blocked) keepTop(); },
-    stop() { stopped = true; clearInterval(dragTimer); clearInterval(topTimer); if (watcher) { try { watcher.kill(); } catch (e) { /* ya cerró */ } } },
+    stop() { stopped = true; clearInterval(dragTimer); clearInterval(topTimer); clearInterval(hoverTimer); if (watcher) { try { watcher.kill(); } catch (e) { /* ya cerró */ } } },
   };
 }
 

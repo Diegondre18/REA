@@ -75,8 +75,10 @@
   }
   // Contador de avisos y etiqueta del estado pegados a la cabeza, no a la caja.
   let lastBadges = "";
+  let headBox = null; // caja de la cabeza y las manos, en pixeles de la ventana
   function placeBadges(box, dpr, side) {
     const l = box.l / dpr, r = box.r / dpr, t = box.t / dpr, b = box.b / dpr, cx = (l + r) / 2;
+    headBox = { x: place.dx + l, y: place.dy + t, w: r - l, h: b - t };
     let c, pl;
     if (side === "right") { c = { left: l - 10, top: t - 4 }; pl = { right: 2, top: b + 3 }; }
     else if (side === "left") { c = { left: r - 10, top: t - 4 }; pl = { left: 2, top: b + 3 }; }
@@ -98,6 +100,7 @@
       lastPaint = t;
       paint(t);
       timerPill();
+      sendRegions();
       drawConfetti(t);
       if (hop > 0 && t > hop) hop = 0;
     }
@@ -265,6 +268,30 @@
     closeMenu();
   });
 
+  /* ---------- zonas que reciben el mouse ----------
+     El programa principal mira dónde está el mouse y solo deja de pasar los clics cuando está sobre estas
+     zonas. No depende de los eventos que Windows reenvía a las ventanas transparentes (fallan a veces). */
+  let lastRegions = "";
+  function sendRegions() {
+    const rs = [];
+    const add = (el, pad = 0) => {
+      if (!el || el.hidden || el.offsetParent === null && el !== menu) return;
+      const r = el.getBoundingClientRect();
+      if (r.width && r.height) rs.push({ x: Math.round(r.left - pad), y: Math.round(r.top - pad), w: Math.round(r.width + 2 * pad), h: Math.round(r.height + 2 * pad) });
+    };
+    if (headBox && state && state.me) rs.push({ x: Math.round(headBox.x - 3), y: Math.round(headBox.y - 3), w: Math.round(headBox.w + 6), h: Math.round(headBox.h + 6) });
+    add(count); add(pill);
+    if (menuOpen) add(menu, 4);
+    else for (const el of balloons.querySelectorAll(".card, .more")) add(el, 2);
+    const key = JSON.stringify(rs);
+    if (key !== lastRegions) { lastRegions = key; B.regions(rs); }
+  }
+  if (B.onHover) B.onHover((on) => {
+    if (!menuOpen || dragging) return;
+    clearTimeout(leaveTimer);
+    if (!on) leaveTimer = setTimeout(closeMenu, 1500);
+  });
+
   /* ---------- mouse: clics pasan de largo salvo sobre el muñeco, los globitos o el menú ---------- */
   let interactive = false, press = null, dragging = false, clickTimer = 0, leaveTimer = 0;
   // ¿Hay dibujo bajo el mouse? (con 3 px de margen para que sea fácil de agarrar)
@@ -277,7 +304,7 @@
     for (let i = 3; i < d.length; i += 4) if (d[i] > 40) return true;
     return false;
   }
-  function setInteractive(on) { if (on !== interactive) { interactive = on; B.interactive(on); } }
+  function setInteractive(on) { if (B.regions) return; if (on !== interactive) { interactive = on; B.interactive(on); } }
   window.addEventListener("mousemove", (ev) => {
     if (press && !dragging && Math.hypot(ev.screenX - press.x, ev.screenY - press.y) > 4) {
       dragging = true; doll.classList.add("dragging"); closeMenu(); B.drag("start");
