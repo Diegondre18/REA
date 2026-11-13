@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("bubble", {
   // Zonas que responden al mouse (muñeco, globitos, menú); el resto deja pasar los clics.
   regions: (rs) => ipcRenderer.send("bubble-regions", rs),
   onHover: (fn) => ipcRenderer.on("bubble-hover", (_e, on) => fn(on)),
+  alive: () => ipcRenderer.send("bubble-alive"),
   drag: (phase) => ipcRenderer.send("bubble-drag", phase),
   action: (a) => ipcRenderer.send("bubble-action", a),
 });

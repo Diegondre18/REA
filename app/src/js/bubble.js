@@ -286,7 +286,10 @@
     const key = JSON.stringify(rs);
     if (key !== lastRegions) { lastRegions = key; B.regions(rs); }
   }
+  // Pulso y zonas con un reloj aparte: el dibujo puede pausarse cuando Windows cree que la ventana no se ve.
+  setInterval(() => { if (B.alive) B.alive(); lastRegions = ""; sendRegions(); }, 2000);
   if (B.onHover) B.onHover((on) => {
+    if (!on && !dragging && press) press = null; // un clic que quedó a medias no bloquea el siguiente
     if (!menuOpen || dragging) return;
     clearTimeout(leaveTimer);
     if (!on) leaveTimer = setTimeout(closeMenu, 1500);

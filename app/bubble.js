@@ -79,7 +79,7 @@ function createBubble({ app, onAction, isBlocked }) {
   function shouldShow() { return !!(prefs.visible && state && state.me && !busy); }
   function refresh() {
     if (!win || win.isDestroyed()) return;
-    if (shouldShow()) { if (!win.isVisible()) { place(); win.showInactive(); win.setAlwaysOnTop(true, "screen-saver"); win.moveTop(); } }
+    if (shouldShow()) { if (!win.isVisible()) { place(); win.showInactive(); win.setAlwaysOnTop(true, "screen-saver"); win.moveTop(); reapply = 99; } }
     else if (win.isVisible()) win.hide();
   }
 
@@ -146,11 +146,17 @@ function createBubble({ app, onAction, isBlocked }) {
     if (!win || e.sender !== win.webContents || !Array.isArray(rs)) return;
     regions = rs.slice(0, 40).filter((r) => r && [r.x, r.y, r.w, r.h].every(Number.isFinite));
   });
+  let reapply = 0;
   function setInteractive(on) {
-    if (!win || win.isDestroyed() || on === interactive) return;
+    if (!win || win.isDestroyed()) return;
+    // Además del cambio, cada segundo se vuelve a aplicar el estado: Windows a veces lo pierde
+    // (al esconder y mostrar la ventana o al ponerla al frente) y la burbuja dejaba de responder.
+    if (on === interactive && ++reapply < 16) return;
+    reapply = 0;
+    const changed = on !== interactive;
     interactive = on;
     win.setIgnoreMouseEvents(!on, { forward: true });
-    send("bubble-hover", on);
+    if (changed) send("bubble-hover", on);
   }
   function checkHover() {
     if (!win || win.isDestroyed() || !win.isVisible()) return;
@@ -160,6 +166,18 @@ function createBubble({ app, onAction, isBlocked }) {
     setInteractive(regions.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h));
   }
   const hoverTimer = setInterval(checkHover, 60);
+
+  // Pulso: la burbuja avisa cada 2 s que sigue viva. Si deja de hacerlo (se colgó), se recarga sola.
+  let lastAlive = Date.now();
+  ipcMain.on("bubble-alive", (e) => { if (win && e.sender === win.webContents) lastAlive = Date.now(); });
+  const aliveTimer = setInterval(() => {
+    if (!win || win.isDestroyed() || !win.isVisible() || !ready) return;
+    if (Date.now() - lastAlive > 15000) {
+      lastAlive = Date.now();
+      regions = []; interactive = false; win.setIgnoreMouseEvents(true, { forward: true });
+      win.webContents.reload();
+    }
+  }, 5000);
   ipcMain.on("bubble-interactive", () => { /* versiones viejas de la burbuja; ahora decide checkHover */ });
   ipcMain.on("bubble-drag", (e, phase) => {
     if (!win || e.sender !== win.webContents) return;
@@ -167,9 +185,11 @@ function createBubble({ app, onAction, isBlocked }) {
       const c = screen.getCursorScreenPoint(), b = win.getBounds();
       drag = { ox: c.x - b.x, oy: c.y - b.y };
       clearInterval(dragTimer);
+      let still = 0, lx = c.x, ly = c.y;
       dragTimer = setInterval(() => {
         if (!drag || !win) return;
         const p = screen.getCursorScreenPoint();
+        if (p.x === lx && p.y === ly) { if (++still > 500) { clearInterval(dragTimer); drag = null; snap(); return; } } else { still = 0; lx = p.x; ly = p.y; }
         win.setBounds({ x: p.x - drag.ox, y: p.y - drag.oy, width: W, height: H });
       }, 16);
     } else if (phase === "end" && drag) {
@@ -196,7 +216,7 @@ function createBubble({ app, onAction, isBlocked }) {
     isInteractive: () => interactive,
     regions: () => regions.slice(),
     setBlocked(v) { blocked = !!v; if (!blocked) keepTop(); },
-    stop() { stopped = true; clearInterval(dragTimer); clearInterval(topTimer); clearInterval(hoverTimer); if (watcher) { try { watcher.kill(); } catch (e) { /* ya cerró */ } } },
+    stop() { stopped = true; clearInterval(dragTimer); clearInterval(topTimer); clearInterval(hoverTimer); clearInterval(aliveTimer); if (watcher) { try { watcher.kill(); } catch (e) { /* ya cerró */ } } },
   };
 }
 
