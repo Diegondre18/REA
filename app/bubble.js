@@ -9,6 +9,8 @@ const { spawn } = require("child_process");
 const W = 400, HMAX = 660; // ventana transparente (alta para que el menú quepa entero); el muñeco ocupa una esquina
 const D = { w: 84, h: 120 }; // caja del muñeco dentro de la ventana
 const MARGIN = 0; // pegada al borde: el muñeco se asoma desde ahí
+// Windows y Linux recortan la ventana con setShape; en otros sistemas se usa setIgnoreMouseEvents.
+const SHAPE = (process.platform === "win32" || process.platform === "linux") && !process.env.LAP_BUBBLE_SIN_FORMA;
 
 function createBubble({ app, onAction, isBlocked }) {
   const file = () => path.join(app.getPath("userData"), "burbuja.json");
@@ -49,6 +51,7 @@ function createBubble({ app, onAction, isBlocked }) {
     win.setBounds({ x: wx, y: wy, width: W, height: H });
     placed = { side: a.side, dx: dx - wx, dy: dy - wy, W, H, D };
     send("bubble-place", placed);
+    formaKey = ""; ponerForma();
   }
 
   // Al soltarla, se pega al borde más cercano de la pantalla donde quedó.
@@ -96,7 +99,11 @@ function createBubble({ app, onAction, isBlocked }) {
     });
     // El nivel más alto: queda encima de cualquier programa (Revit, Chrome, el Explorador…).
     win.setAlwaysOnTop(true, "screen-saver");
-    win.setIgnoreMouseEvents(true, { forward: true });
+    // Forma de la ventana: solo existe donde están el muñeco, los globitos y el menú; el resto deja
+    // pasar los clics de verdad (Windows ni la ve). Es más confiable que prender y apagar
+    // setIgnoreMouseEvents, que en Windows dejaba de responder después de un rato.
+    if (SHAPE) { win.setIgnoreMouseEvents(false); ponerForma(); }
+    else win.setIgnoreMouseEvents(true, { forward: true });
     win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     win.webContents.on("will-navigate", (e) => e.preventDefault());
     win.loadFile(path.join(__dirname, "src", "bubble.html"));
@@ -142,11 +149,29 @@ function createBubble({ app, onAction, isBlocked }) {
   // El mouse: la ventana deja pasar los clics salvo sobre las zonas que manda la burbuja (muñeco,
   // globitos, menú). Se revisa la posición del mouse aquí, cada 60 ms, porque los eventos que Windows
   // reenvía a una ventana transparente a veces dejan de llegar y entonces no se podía hacer clic.
-  let regions = [], interactive = false;
+  let regions = [], interactive = false, formaKey = "";
   ipcMain.on("bubble-regions", (e, rs) => {
     if (!win || e.sender !== win.webContents || !Array.isArray(rs)) return;
     regions = rs.slice(0, 40).filter((r) => r && [r.x, r.y, r.w, r.h].every(Number.isFinite));
+    ponerForma();
   });
+  // La forma son las zonas (con margen para las sombras); sin zonas todavía, la caja del muñeco.
+  function ponerForma() {
+    if (!SHAPE || !win || win.isDestroyed()) return;
+    const P = 8, wb = win.getBounds();
+    let rects = regions.map((r) => ({ x: Math.round(r.x - P), y: Math.round(r.y - P), width: Math.round(r.w + 2 * P), height: Math.round(r.h + 2 * P) }));
+    if (!rects.length) rects = [placed ? { x: placed.dx, y: placed.dy, width: D.w, height: D.h } : { x: 0, y: 0, width: 1, height: 1 }];
+    rects = rects.map((r) => {
+      const x = Math.max(0, r.x), y = Math.max(0, r.y);
+      return { x, y, width: Math.max(1, Math.min(wb.width, r.x + r.width) - x), height: Math.max(1, Math.min(wb.height, r.y + r.height) - y) };
+    });
+    const key = JSON.stringify(rects);
+    if (key === formaKey) return;
+    formaKey = key;
+    try {
+      win.setShape(rects);
+    } catch (err) { /* sin soporte: queda la ventana completa */ }
+  }
   let reapply = 0;
   function setInteractive(on) {
     if (!win || win.isDestroyed()) return;
@@ -156,7 +181,8 @@ function createBubble({ app, onAction, isBlocked }) {
     reapply = 0;
     const changed = on !== interactive;
     interactive = on;
-    win.setIgnoreMouseEvents(!on, { forward: true });
+    if (SHAPE) { if (reapply === 0 && !changed) { formaKey = ""; ponerForma(); } } // cada segundo se repite la forma, por si Windows la pierde
+    else win.setIgnoreMouseEvents(!on, { forward: true });
     if (changed) send("bubble-hover", on);
   }
   // Dónde está el mouse dentro de la ventana, en pixeles de la página. En Windows se compara en pixeles
@@ -195,7 +221,8 @@ function createBubble({ app, onAction, isBlocked }) {
     if (!win || win.isDestroyed() || !win.isVisible() || !ready) return;
     if (Date.now() - lastAlive > 15000) {
       lastAlive = Date.now();
-      regions = []; interactive = false; pageHit = false; win.setIgnoreMouseEvents(true, { forward: true });
+      regions = []; interactive = false; pageHit = false;
+      if (SHAPE) { formaKey = ""; ponerForma(); } else win.setIgnoreMouseEvents(true, { forward: true });
       win.webContents.reload();
     }
   }, 5000);
