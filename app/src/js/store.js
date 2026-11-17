@@ -17,10 +17,10 @@
     bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes", reconocimientos: "reconocimientos", anuncios: "anuncios",
     libretas: "libretas", libreta_items: "libretaItems", actas: "actas",
     proyecto_finanzas: "pfin", presupuesto: "presupuesto", contratos: "contratos", adicionales: "adicionales", pagos_proveedor: "pagosProv",
-    costos: "costos", flujo: "flujo", gastos_fijos: "gastosFijos", tiempos: "tiempos", premios_semana: "premiosSemana",
+    costos: "costos", flujo: "flujo", gastos_fijos: "gastosFijos", tiempos: "tiempos", premios_semana: "premiosSemana", fotos_obra: "fotosObra",
   };
   const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios", "libretas", "libreta_items", "actas",
-    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana"];
+    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana", "fotos_obra"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
@@ -28,7 +28,7 @@
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
     tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [], reconocimientos: [], anuncios: [], libretas: [], libretaItems: [], actas: [],
-    pfin: [], presupuesto: [], contratos: [], adicionales: [], pagosProv: [], costos: [], flujo: [], gastosFijos: [], tiempos: [], premiosSemana: [],
+    pfin: [], presupuesto: [], contratos: [], adicionales: [], pagosProv: [], costos: [], flujo: [], gastosFijos: [], tiempos: [], premiosSemana: [], fotosObra: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,

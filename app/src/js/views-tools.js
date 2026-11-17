@@ -331,6 +331,27 @@
         </div>`)}</div>` : html`<div class="glass"><${Empty} small title="Sin envíos registrados" text="Registra qué planos, en qué revisión, se le enviaron a quién y cuándo." /></div>`)}`;
   }
 
+  // Fotos de obra sueltas (llegan sobre todo desde Telegram). Clic para verla grande.
+  function FotosObra({ project }) {
+    const s = L.useStore();
+    const [ver, setVer] = useState(null);
+    const fotos = (s.fotosObra || []).filter((f) => f.proyecto === project.id).sort((a, b) => (b.created || "").localeCompare(a.created || ""));
+    if (!fotos.length) return null;
+    const puede = (f) => f.by === s.me.id || q.isDirector();
+    return html`<${L.Fragment}><${Panel} title="Fotos de obra" cls="span-12" action=${html`<span class="tag">${L.plural(fotos.length, "foto", "fotos")}</span>`}>
+      <div class="fotos-obra">${fotos.slice(0, 60).map((f) => html`<figure key=${f.id}>
+        <button type="button" class="fo-img" onClick=${() => setVer(f)} aria-label=${"Ver foto" + (f.nota ? ": " + f.nota : "")}><img src=${L.pbFile(f, f.foto, "480x0")} alt=${f.nota || "Foto de obra"} loading="lazy" /></button>
+        <figcaption>${f.nota && html`<span>${f.nota}</span>`}<small>${L.fmtShort(f.fecha)} · ${L.first(q.name(f.by))}</small></figcaption>
+      </figure>`)}</div>
+    <//>
+      ${ver && html`<div class="scrim" onClick=${() => setVer(null)}></div><div class="foto-grande glass" role="dialog" aria-label="Foto de obra">
+        <img src=${L.pbFile(ver, ver.foto)} alt=${ver.nota || "Foto de obra"} />
+        <div class="inline"><span>${ver.nota || ""}</span><span class="spacer"></span><small class="muted">${L.fmtShort(ver.fecha)} · ${q.name(ver.by)}</small>
+          ${puede(ver) && html`<${L.DeleteButton} onConfirm=${async () => { if (await act.remove("fotos_obra", ver.id)) setVer(null); }} />`}
+          <button type="button" class="btn sm" onClick=${() => setVer(null)}>Cerrar</button></div></div>`}
+    <//>`;
+  }
+
   function ObraTab({ project }) {
     const s = L.useStore();
     const visitas = s.visitas.filter((v) => v.project === project.id).sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -339,7 +360,7 @@
     return html`
       <div class="toolbar">${last ? html`<span class="obra-avance"><b>${last.avance || 0}%</b> de avance según la visita del ${L.fmtShort(last.fecha)}</span>` : html`<span class="muted light">La bitácora de las visitas de obra.</span>`}<span class="spacer"></span>
         <button type="button" class="btn primary" onClick=${() => openTool("visitas", null, { project: project.id })}><${Icon} name="plus" size=${12} /> Registrar visita</button></div>
-      <div class="grid">${L.ActasSection && html`<${L.ActasSection} project=${project} />`}</div>
+      <div class="grid">${L.ActasSection && html`<${L.ActasSection} project=${project} />`}<${FotosObra} project=${project} /></div>
       ${visitas.length ? html`<h2 class="sub-h"><span class="sl">/</span>Bitácora de visitas</h2><div class="grid">${visitas.map((v) => html`
         <article class="glass panel span-12" key=${v.id}>
           <div class="panel-head"><h2><span class="sl">/</span>Visita del ${L.fmtLong(v.fecha)}</h2><div class="inline"><span class="tag">${v.avance || 0}% de avance</span><button type="button" class="btn sm" onClick=${() => openTool("visitas", v.id)}><${Icon} name="edit" /> Editar</button></div></div>

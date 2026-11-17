@@ -1357,3 +1357,11 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 .tg-code { font-size: 18px; letter-spacing: .18em; padding: 4px 10px; border: 1px dashed var(--line-strong); border-radius: 8px; }
 .tg-cfg { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
 .tg-cfg input { flex: 1; min-width: 0; }
+/* Fotos de obra */
+.fotos-obra { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.fotos-obra figure { margin: 0; display: grid; gap: 4px; }
+.fo-img { padding: 0; border: 0; background: var(--line); border-radius: 10px; overflow: hidden; aspect-ratio: 4 / 3; cursor: zoom-in; }
+.fo-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fotos-obra figcaption { display: grid; font-size: 12.5px; } .fotos-obra figcaption small { color: var(--muted); }
+.foto-grande { position: fixed; inset: 5vh 5vw; z-index: 60; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; padding: 14px; border-radius: 16px; }
+.foto-grande img { width: 100%; height: 100%; object-fit: contain; min-height: 0; }

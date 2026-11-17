@@ -1,6 +1,7 @@
 /// <reference path="../pb_data/types.d.ts" />
 // Bot de Telegram del estudio (ver telegram-lib.js).
 cronAdd("telegram_bot", "* * * * *", () => {
+  if ($os.getenv("LAP_TG_NO_CRON")) return; // solo para pruebas
   require(`${__hooks}/telegram-lib.js`).ciclo($app, 50);
 });
 

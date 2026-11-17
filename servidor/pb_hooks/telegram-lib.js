@@ -3,17 +3,30 @@
 // Etapa 1: mis tareas (iniciar y entregar), mi estado y avisos (con respuesta a los toques de hombro).
 const lib = require(`${__hooks}/lib.js`);
 
-const API = () => $os.getenv("LAP_TG_API") || "https://api.telegram.org";
+const api = require(`${__hooks}/telegram-api.js`);
+const obra = require(`${__hooks}/telegram-obra.js`);
+const { tg, enviar, editar, esc, corto } = api;
 const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const MENU = { keyboard: [[{ text: "📋 Mis tareas" }, { text: "🔔 Avisos" }], [{ text: "🟢 Mi estado" }, { text: "❓ Ayuda" }]], resize_keyboard: true, is_persistent: true };
+// Menú fijo del chat, según el cargo: quien va a obra ve además acta, fotos y pendientes.
+function menuDe(u) {
+  const k = [[{ text: "📋 Mis tareas" }, { text: "🔔 Avisos" }], [{ text: "🟢 Mi estado" }, { text: "❓ Ayuda" }]];
+  if (u && obra.puedeObra(u)) k.unshift([{ text: "📝 Acta de obra" }, { text: "📷 Fotos de obra" }, { text: "📌 Pendiente" }]);
+  return { keyboard: k, resize_keyboard: true, is_persistent: true };
+}
+// Botones del menú y comandos escritos. Solo coinciden exactos, para no confundirlos con lo que se escribe en un acta.
+const COMANDOS = {
+  "📋 mis tareas": "tareas", "/tareas": "tareas", "mis tareas": "tareas", "tareas": "tareas",
+  "🔔 avisos": "avisos", "/avisos": "avisos", "avisos": "avisos",
+  "🟢 mi estado": "estado", "/estado": "estado", "mi estado": "estado", "estado": "estado",
+  "❓ ayuda": "ayuda", "/ayuda": "ayuda", "/help": "ayuda", "ayuda": "ayuda", "/start": "ayuda", "menu": "ayuda", "menú": "ayuda",
+  "📝 acta de obra": "acta", "/acta": "acta", "📷 fotos de obra": "fotos", "/fotos": "fotos", "📌 pendiente": "pendiente", "/pendiente": "pendiente",
+  "/cancelar": "cancelar", "cancelar": "cancelar",
+};
 const ESTADOS = [
   ["disponible", "🟢 Disponible"], ["no_molestar", "🔴 No molestar"], ["reunion", "🟣 En reunión"],
   ["almuerzo", "🟠 Almuerzo"], ["pausa", "🔵 En pausa"], ["obra", "🏗 En obra"], ["fuera", "⚪ Fuera"],
 ];
 const STATUS = { pendiente: "Por hacer", en_curso: "En curso", revision: "En revisión", terminado: "Entregada" };
-
-const esc = (s) => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const corto = (s, n) => { s = String(s || ""); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
 const ahoraPB = () => new Date().toISOString().replace("T", " ");
 
 /* ---------- configuración ---------- */
@@ -23,29 +36,6 @@ function config(app) {
   r.set("offset", 0);
   app.save(r);
   return r;
-}
-
-// Llamada a la API de Telegram. Devuelve result o lanza un error con el código.
-function tg(token, method, params, timeout) {
-  const res = $http.send({
-    url: API() + "/bot" + token + "/" + method, method: "POST",
-    body: JSON.stringify(params || {}), headers: { "content-type": "application/json" }, timeout: timeout || 15,
-  });
-  const j = res.json || {};
-  if (res.statusCode !== 200 || !j.ok) {
-    const err = new Error((j && j.description) || ("HTTP " + res.statusCode));
-    err.code = res.statusCode;
-    throw err;
-  }
-  return j.result;
-}
-function enviar(token, chatId, text, extra) {
-  try { return tg(token, "sendMessage", Object.assign({ chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true }, extra || {})); }
-  catch (e) { console.log("telegram enviar:", e.message); return null; }
-}
-function editar(token, chatId, messageId, text, botones) {
-  try { tg(token, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", reply_markup: { inline_keyboard: botones || [] } }); }
-  catch (e) { if (String(e.message).indexOf("not modified") < 0) enviar(token, chatId, text, { reply_markup: { inline_keyboard: botones || [] } }); }
 }
 
 /* ---------- vínculo ---------- */
@@ -82,14 +72,21 @@ function vincular(app, token, msg, codigo) {
   if (!v.getString("avisos")) v.set("avisos", "fuera");
   app.save(v);
   const u = app.findRecordById("users", v.getString("user"));
-  enviar(token, chatId, "¡Listo, " + esc(lib.primerNombre(u)) + "! Tu Telegram quedó vinculado a <b>LAP Cerebro</b>.\n\n" + AYUDA, { reply_markup: MENU });
+  enviar(token, chatId, "¡Listo, " + esc(lib.primerNombre(u)) + "! Tu Telegram quedó vinculado a <b>LAP Cerebro</b>.\n\n" + ayuda(u), { reply_markup: menuDe(u) });
 }
 
-const AYUDA = "Desde aquí puedes:\n" +
-  "📋 <b>Mis tareas</b>: ver tus tareas, marcar en cuál estás trabajando y entregarlas.\n" +
-  "🟢 <b>Mi estado</b>: disponible, en reunión, en obra, fuera…\n" +
-  "🔔 <b>Avisos</b>: te llegan aquí cuando no estás en el computador, y puedes responder cuando te tocan el hombro.\n\n" +
-  "Pronto: actas de obra y fotos.";
+function ayuda(u) {
+  return "Desde aquí puedes:\n" +
+    "📋 <b>Mis tareas</b>: ver tus tareas, marcar en cuál estás trabajando y entregarlas.\n" +
+    "🟢 <b>Mi estado</b>: disponible, en reunión, en obra, fuera…\n" +
+    "🔔 <b>Avisos</b>: te llegan aquí cuando no estás en el computador, y puedes responder cuando te tocan el hombro.\n" +
+    (u && obra.puedeObra(u)
+      ? "📝 <b>Acta de obra</b>: te pregunto paso a paso (clima, asistentes, avance, temas, compromisos y fotos) y queda como borrador en Cerebro.\n" +
+        "📷 <b>Fotos de obra</b>: fotos con su descripción, a la pestaña Obra del proyecto.\n" +
+        "📌 <b>Pendiente</b>: lo que falta en obra se vuelve una tarea para quien dirige el proyecto.\n" +
+        "Escribe <b>cancelar</b> para dejar lo que estés haciendo."
+      : "");
+}
 
 /* ---------- tareas ---------- */
 function misTareas(app, uid) {
@@ -254,25 +251,29 @@ function onMensaje(app, token, msg) {
   if (!msg || !msg.chat || msg.chat.type !== "private") return;
   const chatId = String(msg.chat.id);
   const text = String(msg.text || "").trim();
-  const m = /^\/(?:start|vincular)\s+([A-Za-z0-9]{6,12})$/.exec(text) || /^([A-HJ-NP-Z2-9]{8})$/.exec(text.toUpperCase());
-  if (m) return vincular(app, token, msg, m[1]);
   const v = vinculoDeChat(app, chatId);
+  // "/start CÓDIGO" (desde el enlace) o, si el chat aún no está vinculado, el código solo.
+  const m = /^\/(?:start|vincular)\s+([A-Za-z0-9]{6,12})$/.exec(text) || (!v && /^([A-HJ-NP-Z2-9]{8})$/.exec(text.toUpperCase()));
+  if (m) return vincular(app, token, msg, m[1]);
   const u = v && persona(app, v);
   if (!u) {
     enviar(token, chatId, "Hola 👋 Soy el bot de <b>LAP Cerebro</b>.\nPara usarme, abre la app → tu perfil → <b>Vincular Telegram</b>.", { reply_markup: { remove_keyboard: true } });
     return;
   }
-  const t = text.toLowerCase();
-  if (/tareas/.test(t)) { const l = listaTareas(app, u); return enviar(token, chatId, l.text, { reply_markup: { inline_keyboard: l.botones } }); }
-  if (/estado/.test(t)) { const e = menuEstado(u); return enviar(token, chatId, e.text, { reply_markup: { inline_keyboard: e.botones } }); }
-  if (/avisos/.test(t)) {
+  const cmd = COMANDOS[text.toLowerCase()];
+  if (cmd === "cancelar") return obra.cancelar(app, token, chatId, v);
+  if (!cmd && obra.onFlujo(app, token, chatId, u, v, msg)) return;
+  if (cmd === "tareas") { const l = listaTareas(app, u); return enviar(token, chatId, l.text, { reply_markup: { inline_keyboard: l.botones } }); }
+  if (cmd === "estado") { const e = menuEstado(u); return enviar(token, chatId, e.text, { reply_markup: { inline_keyboard: e.botones } }); }
+  if (cmd === "acta" || cmd === "fotos" || cmd === "pendiente") return obra.elegirProyecto(app, token, chatId, u, cmd === "acta" ? "a" : cmd === "fotos" ? "f" : "p");
+  if (cmd === "avisos") {
     const ns = avisosPendientes(app, u.id);
     if (!ns.length) return enviar(token, chatId, "No tienes avisos sin leer. ✅");
     for (const n of ns.slice().reverse()) { const b = botonesAviso(n); enviar(token, chatId, textoAviso(n), b.length ? { reply_markup: { inline_keyboard: b } } : {}); }
     return enviar(token, chatId, "Son tus " + ns.length + " avisos sin leer más recientes.", { reply_markup: { inline_keyboard: [[{ text: "Marcar todos como leídos", callback_data: "nr" }]] } });
   }
-  if (msg.photo || msg.document) return enviar(token, chatId, "Pronto vas a poder subir fotos de obra por aquí. 📷", { reply_markup: MENU });
-  return enviar(token, chatId, AYUDA, { reply_markup: MENU });
+  if (!cmd && api.fotoDe(msg)) return enviar(token, chatId, obra.puedeObra(u) ? "¿A dónde va la foto? Elige primero 📝 Acta de obra, 📷 Fotos de obra o 📌 Pendiente, y vuelve a mandarla." : "Por ahora las fotos se suben desde el acta o las fotos de obra.", { reply_markup: menuDe(u) });
+  return enviar(token, chatId, ayuda(u), { reply_markup: menuDe(u) });
 }
 function onBoton(app, token, cq) {
   const chatId = String(cq.message && cq.message.chat ? cq.message.chat.id : "");
@@ -283,6 +284,8 @@ function onBoton(app, token, cq) {
   const u = v && persona(app, v);
   if (!u) { try { tg(token, "answerCallbackQuery", { callback_query_id: cq.id, text: "Primero vincula tu cuenta desde tu perfil en LAP Cerebro." }); } catch (e) { /* nada */ } return; }
   const [k, id, extra] = data.split(":");
+  const deObra = obra.onBoton(app, token, chatId, mid, u, v, k, id, extra);
+  if (deObra !== null) { try { tg(token, "answerCallbackQuery", Object.assign({ callback_query_id: cq.id }, deObra ? { text: deObra } : {})); } catch (e) { /* nada */ } return; }
   if (k === "tl") { const l = listaTareas(app, u); editar(token, chatId, mid, l.text, l.botones); }
   else if (k === "tv" || k === "ti" || k === "td" || k === "te" || k === "tc") {
     const t = tareaPermitida(app, u, id);
