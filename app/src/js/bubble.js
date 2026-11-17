@@ -307,7 +307,8 @@
     for (let i = 3; i < d.length; i += 4) if (d[i] > 40) return true;
     return false;
   }
-  function setInteractive(on) { if (B.regions) return; if (on !== interactive) { interactive = on; B.interactive(on); } }
+  // La página también avisa lo que ve bajo el mouse (además de las zonas que revisa el programa principal).
+  function setInteractive(on) { if (on !== interactive) { interactive = on; B.interactive(on); } }
   window.addEventListener("mousemove", (ev) => {
     if (press && !dragging && Math.hypot(ev.screenX - press.x, ev.screenY - press.y) > 4) {
       dragging = true; doll.classList.add("dragging"); closeMenu(); B.drag("start");

@@ -158,12 +158,32 @@ function createBubble({ app, onAction, isBlocked }) {
     win.setIgnoreMouseEvents(!on, { forward: true });
     if (changed) send("bubble-hover", on);
   }
+  // Dónde está el mouse dentro de la ventana, en pixeles de la página. En Windows se compara en pixeles
+  // reales de la pantalla: con dos monitores a distinta escala (125 %, 150 %…) y el muñeco asomado en el
+  // borde, las coordenadas "lógicas" del mouse y de la ventana no coinciden y el clic nunca caía en el muñeco.
+  function cursorInWin() {
+    const c = screen.getCursorScreenPoint(), b = win.getBounds();
+    if (process.platform === "win32" && screen.dipToScreenPoint && screen.dipToScreenRect) {
+      try {
+        const pc = screen.dipToScreenPoint(c), pr = screen.dipToScreenRect(win, b);
+        const sx = pr.width / b.width || 1, sy = pr.height / b.height || 1;
+        const x = (pc.x - pr.x) / sx, y = (pc.y - pr.y) / sy;
+        return { x, y, inside: x >= 0 && y >= 0 && x < b.width && y < b.height };
+      } catch (e) { /* cae al cálculo simple */ }
+    }
+    const x = c.x - b.x, y = c.y - b.y;
+    return { x, y, inside: x >= 0 && y >= 0 && x < b.width && y < b.height };
+  }
+  // Dos fuentes deciden si la ventana recibe el clic: las zonas que manda la página (revisadas aquí) y lo que
+  // la propia página ve bajo el mouse (pageHit). Basta con que una diga que sí: si una falla, la otra responde.
+  let pageHit = false;
   function checkHover() {
     if (!win || win.isDestroyed() || !win.isVisible()) return;
     if (drag) return setInteractive(true);
-    const p = screen.getCursorScreenPoint(), b = win.getBounds();
-    const x = p.x - b.x, y = p.y - b.y;
-    setInteractive(regions.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h));
+    const p = cursorInWin();
+    if (!p.inside) pageHit = false; // fuera de la ventana nunca se atrapa el mouse
+    const hit = p.inside && regions.some((r) => p.x >= r.x - 2 && p.x <= r.x + r.w + 2 && p.y >= r.y - 2 && p.y <= r.y + r.h + 2);
+    setInteractive(hit || pageHit);
   }
   const hoverTimer = setInterval(checkHover, 60);
 
@@ -174,11 +194,11 @@ function createBubble({ app, onAction, isBlocked }) {
     if (!win || win.isDestroyed() || !win.isVisible() || !ready) return;
     if (Date.now() - lastAlive > 15000) {
       lastAlive = Date.now();
-      regions = []; interactive = false; win.setIgnoreMouseEvents(true, { forward: true });
+      regions = []; interactive = false; pageHit = false; win.setIgnoreMouseEvents(true, { forward: true });
       win.webContents.reload();
     }
   }, 5000);
-  ipcMain.on("bubble-interactive", () => { /* versiones viejas de la burbuja; ahora decide checkHover */ });
+  ipcMain.on("bubble-interactive", (e, on) => { if (win && e.sender === win.webContents) { pageHit = !!on; checkHover(); } });
   ipcMain.on("bubble-drag", (e, phase) => {
     if (!win || e.sender !== win.webContents) return;
     if (phase === "start") {
