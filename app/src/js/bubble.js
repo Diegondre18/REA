@@ -165,7 +165,7 @@
     doll.style.left = dx + "px"; doll.style.top = dy + "px";
     for (const el of [balloons, menu]) {
       el.style.left = el.style.right = el.style.top = el.style.bottom = "";
-      const w = el === menu ? 236 : 268;
+      const w = el === menu ? 256 : 268;
       el.classList.toggle("up", false);
       if (side === "left" || side === "right") {
         if (side === "right") el.style.right = (W - dx + 6) + "px"; else el.style.left = (dx + D.w + 6) + "px";

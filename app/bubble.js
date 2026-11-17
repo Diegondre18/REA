@@ -6,7 +6,7 @@ const path = require("path");
 const fs = require("fs/promises");
 const { spawn } = require("child_process");
 
-const W = 380, H = 440; // ventana transparente; el muñeco ocupa una esquina
+const W = 400, HMAX = 660; // ventana transparente (alta para que el menú quepa entero); el muñeco ocupa una esquina
 const D = { w: 84, h: 120 }; // caja del muñeco dentro de la ventana
 const MARGIN = 0; // pegada al borde: el muñeco se asoma desde ahí
 
@@ -41,6 +41,7 @@ function createBubble({ app, onAction, isBlocked }) {
       dx = Math.round(wa.x + t * (wa.width - D.w));
     }
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const H = Math.min(HMAX, wa.height); // en pantallas bajas, la ventana no pasa del alto de la pantalla
     let wx = a.side === "right" ? dx + D.w - W : a.side === "left" ? dx : Math.round(dx + D.w / 2 - W / 2);
     let wy = a.side === "bottom" ? dy + D.h - H : a.side === "top" ? dy : Math.round(dy + D.h / 2 - H / 2);
     wx = clamp(wx, wa.x, wa.x + wa.width - W);
@@ -85,7 +86,7 @@ function createBubble({ app, onAction, isBlocked }) {
 
   function create() {
     win = new BrowserWindow({
-      width: W, height: H, frame: false, transparent: true, resizable: false, movable: false, minimizable: false, maximizable: false,
+      width: W, height: HMAX, frame: false, transparent: true, resizable: false, movable: false, minimizable: false, maximizable: false,
       fullscreenable: false, skipTaskbar: true, alwaysOnTop: true, focusable: false, hasShadow: false, show: false,
       backgroundColor: "#00000000", title: "LAP Cerebro · burbuja",
       webPreferences: {
@@ -210,7 +211,7 @@ function createBubble({ app, onAction, isBlocked }) {
         if (!drag || !win) return;
         const p = screen.getCursorScreenPoint();
         if (p.x === lx && p.y === ly) { if (++still > 500) { clearInterval(dragTimer); drag = null; snap(); return; } } else { still = 0; lx = p.x; ly = p.y; }
-        win.setBounds({ x: p.x - drag.ox, y: p.y - drag.oy, width: W, height: H });
+        win.setBounds({ x: p.x - drag.ox, y: p.y - drag.oy, width: W, height: placed ? placed.H : HMAX });
       }, 16);
     } else if (phase === "end" && drag) {
       clearInterval(dragTimer); drag = null; snap();
