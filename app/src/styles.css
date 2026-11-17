@@ -1350,3 +1350,10 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 }
 .rk-champ { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, #e8b923 16%, transparent); font-size: 13px; margin-bottom: 4px; }
 .crown { font-size: 0.95em; }
+/* Telegram en el perfil */
+.tg-box .hint { display: block; }
+.tg-box p.hint { margin: 2px 0 6px; }
+.tg-box .seg { margin-bottom: 8px; }
+.tg-code { font-size: 18px; letter-spacing: .18em; padding: 4px 10px; border: 1px dashed var(--line-strong); border-radius: 8px; }
+.tg-cfg { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.tg-cfg input { flex: 1; min-width: 0; }

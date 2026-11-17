@@ -696,6 +696,11 @@
         return r;
       });
     },
+    // Telegram: rutas del bot (estado, código para vincular, configuración de Dirección). Lanza el error al llamador.
+    telegram(path, method, body) {
+      if (!pb) return Promise.reject(new Error("Sin conexión"));
+      return pb.send("/api/lap/telegram" + (path || ""), { method: method || "GET", body });
+    },
     async replyToque(n, respuesta) {
       return run(async () => {
         await pb.send("/api/lap/toque/responder", { method: "POST", body: { notif: n.id, respuesta } });

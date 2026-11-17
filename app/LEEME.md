@@ -195,3 +195,18 @@ La tipografía corporativa Whyte es de pago; la app usa Hanken Grotesk como sust
 **Semáforo.** Cada proyecto se mide en entregas, cobros, costos, horas y margen; el color general es el peor de los cinco.
 
 **Premio de la semana.** El lunes se guarda quién ganó el ranking de la semana anterior. Esa persona lleva una corona en su muñeco toda la semana y aparece arriba del ranking.
+
+## Bot de Telegram (2.22)
+
+Para usar Cerebro desde el celular, por ejemplo en obra, sin depender del computador.
+
+**Conectarlo (una sola vez, Dirección).** En Telegram, buscar **@BotFather**, enviarle `/newbot`, ponerle nombre (por ejemplo "LAP Cerebro") y copiar la clave que entrega. En Cerebro: tu perfil → **Telegram** → pegar la clave → **Conectar**. La clave queda solo en el servidor; nadie del equipo la puede ver. No hay que abrir el NAS a internet: el servidor le pregunta a Telegram cada pocos segundos si hay mensajes.
+
+**Vincular cada persona.** Perfil → Telegram → **Vincular mi Telegram** → **Abrir Telegram** → tocar *Iniciar*. Si no abre, buscar el bot y enviarle el código que aparece (vence en 30 minutos).
+
+**Qué se puede hacer (etapa 1)**
+- 📋 **Mis tareas**: ver las tareas abiertas, marcar "Estoy trabajando en esto" y **Entregar** (pide confirmación). Solo las tareas asignadas a uno.
+- 🟢 **Mi estado**: Disponible, No molestar, En reunión, Almuerzo, En pausa, **En obra** o Fuera.
+- 🔔 **Avisos**: llegan al celular. Por defecto solo cuando la persona no está en el computador (se puede cambiar a *Siempre* o *Nunca* en el perfil). Con "No molestar" llegan en silencio, salvo lo urgente. Cuando alguien te toca el hombro se responde con *Voy*, *En 10 min* o *Ahora no*.
+
+Próximas etapas: acta de obra guiada y fotos; gastos con foto de factura para Administración y Gestión; aprobaciones y resumen del día para Dirección.
