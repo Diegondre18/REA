@@ -234,13 +234,13 @@
   function buildMenu() {
     const pres = state.presencia || "disponible";
     const n = state.unread || 0;
-    menu.innerHTML = `<div class="head"><b>${esc(state.me ? state.me.name : "")}</b><small>${esc((PRES[pres] || PRES.disponible).label)}</small></div>
+    menu.innerHTML = `<div class="head"><b>${esc(state.me ? state.me.name : "")}</b><small>${esc((PRES[pres] || PRES.disponible).label)}${PX.PRESENCIAS.find((p) => p.id === pres && p.hint) ? " · " + esc(PX.PRESENCIAS.find((p) => p.id === pres).hint) : ""}</small></div>
       ${n ? `<button type="button" class="unread" data-a="bell">Ver ${n === 1 ? "1 aviso sin leer" : n + " avisos sin leer"}</button><div class="sep"></div>` : ""}
       ${state.timer ? `<button type="button" data-c="pomo-stop">Terminar el Pomodoro</button>` : `<button type="button" data-c="pomo-start">Empezar Pomodoro</button>`}
       <button type="button" data-c="pausa-ahora">Pausa activa ahora</button>
       ${state.agua ? `<button type="button" data-c="agua-tome">Tomé un vaso de agua (${state.agua.n}/${state.agua.meta})</button>` : ""}
       <div class="sep"></div>
-      ${PX.PRESENCIAS.map((p) => `<button type="button" role="menuitemradio" aria-checked="${p.id === pres}" data-p="${p.id}"><i class="dot" style="background:${p.color}"></i>${p.label}</button>${p.id === pres && p.hint ? `<div class="hint">${esc(p.hint)}</div>` : ""}`).join("")}
+      ${PX.PRESENCIAS.map((p) => `<button type="button" role="menuitemradio" aria-checked="${p.id === pres}" data-p="${p.id}"><i class="dot" style="background:${p.color}"></i>${p.label}</button>`).join("")}
       <div class="sep"></div>
       <button type="button" data-a="open">Abrir LAP Cerebro</button>
       <button type="button" data-a="mute">${state.muted ? "Activar el sonido" : "Silenciar el sonido"}</button>
@@ -251,10 +251,15 @@
   // El menú se abre hacia donde haya espacio, sin salirse de la ventana.
   function fitMenu() {
     const { side, dy, H, D } = place;
+    menu.style.maxHeight = (H - 8) + "px";
     if (side === "top" || side === "bottom") return;
+    // Nunca más alto que la ventana: si no cabe, se desplaza por dentro (antes se cortaba y algunas
+    // opciones, como Disponible, quedaban fuera de la vista).
+    menu.style.maxHeight = (H - 8) + "px";
     const h = menu.offsetHeight;
     menu.style.top = menu.style.bottom = "";
-    if (dy + h <= H - 4) menu.style.top = dy + "px";
+    if (h >= H - 8) menu.style.top = "4px";
+    else if (dy + h <= H - 4) menu.style.top = dy + "px";
     else if (dy + D.h - h >= 4) menu.style.bottom = (H - dy - D.h) + "px";
     else menu.style.top = "4px";
   }

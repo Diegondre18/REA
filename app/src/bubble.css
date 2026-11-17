@@ -42,16 +42,16 @@ body { font: 13px/1.35 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-ser
 .more { align-self: center; font-size: 11.5px; color: var(--ink); background: var(--card); border-radius: 10px; padding: 2px 10px; box-shadow: var(--shadow); }
 @keyframes in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
 
-#menu { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; gap: 0; width: 236px; animation: in 0.16s ease-out; }
+#menu { background: var(--card); border-radius: 12px; box-shadow: var(--shadow); padding: 6px; gap: 0; width: 236px; animation: in 0.16s ease-out; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; }
 #menu .head { padding: 6px 8px 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
 #menu .head b { display: block; }
 #menu .head small { color: var(--muted); }
-#menu button { display: flex; align-items: center; gap: 9px; width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
+#menu button { display: flex; align-items: center; gap: 9px; width: 100%; border: 0; background: transparent; color: var(--ink); font: inherit; text-align: left; padding: 5px 8px; border-radius: 7px; cursor: pointer; flex: none; }
 #menu button:hover { background: var(--hover); }
 #menu button[aria-checked="true"] { font-weight: 600; }
 #menu button[aria-checked="true"]::after { content: "✓"; margin-left: auto; color: var(--accent); }
 #menu .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
-#menu .sep { height: 1px; background: var(--line); margin: 4px 2px; }
+#menu .sep { flex: none; height: 1px; background: var(--line); margin: 4px 2px; }
 #menu .hint { font-size: 11px; color: var(--muted); padding: 0 8px 4px 26px; margin-top: -3px; }
 #menu .unread { color: var(--red); font-weight: 600; }
 
@@ -69,3 +69,5 @@ body { font: 13px/1.35 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-ser
 #count { top: 2px; right: auto; left: 6px; z-index: 2; }
 #pill { z-index: 2; }
 #doll { overflow: visible; }
+#menu { scrollbar-width: thin; }
+#menu::-webkit-scrollbar { width: 6px; } #menu::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; } #menu::-webkit-scrollbar-button { display: none; }
