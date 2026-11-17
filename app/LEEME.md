@@ -215,4 +215,11 @@ Para usar Cerebro desde el celular, por ejemplo en obra, sin depender del comput
 - 📌 **Pendiente**: lo que falta en obra se vuelve una tarea para quien dirige el proyecto (con aviso), para dentro de una semana. Se puede mandar con foto.
 - Escribir **cancelar** deja lo que se esté haciendo (el acta queda como borrador).
 
-Próximas etapas: gastos con foto de factura para Administración y Gestión; aprobaciones y resumen del día para Dirección.
+**Etapa 3 (2.24): dinero.** Quien es de Administración, Gestión o Dirección ve además:
+- 💸 **Gasto**: se elige el proyecto (o *De la oficina*) y se manda la foto de la factura con el pie `valor - qué es - proveedor - factura`; luego se toca el tipo (material, mano de obra…). Va a los costos del proyecto o, si es de la oficina, a la caja como egreso. El valor se puede escribir como `350.000`, `350k` o `1,5 millones`.
+- 💵 **Pago a proveedor**: proyecto → contrato → del contrato o de un adicional → `valor - concepto - factura`, con foto del comprobante si se quiere. Responde cuánto se le sigue debiendo y avisa si se le pagó de más.
+- 🧾 **Cobro recibido**: se elige el cobro pendiente del cliente y se marca como pagado hoy.
+- 📊 **Consultar**: resumen de un proyecto (cliente, proveedores, presupuesto) o resumen general.
+- La foto de la factura o del comprobante queda guardada: en Gestión, los gastos y pagos con 📎 la muestran al abrirlos.
+
+Próxima etapa: aprobaciones y resumen del día para Dirección.

@@ -64,6 +64,9 @@
     };
     const footer = html`${id && html`<${L.DeleteButton} onConfirm=${remove} />`}<span class="spacer"></span><button type="button" class="btn ghost" onClick=${L.closeSheet}>Cancelar</button><button type="submit" class="btn primary">Guardar</button>`;
     return html`<${L.Sheet} title=${title || "Editar"} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
+      ${rec && rec.soporte && html`<div class="fld"><span class="lbl">Soporte (factura o comprobante)</span>${/\.pdf$/i.test(rec.soporte)
+        ? html`<a class="btn sm" href=${L.pbFile(rec, rec.soporte)} download>Descargar el PDF</a>`
+        : html`<img class="soporte-img" src=${L.pbFile(rec, rec.soporte, "480x0")} alt="Foto de la factura o el comprobante" />`}</div>`}
       ${fields.map(field)}${err && html`<p class="err">${err}</p>`}
     <//>`;
   }
@@ -464,7 +467,7 @@
                 <div class=${L.cx("mono", c.real > c.presupuesto && "late")}>${$(c.presupuesto - c.real)}</div><div class="inline"><${Bar} value=${c.real} max=${c.presupuesto || c.real} level=${lv} /><small>${c.presupuesto ? pct(c.real, c.presupuesto) + "%" : "—"}</small></div></button>
                 ${abierto === c.capitulo && html`<div class="cap-detail">
                   ${pre.items.filter((i) => (i.capitulo || "Sin capítulo") === c.capitulo).sort((a, b) => num(a.orden) - num(b.orden)).map((i) => html`<div class="cap-item" key=${i.id}><span class="mono">${i.codigo}</span><span>${i.descripcion}</span><small>${num(i.cantidad).toLocaleString("es-CO")} ${i.unidad} × ${$(i.valorUnitario)}</small><b class="mono">${$(i.total)}</b></div>`)}
-                  ${pre.costos.filter((x) => (x.capitulo || "Sin capítulo") === c.capitulo).map((x) => html`<button type="button" class="cap-item cost" key=${x.id} onClick=${() => F.costo(pid, x.id)}><span class="mono">${x.fecha}</span><span>${x.descripcion}${x.proveedor ? " · " + x.proveedor : ""}</span><small>${x.factura || ""}</small><b class="mono">${$(x.valor)}</b></button>`)}
+                  ${pre.costos.filter((x) => (x.capitulo || "Sin capítulo") === c.capitulo).map((x) => html`<button type="button" class="cap-item cost" key=${x.id} onClick=${() => F.costo(pid, x.id)}><span class="mono">${x.fecha}</span><span>${x.soporte ? "📎 " : ""}${x.descripcion}${x.proveedor ? " · " + x.proveedor : ""}</span><small>${x.factura || ""}</small><b class="mono">${$(x.valor)}</b></button>`)}
                 </div>`}<//>`;
             })}</div>` : html`<p class="note">Importa el presupuesto desde Excel. El lector encuentra solo las columnas de capítulo, ítem, descripción, unidad, cantidad, valor unitario y total; puedes corregirlas antes de importar. Después registra o importa los costos reales para comparar.</p>`}
         <//>
@@ -642,7 +645,7 @@
             ${abierto === x.c.id && html`<div class="prov-detail">
               ${fin && html`<div class="inline wrap"><button type="button" class="btn sm" onClick=${() => F.pago(x.c.id)}><${Icon} name="plus" size=${12} /> Pago</button><button type="button" class="btn sm" onClick=${() => F.adicional(x.c.id)}><${Icon} name="plus" size=${12} /> Adicional</button><button type="button" class="btn sm" onClick=${() => F.pago(x.c.id, null, true)}><${Icon} name="plus" size=${12} /> Pago de adicional</button><button type="button" class="btn sm ghost" onClick=${() => F.contrato(pid, x.c.id)}><${Icon} name="edit" /> Contrato</button></div>`}
               <div class="two">
-                <div><span class="lbl">Pagos</span>${x.pagos.length ? [...x.pagos].sort((a, b) => b.fecha.localeCompare(a.fecha)).map((p) => html`<button type="button" class="cap-item" key=${p.id} onClick=${() => fin && F.pago(x.c.id, p.id)}><span class="mono">${p.fecha}</span><span>${p.concepto || "Pago"}${p.adicional ? " · adicional" : ""}${p.factura ? " · " + p.factura : ""}</span><b class="mono">${$(p.valor)}</b></button>`) : html`<p class="note">Sin pagos.</p>`}</div>
+                <div><span class="lbl">Pagos</span>${x.pagos.length ? [...x.pagos].sort((a, b) => b.fecha.localeCompare(a.fecha)).map((p) => html`<button type="button" class="cap-item" key=${p.id} onClick=${() => fin && F.pago(x.c.id, p.id)}><span class="mono">${p.fecha}</span><span>${p.soporte ? "📎 " : ""}${p.concepto || "Pago"}${p.adicional ? " · adicional" : ""}${p.factura ? " · " + p.factura : ""}</span><b class="mono">${$(p.valor)}</b></button>`) : html`<p class="note">Sin pagos.</p>`}</div>
                 <div><span class="lbl">Adicionales (aparte del contrato)</span>${x.ad.length ? x.ad.map((a) => html`<button type="button" class="cap-item" key=${a.id} onClick=${() => fin && F.adicional(x.c.id, a.id)}><span class="mono">${a.fecha || ""}</span><span>${a.descripcion}</span><small>${a.aprobado ? "Aprobado" : "Sin aprobar"}</small><b class="mono">${$(a.valor)}</b></button>`) : html`<p class="note">Sin adicionales.</p>`}</div>
               </div>
             </div>`}<//>`)}

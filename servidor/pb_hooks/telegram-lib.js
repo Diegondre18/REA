@@ -5,11 +5,13 @@ const lib = require(`${__hooks}/lib.js`);
 
 const api = require(`${__hooks}/telegram-api.js`);
 const obra = require(`${__hooks}/telegram-obra.js`);
+const fin = require(`${__hooks}/telegram-fin.js`);
 const { tg, enviar, editar, esc, corto } = api;
 const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Menú fijo del chat, según el cargo: quien va a obra ve además acta, fotos y pendientes.
 function menuDe(u) {
   const k = [[{ text: "📋 Mis tareas" }, { text: "🔔 Avisos" }], [{ text: "🟢 Mi estado" }, { text: "❓ Ayuda" }]];
+  if (u && fin.puedeFin(u)) k.unshift([{ text: "💸 Gasto" }, { text: "💵 Pago a proveedor" }], [{ text: "🧾 Cobro recibido" }, { text: "📊 Consultar" }]);
   if (u && obra.puedeObra(u)) k.unshift([{ text: "📝 Acta de obra" }, { text: "📷 Fotos de obra" }, { text: "📌 Pendiente" }]);
   return { keyboard: k, resize_keyboard: true, is_persistent: true };
 }
@@ -20,6 +22,8 @@ const COMANDOS = {
   "🟢 mi estado": "estado", "/estado": "estado", "mi estado": "estado", "estado": "estado",
   "❓ ayuda": "ayuda", "/ayuda": "ayuda", "/help": "ayuda", "ayuda": "ayuda", "/start": "ayuda", "menu": "ayuda", "menú": "ayuda",
   "📝 acta de obra": "acta", "/acta": "acta", "📷 fotos de obra": "fotos", "/fotos": "fotos", "📌 pendiente": "pendiente", "/pendiente": "pendiente",
+  "💸 gasto": "gasto", "/gasto": "gasto", "💵 pago a proveedor": "pago", "/pago": "pago",
+  "🧾 cobro recibido": "cobro", "/cobro": "cobro", "📊 consultar": "consultar", "/consultar": "consultar",
   "/cancelar": "cancelar", "cancelar": "cancelar",
 };
 const ESTADOS = [
@@ -84,7 +88,13 @@ function ayuda(u) {
       ? "📝 <b>Acta de obra</b>: te pregunto paso a paso (clima, asistentes, avance, temas, compromisos y fotos) y queda como borrador en Cerebro.\n" +
         "📷 <b>Fotos de obra</b>: fotos con su descripción, a la pestaña Obra del proyecto.\n" +
         "📌 <b>Pendiente</b>: lo que falta en obra se vuelve una tarea para quien dirige el proyecto.\n" +
-        "Escribe <b>cancelar</b> para dejar lo que estés haciendo."
+        "Escribe <b>cancelar</b> para dejar lo que estés haciendo.\n"
+      : "") +
+    (u && fin.puedeFin(u)
+      ? "💸 <b>Gasto</b>: foto de la factura con <i>valor - qué es - proveedor</i>; va a los costos del proyecto o a la caja de la oficina.\n" +
+        "💵 <b>Pago a proveedor</b>: eliges el contrato, del contrato o de un adicional, y escribes el valor.\n" +
+        "🧾 <b>Cobro recibido</b>: marcas como pagado un cobro del cliente.\n" +
+        "📊 <b>Consultar</b>: cuánto nos deben, cuánto debemos y cómo va el presupuesto."
       : "");
 }
 
@@ -262,7 +272,8 @@ function onMensaje(app, token, msg) {
   }
   const cmd = COMANDOS[text.toLowerCase()];
   if (cmd === "cancelar") return obra.cancelar(app, token, chatId, v);
-  if (!cmd && obra.onFlujo(app, token, chatId, u, v, msg)) return;
+  if (!cmd && (obra.onFlujo(app, token, chatId, u, v, msg) || fin.onFlujo(app, token, chatId, u, v, msg))) return;
+  if (cmd === "gasto" || cmd === "pago" || cmd === "cobro" || cmd === "consultar") return fin.elegir(app, token, chatId, u, { gasto: "g", pago: "p", cobro: "c", consultar: "q" }[cmd]);
   if (cmd === "tareas") { const l = listaTareas(app, u); return enviar(token, chatId, l.text, { reply_markup: { inline_keyboard: l.botones } }); }
   if (cmd === "estado") { const e = menuEstado(u); return enviar(token, chatId, e.text, { reply_markup: { inline_keyboard: e.botones } }); }
   if (cmd === "acta" || cmd === "fotos" || cmd === "pendiente") return obra.elegirProyecto(app, token, chatId, u, cmd === "acta" ? "a" : cmd === "fotos" ? "f" : "p");
@@ -272,7 +283,7 @@ function onMensaje(app, token, msg) {
     for (const n of ns.slice().reverse()) { const b = botonesAviso(n); enviar(token, chatId, textoAviso(n), b.length ? { reply_markup: { inline_keyboard: b } } : {}); }
     return enviar(token, chatId, "Son tus " + ns.length + " avisos sin leer más recientes.", { reply_markup: { inline_keyboard: [[{ text: "Marcar todos como leídos", callback_data: "nr" }]] } });
   }
-  if (!cmd && api.fotoDe(msg)) return enviar(token, chatId, obra.puedeObra(u) ? "¿A dónde va la foto? Elige primero 📝 Acta de obra, 📷 Fotos de obra o 📌 Pendiente, y vuelve a mandarla." : "Por ahora las fotos se suben desde el acta o las fotos de obra.", { reply_markup: menuDe(u) });
+  if (!cmd && api.fotoDe(msg)) return enviar(token, chatId, obra.puedeObra(u) || fin.puedeFin(u) ? "¿A dónde va la foto? Elige primero una opción del menú (" + [obra.puedeObra(u) && "📝 Acta, 📷 Fotos de obra o 📌 Pendiente", fin.puedeFin(u) && "💸 Gasto o 💵 Pago a proveedor"].filter(Boolean).join("; ") + ") y vuelve a mandarla." : "Las fotos se suben desde las opciones de obra.", { reply_markup: menuDe(u) });
   return enviar(token, chatId, ayuda(u), { reply_markup: menuDe(u) });
 }
 function onBoton(app, token, cq) {
@@ -284,7 +295,8 @@ function onBoton(app, token, cq) {
   const u = v && persona(app, v);
   if (!u) { try { tg(token, "answerCallbackQuery", { callback_query_id: cq.id, text: "Primero vincula tu cuenta desde tu perfil en LAP Cerebro." }); } catch (e) { /* nada */ } return; }
   const [k, id, extra] = data.split(":");
-  const deObra = obra.onBoton(app, token, chatId, mid, u, v, k, id, extra);
+  let deObra = fin.onBoton(app, token, chatId, mid, u, v, k, id, extra);
+  if (deObra === null) deObra = obra.onBoton(app, token, chatId, mid, u, v, k, id, extra);
   if (deObra !== null) { try { tg(token, "answerCallbackQuery", Object.assign({ callback_query_id: cq.id }, deObra ? { text: deObra } : {})); } catch (e) { /* nada */ } return; }
   if (k === "tl") { const l = listaTareas(app, u); editar(token, chatId, mid, l.text, l.botones); }
   else if (k === "tv" || k === "ti" || k === "td" || k === "te" || k === "tc") {

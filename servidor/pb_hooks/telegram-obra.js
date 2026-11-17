@@ -278,7 +278,12 @@ function onBoton(app, token, chatId, mid, u, v, k, id, extra) {
     return "";
   }
   const f = flujo(v);
-  if (k === "fl") { ponerFlujo(app, v, null); editar(token, chatId, mid, "✅ Listo." + (f && f.n ? " Quedaron " + f.n + (f.tipo === "fotos" ? " fotos en el proyecto." : " pendientes como tareas.") : ""), []); return ""; }
+  if (k === "fl") {
+    const que = { fotos: ["foto en el proyecto", "fotos en el proyecto"], pendiente: ["pendiente como tarea", "pendientes como tareas"], gasto: ["gasto registrado", "gastos registrados"], pago: ["pago registrado", "pagos registrados"] }[f && f.tipo];
+    ponerFlujo(app, v, null);
+    editar(token, chatId, mid, "✅ Listo." + (f && f.n && que ? (f.n === 1 ? " Quedó 1 " + que[0] + "." : " Quedaron " + f.n + " " + que[1] + ".") : ""), []);
+    return "";
+  }
   if (!f || f.tipo !== "acta") return k === "an" || k === "af" || k === "ac" || k === "av" ? "Ya no hay un acta en curso." : null;
   if (k === "af") { editar(token, chatId, mid, "Terminando el acta…", []); terminar(app, token, chatId, v, f); return ""; }
   const a = actaDe(app, f);
@@ -293,4 +298,4 @@ function cancelar(app, token, chatId, v) {
   enviar(token, chatId, f && f.tipo === "acta" ? "Dejé el acta como borrador; la puedes seguir en Cerebro." : "Listo, cancelado.");
 }
 
-module.exports = { puedeObra, elegirProyecto, onFlujo, onBoton, flujo, cancelar };
+module.exports = { puedeObra, elegirProyecto, onFlujo, onBoton, flujo, ponerFlujo, cancelar };
