@@ -108,6 +108,7 @@
           <${Field} label="Inicio" id="t-start"><input id="t-start" type="date" value=${f.start} onInput=${set("start")} /><//>
           <${Field} label="Entrega" id="t-due"><input id="t-due" type="date" value=${f.due} onInput=${set("due")} /><//>
         </div>
+        ${[["Inicio", f.start], ["Entrega", f.due]].filter(([, d]) => d && !L.esHabil(d)).map(([n, d]) => html`<p class="hint warn-hint" key=${n}>${n}: el ${L.fmtShort(d)} es ${L.festivo(d) ? "festivo (" + L.festivo(d) + ")" : "fin de semana"}.</p>`)}
         ${L.DurationHint && f.status !== "terminado" && html`<${L.DurationHint} kind=${f.kind} assignees=${f.assignees} start=${f.start} due=${f.due} onUse=${(d) => setF((p) => ({ ...p, due: d }))} />`}
         ${f.project && html`<${Field} label="Es contenido para la reunión" id="t-meeting" hint=${!newMeeting && f.meeting && !meetingTouched ? "Se eligió sola la reunión con cliente más cercana del proyecto." : ""}>
           <select id="t-meeting" value=${newMeeting ? "__new" : f.meeting || ""} onChange=${(e) => { const v = e.target.value; setMeetingTouched(true); if (v === "__new") setNewMeeting({ title: "Reunión con cliente", date: f.due || L.todayIso(), time: "10:00" }); else { setNewMeeting(null); setF((p) => ({ ...p, meeting: v })); } }}>

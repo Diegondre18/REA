@@ -21,7 +21,7 @@
   function enHorario(d, user) {
     const c = cfg();
     const day = d.getDay(); // 0 domingo
-    if (day === 0 || day === 6) return false;
+    if (day === 0 || day === 6 || L.festivo(L.iso(d))) return false; // fin de semana o festivo: extra
     const m = d.getHours() * 60 + d.getMinutes();
     if (m < hm(c.inicio) || m >= hm(c.fin)) return false;
     if (day === 5) {
@@ -34,7 +34,7 @@
   function horasDia(d) {
     const c = cfg();
     const day = d.getDay();
-    if (day === 0 || day === 6) return 0;
+    if (day === 0 || day === 6 || L.festivo(L.iso(d))) return 0;
     const total = (hm(c.fin) - hm(c.inicio)) / 60;
     return day === 5 ? total - 1 : total - (hm(c.almuerzoFin) - hm(c.almuerzoIni)) / 60;
   }

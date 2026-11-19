@@ -17,10 +17,10 @@
     bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes", reconocimientos: "reconocimientos", anuncios: "anuncios",
     libretas: "libretas", libreta_items: "libretaItems", actas: "actas",
     proyecto_finanzas: "pfin", presupuesto: "presupuesto", contratos: "contratos", adicionales: "adicionales", pagos_proveedor: "pagosProv",
-    costos: "costos", flujo: "flujo", gastos_fijos: "gastosFijos", tiempos: "tiempos", premios_semana: "premiosSemana", fotos_obra: "fotosObra",
+    costos: "costos", flujo: "flujo", gastos_fijos: "gastosFijos", tiempos: "tiempos", premios_semana: "premiosSemana", fotos_obra: "fotosObra", puntos_semana: "puntosSemana",
   };
   const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios", "libretas", "libreta_items", "actas",
-    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana", "fotos_obra"];
+    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana", "fotos_obra", "puntos_semana"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
@@ -28,7 +28,7 @@
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
     tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [], reconocimientos: [], anuncios: [], libretas: [], libretaItems: [], actas: [],
-    pfin: [], presupuesto: [], contratos: [], adicionales: [], pagosProv: [], costos: [], flujo: [], gastosFijos: [], tiempos: [], premiosSemana: [], fotosObra: [],
+    pfin: [], presupuesto: [], contratos: [], adicionales: [], pagosProv: [], costos: [], flujo: [], gastosFijos: [], tiempos: [], premiosSemana: [], fotosObra: [], puntosSemana: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
@@ -733,6 +733,13 @@
     premioSemana(data) {
       if (!pb) return Promise.resolve(null);
       return pb.collection("premios_semana").create(data).then((rec) => { upsert("premiosSemana", rec); emit(); return rec; }).catch(() => null);
+    },
+    // Guardado sin avisos de error (lo que varios computadores intentan guardar a la vez y el servidor
+    // acepta una sola vez, como el cierre de cada semana).
+    silencioso(col, id, data) {
+      if (!pb) return Promise.resolve(null);
+      const p = id ? pb.collection(col).update(id, data) : pb.collection(col).create(data);
+      return p.then((rec) => { upsert(COLS[col], rec); emit(); return rec; }).catch(() => null);
     },
     async remove(col, id) {
       return run(async () => { await pb.collection(col).delete(id); remove(COLS[col], id); emit(); return true; });

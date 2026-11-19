@@ -133,6 +133,9 @@
       return { left: x0 * dayW, width: Math.max(dayW, (x1 - x0 + 1) * dayW) };
     };
     const weeksArr = Array.from({ length: Z.weeks }, (_, i) => L.addDays(start, i * 7));
+    // Festivos de Colombia en el rango: franja suave con su nombre al pasar el mouse.
+    const festivosRango = Array.from({ length: days }, (_, i) => L.iso(L.addDays(start, i))).filter((d) => L.festivo(d));
+    const festLayer = festivosRango.map((d) => html`<div key=${"f" + d} class="festivo-col" style=${{ left: labelW + pos(L.parse(d)) * dayW + "px", width: dayW + "px" }} title=${"Festivo: " + L.festivo(d) + " · " + L.fmtShort(d)}></div>`);
     const head = html`<div class="g-row g-head"><div class="g-label">${mode === "proyectos" ? "Proyecto" : "Persona y carga por semana"}</div><div class="g-lane plain">
       <div class="g-weeks">${weeksArr.map((w, i) => html`<span key=${i} title=${"Semana " + L.isoWeek(w) + " · " + L.fmtShort(w)}><b>S${L.isoWeek(w)}</b>${dayW * 7 >= 70 ? L.fmtShort(w) : ""}</span>`)}</div></div></div>`;
     const todayPos = pos(t);
@@ -169,7 +172,7 @@
               </div></div>`; })}
           <//>`)}
           ${!projects.length && html`<div class="g-row"><div class="g-label"><small>Sin proyectos con tareas en estas fechas.</small></div><div class="g-lane"></div></div>`}
-          ${todayPos >= 0 && todayPos < days && html`<div class="today-line" style=${{ left: labelW + todayPos * dayW + dayW / 2 + "px" }}></div>`}
+          ${festLayer}${todayPos >= 0 && todayPos < days && html`<div class="today-line" style=${{ left: labelW + todayPos * dayW + dayW / 2 + "px" }}></div>`}
         </div></div></div>`;
     } else {
       const people = (L.sortPeople ? q.staff().sort((x, y) => (x.name || "").localeCompare(y.name || "", "es")) : q.staff()).filter((u) => area === "todas" || (u.areas || []).includes(area));
@@ -197,7 +200,7 @@
                 <div class="tl-week">${weeksArr.map((w, i) => { const n = weekLoad(u.id, w); return html`<span key=${i} class=${loadLevel(n)} style=${{ width: 7 * dayW + "px" }} title=${`Semana ${L.isoWeek(w)}: ${L.plural(n, "tarea activa", "tareas activas")}`}>${n || ""}</span>`; })}</div>
               </div></div>`;
           })}
-          ${todayPos >= 0 && todayPos < days && html`<div class="today-line" style=${{ left: labelW + todayPos * dayW + dayW / 2 + "px" }}></div>`}
+          ${festLayer}${todayPos >= 0 && todayPos < days && html`<div class="today-line" style=${{ left: labelW + todayPos * dayW + dayW / 2 + "px" }}></div>`}
         </div></div></div>`;
     }
     return html`

@@ -21,3 +21,12 @@ onRecordCreateRequest((e) => {
     }
   } catch (err) { console.log("aviso anuncio:", err); }
 }, "anuncios");
+
+// Premio del ranking sin definir: recordatorio a Administración y Dirección, lunes a viernes 8:20 a. m. en Bogotá.
+cronAdd("recordar_premio", "20 13 * * 1-5", () => {
+  try { require(`${__hooks}/lib.js`).recordarPremio($app); } catch (e) { console.log("recordar premio:", e); }
+});
+routerAdd("POST", "/api/lap/recordar-premio", (e) => {
+  require(`${__hooks}/lib.js`).recordarPremio(e.app);
+  return e.json(200, { ok: true });
+}, $apis.requireSuperuserAuth());

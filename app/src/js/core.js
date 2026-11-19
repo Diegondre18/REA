@@ -187,6 +187,48 @@ window.LAP = {};
     return "https://calendar.google.com/calendar/render?" + q.toString();
   }
 
+
+  /* ---------- festivos de Colombia y días hábiles ---------- */
+  // Fijos; Ley Emiliani (pasan al lunes siguiente) y los que dependen de la Pascua.
+  const FIJOS = [["01-01", "Año Nuevo"], ["05-01", "Día del Trabajo"], ["07-20", "Día de la Independencia"], ["08-07", "Batalla de Boyacá"], ["12-08", "Inmaculada Concepción"], ["12-25", "Navidad"]];
+  const EMILIANI = [["01-06", "Reyes Magos"], ["03-19", "San José"], ["06-29", "San Pedro y San Pablo"], ["08-15", "Asunción de la Virgen"], ["10-12", "Día de la Raza"], ["11-01", "Todos los Santos"], ["11-11", "Independencia de Cartagena"]];
+  function pascua(y) { // algoritmo anónimo gregoriano
+    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    const h2 = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h2 - k) % 7, m = Math.floor((a + 11 * h2 + 22 * l) / 451);
+    const mes = Math.floor((h2 + l - 7 * m + 114) / 31), dia = ((h2 + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, mes - 1, dia);
+  }
+  const alLunes = (d) => { const w = d.getDay(); return w === 1 ? d : addDays(d, (8 - w) % 7); };
+  const festivosCache = {};
+  function festivos(y) {
+    if (festivosCache[y]) return festivosCache[y];
+    const out = {};
+    for (const [md, n] of FIJOS) out[`${y}-${md}`] = n;
+    for (const [md, n] of EMILIANI) out[iso(alLunes(new Date(y, Number(md.slice(0, 2)) - 1, Number(md.slice(3)))))] = n;
+    const p = pascua(y);
+    out[iso(addDays(p, -3))] = "Jueves Santo";
+    out[iso(addDays(p, -2))] = "Viernes Santo";
+    out[iso(alLunes(addDays(p, 39)))] = "Ascensión del Señor";
+    out[iso(alLunes(addDays(p, 60)))] = "Corpus Christi";
+    out[iso(alLunes(addDays(p, 68)))] = "Sagrado Corazón";
+    return (festivosCache[y] = out);
+  }
+  const festivo = (isoStr) => (isoStr ? festivos(Number(String(isoStr).slice(0, 4)))[String(isoStr).slice(0, 10)] || "" : "");
+  const esHabil = (isoStr) => { const d = parse(isoStr); const w = d.getDay(); return w !== 0 && w !== 6 && !festivo(isoStr); };
+  // Días hábiles entre dos fechas, ambas incluidas.
+  function habiles(desde, hasta) {
+    if (!desde || !hasta) return 0;
+    let n = 0;
+    for (let d = parse(desde), fin = parse(hasta); d <= fin; d = addDays(d, 1)) if (esHabil(iso(d))) n++;
+    return n;
+  }
+  // Fecha en la que se completan n días hábiles contando desde «desde» (incluido si es hábil).
+  function sumarHabiles(desde, n) {
+    let d = parse(desde), c = 0;
+    for (let i = 0; i < 800; i++, d = addDays(d, 1)) { if (esHabil(iso(d)) && ++c >= n) return iso(d); }
+    return iso(d);
+  }
+
   Object.assign(LAP, {
     h, render, Fragment, html, hooks: preactHooks,
     AREAS, AREA, TEAMS, STATUSES, STATUS, STAGES, STAGE, KINDS, KIND, KIND_AREA, PHASES, PHASE, EVENT_KINDS, EVENT_KIND, PLAN_STATUS, ENGINES, RESOLUTIONS,
@@ -194,5 +236,6 @@ window.LAP = {};
     dueClass, plural, initials, first, key, byDue, cx, greeting, eventStamp, calendarLink,
     byId, TRAMITE_TIPOS, TRAMITE_ESTADOS, DISCIPLINAS, PLANO_ESTADOS, ENVIO_MEDIOS, ENVIO_PROPOSITOS, CONTACTO_TIPOS, MATERIAL_CATS,
     AUSENCIA_TIPOS, SOLICITUD_TIPOS, SOLICITUD_ESTADOS, COBRO_ESTADOS, SALUD, money, hours, PLAN_TEMPLATES,
+    festivos, festivo, esHabil, habiles, sumarHabiles,
   });
 })();

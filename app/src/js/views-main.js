@@ -156,8 +156,9 @@
           const going = tasks.filter((x) => x.status !== "terminado" && x.start && x.due && x.start <= d && x.due > d);
           const dd = L.parse(d);
           return html`
-            <div class=${L.cx("glass day", d === L.todayIso() && "today")} key=${d}>
+            <div class=${L.cx("glass day", d === L.todayIso() && "today", L.festivo(d) && "festivo")} key=${d}>
               <div class="day-head"><b>${L.DIAS_C[dd.getDay()]}</b><span>${dd.getDate()} ${L.MES[dd.getMonth()]}</span></div>
+              ${L.festivo(d) && html`<span class="festivo-tag">Festivo · ${L.festivo(d)}</span>`}
               ${evs.map((e) => html`<button type="button" key=${e.id} class=${"day-ev " + e.kind} onClick=${() => L.go("#evento/" + e.id)}><span class="mono">${e.time || "—"}</span>${e.title}</button>`)}
               ${due.map((x) => html`<button type="button" key=${x.id} class=${L.cx("day-task", x.status === "terminado" && "done")} data-s=${x.status} onClick=${() => L.openTask(x.id)}><span class="tag">Entrega</span>${x.title}<small>${L.taskMeta(x, true)}</small></button>`)}
               ${going.map((x) => html`<button type="button" key=${x.id} class="day-going" data-s=${x.status} onClick=${() => L.openTask(x.id)}><${Glyph} s=${x.status} />${x.title}</button>`)}

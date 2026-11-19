@@ -367,7 +367,7 @@
       pomoTick();
       if (ticks % 20 === 0) { pausasTick(); cierreTick(); aguaTick(); }
       if (ticks % 15 === 3) { syncPremios(); birthdayCheck(); }
-      if (ticks % 60 === 7) premioSemanaTick();
+      if (ticks % 60 === 7) premioTick();
     } catch (e) { /* sigue */ }
   }, 1000);
   L.set({ pomo });
@@ -646,53 +646,139 @@
       return { u, entregas, gracias, pausas, descansos, premios: (u.premios || []).length, total: entregas * 3 + gracias * 2 + pausas + descansos };
     }).sort((x, y) => y.total - x.total || y.premios - x.premios || (x.u.name || "").localeCompare(y.u.name || "", "es"));
   }
-  /* ================= premio de la semana ================= */
-  // El lunes, el primer computador que abre la app guarda quién ganó el ranking de la semana anterior
-  // (una sola vez por semana: el servidor no deja repetir). Esa persona lleva corona toda la semana.
-  const campeon = () => { const [a] = weekRange(-1); return (L.state.premiosSemana || []).find((p) => p.semana === a) || null; };
+  /* ================= premio del ranking (semana o mes) ================= */
+  // Administración o Dirección ponen el premio de cada semana o de cada mes; el que más puntos tenga al
+  // cerrar el período lo gana y lleva corona durante el período siguiente. Al cerrar cada semana se
+  // guardan los puntos de cada persona (puntos_semana) para poder sumar el mes.
+  const puedePremio = () => q.isDirector() || ((L.state.me && L.state.me.areas) || []).includes("administracion");
+  const premios = () => L.state.premiosSemana || [];
+  const lunesDe = (off) => weekRange(off)[0];
+  const mesDe = (off = 0) => { const d = L.today(); const m = new Date(d.getFullYear(), d.getMonth() + off, 1); return m.getFullYear() + "-" + String(m.getMonth() + 1).padStart(2, "0"); };
+  const perOf = (p) => p.periodo || "semana";
+  const claveOf = (p) => p.clave || p.semana || "";
+  const premioDe = (periodo, clave) => premios().find((p) => perOf(p) === periodo && claveOf(p) === clave) || null;
+  // El período que se usa ahora es el del último premio que se definió (semana si nunca se ha puesto uno).
+  const modo = () => { const def = premios().filter((p) => p.premio).sort((a, b) => (b.created || "").localeCompare(a.created || ""))[0]; return def ? perOf(def) : "semana"; };
+  const claveActual = (m = modo()) => (m === "mes" ? mesDe(0) : lunesDe(0));
+  const premioActual = () => premioDe(modo(), claveActual());
+  const campeon = () => {
+    const r = modo() === "mes" ? premioDe("mes", mesDe(-1)) : premioDe("semana", lunesDe(-1));
+    return r && r.user ? r : null;
+  };
   const premiosDe = (u) => { const c = campeon(); const base = (u && u.premios) || []; return c && u && c.user === u.id ? [...base, "corona"] : base; };
+  // Lunes de las semanas que empiezan en un mes "AAAA-MM".
+  const lunesDelMes = (mes) => { const out = []; let d = L.monday(L.parse(mes + "-01")); if (L.iso(d) < mes + "-01") d = L.addDays(d, 7); for (; L.iso(d).slice(0, 7) === mes; d = L.addDays(d, 7)) out.push(L.iso(d)); return out; };
+  // Puntos del mes: semanas cerradas del mes más la semana en curso si empezó en este mes.
+  function rankingMes(mes = mesDe(0)) {
+    const semanas = lunesDelMes(mes);
+    const guardados = (L.state.puntosSemana || []).filter((p) => semanas.includes(p.semana));
+    const actual = lunesDe(0);
+    const vivo = semanas.includes(actual) ? ranking(0) : [];
+    return q.staff().map((u) => {
+      const cerradas = guardados.filter((p) => p.user === u.id && p.semana !== actual).reduce((a, p) => a + (Number(p.total) || 0), 0);
+      const r = vivo.find((x) => x.u.id === u.id);
+      return { ...(r || { u, entregas: 0, gracias: 0, pausas: 0, descansos: 0, premios: (u.premios || []).length }), total: cerradas + (r ? r.total : 0), mes: true };
+    }).sort((x, y) => y.total - x.total || (x.u.name || "").localeCompare(y.u.name || "", "es"));
+  }
   let premioBusy = false;
-  async function premioSemanaTick() {
+  async function premioTick() {
     if (!live() || premioBusy || !L.state.premiosSemana) return;
-    const [a] = weekRange(-1);
-    if (!campeon()) {
-      const top = ranking(-1)[0];
-      if (top && top.total > 0) {
-        premioBusy = true;
-        // Si otro computador ya lo guardó, llega solo por tiempo real.
-        await act.premioSemana({ semana: a, user: top.u.id, puntos: top.total });
-        premioBusy = false;
+    premioBusy = true;
+    try {
+      const prev = lunesDe(-1);
+      // 1) Puntos de cada persona de la semana que cerró (una sola vez; el servidor no deja repetir).
+      const yaGuardados = (L.state.puntosSemana || []).some((p) => p.semana === prev);
+      if (!yaGuardados) for (const r of ranking(-1).filter((x) => x.total > 0)) await act.silencioso("puntos_semana", null, { user: r.u.id, semana: prev, total: r.total });
+      // 2) Ganador de la semana pasada (modo semanal).
+      if (modo() === "semana") {
+        const top = ranking(-1)[0];
+        const rec = premioDe("semana", prev);
+        if (top && top.total > 0) {
+          if (!rec) await act.silencioso("premios_semana", null, { periodo: "semana", clave: prev, semana: prev, user: top.u.id, puntos: top.total });
+          else if (!rec.user) await act.silencioso("premios_semana", rec.id, { user: top.u.id, puntos: top.total });
+        }
       }
-    }
+      // 3) Ganador del mes pasado (modo mensual), cuando ya cerró su última semana.
+      if (modo() === "mes") {
+        const pm = mesDe(-1), semanas = lunesDelMes(pm);
+        const cerrado = semanas.length && lunesDe(0) > semanas[semanas.length - 1];
+        const rec = premioDe("mes", pm);
+        if (cerrado && (!rec || !rec.user)) {
+          const tot = {};
+          for (const p of (L.state.puntosSemana || []).filter((x) => semanas.includes(x.semana))) tot[p.user] = (tot[p.user] || 0) + (Number(p.total) || 0);
+          const best = Object.entries(tot).sort((a, b) => b[1] - a[1])[0];
+          if (best && best[1] > 0) {
+            if (!rec) await act.silencioso("premios_semana", null, { periodo: "mes", clave: pm, user: best[0], puntos: best[1] });
+            else await act.silencioso("premios_semana", rec.id, { user: best[0], puntos: best[1] });
+          }
+        }
+      }
+    } finally { premioBusy = false; }
     const c = campeon();
-    const k = "lap-cerebro-corona-" + a;
+    const k = "lap-cerebro-corona-" + (c ? perOf(c) + claveOf(c) : "");
     if (c && c.user === L.state.me.id && !ls.get(k, false)) {
       ls.set(k, true);
-      setTimeout(() => celebrate(`¡Ganaste el ranking de la semana pasada con ${c.puntos} puntos! Llevas corona toda esta semana.`, true), 2500);
+      const cuando = perOf(c) === "mes" ? "del mes pasado" : "de la semana pasada";
+      setTimeout(() => celebrate(`¡Ganaste el ranking ${cuando} con ${c.puntos} puntos!${c.premio ? " Tu premio: " + c.premio + "." : ""} Llevas corona.`, true), 2500);
     }
+  }
+  // Definir el premio del período en curso (Administración y Dirección).
+  async function guardarPremio(periodo, texto) {
+    const clave = claveActual(periodo);
+    const rec = premioDe(periodo, clave);
+    const data = { premio: String(texto || "").trim().slice(0, 200), definidoPor: L.state.me.id };
+    if (!data.premio) return null;
+    return rec ? act.save("premios_semana", rec.id, data) : act.save("premios_semana", null, { periodo, clave, semana: periodo === "semana" ? clave : "", ...data });
+  }
+  function PremioForm({ onDone }) {
+    const s = L.useStore();
+    const actual = premioActual();
+    const [periodo, setPeriodo] = useState(modo());
+    const [texto, setTexto] = useState(actual && actual.premio ? actual.premio : "");
+    const ok = async (e) => { e.preventDefault(); if (await guardarPremio(periodo, texto)) { L.toast("Premio guardado"); if (onDone) onDone(); } };
+    return html`<form class="premio-form" onSubmit=${ok}>
+      <${L.Seg} label="Cada cuánto" value=${periodo} onChange=${setPeriodo} options=${[{ id: "semana", label: "Esta semana" }, { id: "mes", label: "Este mes" }]} />
+      <input value=${texto} onInput=${(e) => setTexto(e.target.value)} placeholder="Ej.: almuerzo pagado, salir temprano el viernes…" maxlength="200" aria-label="Premio" />
+      <button type="submit" class="btn sm primary" disabled=${!texto.trim()}>Guardar premio</button>
+    </form>`;
+  }
+  // Franja en Inicio para Administración y Dirección mientras el período no tenga premio.
+  function PremioBanner() {
+    L.useStore();
+    if (!L.state.me || !puedePremio()) return null;
+    const p = premioActual();
+    if (p && p.premio) return null;
+    return html`<div class="banner glass premio-banner"><p><strong>🏆 Falta el premio ${modo() === "mes" ? "de este mes" : "de esta semana"}.</strong> El equipo ve en el ranking por qué compite. Lo pueden poner Administración y Dirección.</p><${PremioForm} /></div>`;
   }
   function Campeon() {
     L.useStore();
     const c = campeon();
-    if (!c) return null;
-    return html`<div class="rk-champ"><span class="crown" aria-hidden="true">👑</span><span>Premio de la semana pasada: <b>${q.name(c.user)}</b> · ${c.puntos} pts</span></div>`;
+    const p = premioActual();
+    const [edit, setEdit] = useState(false);
+    const cuando = modo() === "mes" ? "de este mes" : "de esta semana";
+    return html`<div class="rk-head">
+      <div class="rk-premio"><span aria-hidden="true">🏆</span><span>${p && p.premio ? html`Premio ${cuando}: <b>${p.premio}</b>` : html`Premio ${cuando}: <i>por definir</i>`}</span>
+        ${puedePremio() && html`<button type="button" class="btn sm ghost" onClick=${() => setEdit(!edit)}>${p && p.premio ? "Cambiar" : "Poner premio"}</button>`}</div>
+      ${edit && html`<${PremioForm} onDone=${() => setEdit(false)} />`}
+      ${c && html`<div class="rk-champ"><span class="crown" aria-hidden="true">👑</span><span>Ganó ${perOf(c) === "mes" ? "el mes pasado" : "la semana pasada"}: <b>${q.name(c.user)}</b> · ${c.puntos} pts${c.premio ? " · " + c.premio : ""}</span></div>`}
+    </div>`;
   }
   function Ranking({ big = false, limit = 10 }) {
     L.useStore();
-    const list = ranking().slice(0, limit);
+    const list = (modo() === "mes" ? rankingMes() : ranking()).slice(0, limit);
     const medal = ["#f2c94c", "#c0c6cf", "#c8874a"];
     const camp = campeon();
     return html`<div class=${L.cx("ranking", big && "big")}><${Campeon} />
       ${list.map((r, i) => html`<div class=${L.cx("rk-row", r.u.id === L.state.me.id && "me")} key=${r.u.id}>
         <span class="rk-pos" style=${i < 3 && r.total ? { background: medal[i], color: "#1f1f1f" } : null}>${i + 1}</span>
         <${L.Avatar} id=${r.u.id} cls=${big ? "lg" : ""} />
-        <span class="rk-name"><b>${big ? r.u.name : L.first(r.u.name)}${camp && camp.user === r.u.id ? html` <span class="crown" title="Ganó la semana pasada">👑</span>` : ""}</b><small>${[r.entregas && L.plural(r.entregas, "entrega a tiempo", "entregas a tiempo"), r.gracias && L.plural(r.gracias, "gracias", "gracias"), (r.pausas + r.descansos) && L.plural(r.pausas + r.descansos, "pausa", "pausas")].filter(Boolean).join(" · ") || "Aún sin puntos esta semana"}</small></span>
+        <span class="rk-name"><b>${big ? r.u.name : L.first(r.u.name)}${camp && camp.user === r.u.id ? html` <span class="crown" title="Ganó el período pasado">👑</span>` : ""}</b><small>${[r.entregas && L.plural(r.entregas, "entrega a tiempo", "entregas a tiempo"), r.gracias && L.plural(r.gracias, "gracias", "gracias"), (r.pausas + r.descansos) && L.plural(r.pausas + r.descansos, "pausa", "pausas")].filter(Boolean).join(" · ") || (r.mes ? (r.total ? "Puntos de semanas anteriores del mes" : "Aún sin puntos este mes") : "Aún sin puntos esta semana")}</small></span>
         <span class="rk-prem">${(r.u.premios || []).slice(0, big ? 7 : 4).map((p) => html`<${PremioIcon} key=${p} id=${p} on=${true} />`)}</span>
         <span class="rk-pts"><b>${r.total}</b><small>pts</small></span>
       </div>`)}
     </div>`;
   }
 
-  Object.assign(L, { BigAlert, Ranking, ranking, PremioIcon, BigDoll, campeon, premiosDe, Campeon });
+  Object.assign(L, { BigAlert, Ranking, ranking, rankingMes, PremioIcon, BigDoll, campeon, premiosDe, Campeon, PremioBanner, premioActual, puedePremio, guardarPremio, premioModo: modo, premioTick });
   Object.assign(L, { celebrate, PomodoroChip, WellAlert, PausaView, CierreView, Bienestar, Premios, WellSettings, PREMIOS, wellRun: runAction });
 })();

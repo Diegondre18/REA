@@ -99,6 +99,13 @@
       }
     }
 
+    /* Equipo: premio del ranking sin definir (lo ponen Administración y Dirección) */
+    if (L.premioActual && !(L.premioActual() || {}).premio) {
+      const resp = q.staff().filter((u) => u.role === "director" || (u.areas || []).includes("administracion")).map((u) => u.id);
+      const cuando = L.premioModo && L.premioModo() === "mes" ? "este mes" : "esta semana";
+      add("equipo", "alta", "premio", `Falta el premio del ranking de ${cuando}`, "Ponlo en Inicio o en el ranking: el equipo ve por qué compite.", resp, "", "#inicio");
+    }
+
     /* Equipo: sobrecarga y entregas para quien está ausente */
     const weekEnd = L.iso(L.addDays(L.monday(L.today()), 6));
     for (const u of q.staff()) {

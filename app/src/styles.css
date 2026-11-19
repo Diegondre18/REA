@@ -1366,3 +1366,14 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 .foto-grande { position: fixed; inset: 5vh 5vw; z-index: 60; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; padding: 14px; border-radius: 16px; }
 .foto-grande img { width: 100%; height: 100%; object-fit: contain; min-height: 0; }
 .soporte-img { max-width: 100%; max-height: 320px; border-radius: 10px; border: 1px solid var(--line); object-fit: contain; background: #fff; }
+/* Festivos de Colombia */
+.festivo-col { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(229, 72, 77, 0.07) 0 6px, transparent 6px 12px); pointer-events: none; z-index: 0; }
+.day.festivo { background-image: repeating-linear-gradient(135deg, rgba(229, 72, 77, 0.05) 0 8px, transparent 8px 16px); }
+.festivo-tag { display: block; font-size: 11px; color: #c0392b; font-weight: 600; margin: -2px 0 6px; }
+/* Premio del ranking */
+.premio-banner { display: grid; gap: 8px; }
+.premio-form { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.premio-form input { flex: 1; min-width: 220px; }
+.rk-head { display: grid; gap: 6px; margin-bottom: 6px; }
+.rk-premio { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--blue, #0057ff) 8%, transparent); font-size: 13px; }
+.rk-premio > span:nth-child(2) { flex: 1; }

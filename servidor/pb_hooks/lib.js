@@ -494,9 +494,60 @@ function cumpleanos(app) {
   }
 }
 
+
+// ---- festivos de Colombia y días hábiles (misma lógica que app/src/js/core.js) ----
+const FIJOS = [["01-01", "Año Nuevo"], ["05-01", "Día del Trabajo"], ["07-20", "Día de la Independencia"], ["08-07", "Batalla de Boyacá"], ["12-08", "Inmaculada Concepción"], ["12-25", "Navidad"]];
+const EMILIANI = [["01-06", "Reyes Magos"], ["03-19", "San José"], ["06-29", "San Pedro y San Pablo"], ["08-15", "Asunción de la Virgen"], ["10-12", "Día de la Raza"], ["11-01", "Todos los Santos"], ["11-11", "Independencia de Cartagena"]];
+const isoU = (d) => d.toISOString().slice(0, 10);
+const masDias = (d, n) => new Date(d.getTime() + n * 864e5);
+function pascua(y) {
+  const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+  return new Date(Date.UTC(y, mes - 1, dia));
+}
+const alLunes = (d) => { const w = d.getUTCDay(); return w === 1 ? d : masDias(d, (8 - w) % 7); };
+function festivos(y) {
+  const out = {};
+  for (const x of FIJOS) out[y + "-" + x[0]] = x[1];
+  for (const x of EMILIANI) out[isoU(alLunes(new Date(Date.UTC(y, Number(x[0].slice(0, 2)) - 1, Number(x[0].slice(3))))))] = x[1];
+  const p = pascua(y);
+  out[isoU(masDias(p, -3))] = "Jueves Santo";
+  out[isoU(masDias(p, -2))] = "Viernes Santo";
+  out[isoU(alLunes(masDias(p, 39)))] = "Ascensión del Señor";
+  out[isoU(alLunes(masDias(p, 60)))] = "Corpus Christi";
+  out[isoU(alLunes(masDias(p, 68)))] = "Sagrado Corazón";
+  return out;
+}
+function festivo(iso) { return iso ? festivos(Number(String(iso).slice(0, 4)))[String(iso).slice(0, 10)] || "" : ""; }
+function esHabil(iso) { const w = new Date(String(iso).slice(0, 10) + "T00:00:00Z").getUTCDay(); return w !== 0 && w !== 6 && !festivo(iso); }
+function habiles(desde, hasta) {
+  if (!desde || !hasta) return 0;
+  let n = 0;
+  for (let d = new Date(desde + "T00:00:00Z"), fin = new Date(hasta + "T00:00:00Z"); d <= fin; d = masDias(d, 1)) if (esHabil(isoU(d))) n++;
+  return n;
+}
+
+
+// Premio del ranking: cada mañana, si el período en curso no tiene premio, se les recuerda a
+// Administración y Dirección (también les llega por Telegram).
+function recordarPremio(app) {
+  const ps = arr(app.findRecordsByFilter("premios_semana", "premio != ''", "-created", 1, 0));
+  const modo = ps.length ? (ps[0].getString("periodo") || "semana") : "semana";
+  const hoyIso = hoy(0);
+  const dow = diaSemana(); // 0 domingo
+  const lunes = hoy(-((dow + 6) % 7));
+  const clave = modo === "mes" ? hoyIso.slice(0, 7) : lunes;
+  const ya = app.findRecordsByFilter("premios_semana", "periodo = {:p} && clave = {:c} && premio != ''", "", 1, 0, { p: modo, c: clave });
+  if (ya.length) return;
+  const gente = arr(app.findRecordsByFilter("users", "role = 'director' || areas ~ 'administracion'", "", 100, 0));
+  const cuando = modo === "mes" ? "este mes" : "esta semana";
+  for (const u of gente) notificar(app, u.id, "premio", "Falta el premio del ranking de " + cuando, "Ponlo en Inicio o en el ranking: el equipo ve por qué compite.", "#inicio");
+}
+
 module.exports = {
   validarCargo, cumpleanos, conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
   avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
-  DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, nombreCompleto, esDirector, notificar, registrar, integrantes,
+  DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, nombreCompleto, festivos, festivo, esHabil, habiles, recordarPremio, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,
 };

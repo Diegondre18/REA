@@ -107,6 +107,7 @@
         { k: "user", label: "Persona", type: "user", adminOnly: true },
         { k: "tipo", label: "Tipo", type: "pills", options: () => L.AUSENCIA_TIPOS },
         { row: [{ k: "desde", label: "Desde", type: "date" }, { k: "hasta", label: "Hasta", type: "date" }] },
+        { k: "_habiles", label: "Días hábiles", type: "habiles", virtual: true },
         { k: "nota", label: "Nota", placeholder: "Opcional" },
       ],
       before: (body) => { if (body.hasta < body.desde) [body.desde, body.hasta] = [body.hasta, body.desde]; return body; },
@@ -147,6 +148,7 @@
       setBusy(true);
       let body = {};
       for (const x of all) {
+        if (x.virtual) continue;
         let v = f[x.k];
         if (x.type === "number") v = v === "" || v == null ? 0 : Number(v);
         if (typeof v === "string") v = v.trim();
@@ -188,6 +190,14 @@
           const toggle = (p) => set(x.k, has(p.id) ? items.filter((it) => it.plano !== p.id) : [...items, { plano: p.id, codigo: p.codigo, nombre: p.nombre, rev: p.revision }]);
           return planos.length ? html`<div class="check-list">${planos.map((p) => html`<label key=${p.id} class="check"><input type="checkbox" checked=${has(p.id)} onChange=${() => toggle(p)} /><span><b class="mono">${p.codigo}</b> ${p.nombre} <span class="muted">· Rev. ${p.revision || "—"}</span></span></label>`)}</div>`
             : html`<span class="muted">Este proyecto aún no tiene planos registrados.</span>`;
+        }
+        case "habiles": {
+          // Cuenta solo lunes a viernes sin festivos de Colombia; escribir un número calcula el regreso.
+          const n = f.desde && f.hasta && f.hasta >= f.desde ? L.habiles(f.desde, f.hasta) : 0;
+          const fest = [];
+          if (f.desde && f.hasta && f.hasta >= f.desde) for (let d = L.parse(f.desde); L.iso(d) <= f.hasta; d = L.addDays(d, 1)) { const nm = L.festivo(L.iso(d)); if (nm) fest.push(L.fmtShort(L.iso(d)) + " " + nm); }
+          return html`<div class="pick-row"><input id=${id2} type="number" min="1" max="200" value=${n || ""} onInput=${(e) => { const k = Math.round(Number(e.target.value)); if (k >= 1 && f.desde) set("hasta", L.sumarHabiles(f.desde, k)); }} style="width:90px;flex:none" />
+            <span class="muted">${n ? L.plural(n, "día hábil", "días hábiles") + " (sin fines de semana" + (fest.length ? " ni festivos: " + fest.join(", ") : " ni festivos") + ")" : "Escribe cuántos días hábiles y se calcula la fecha final."}</span></div>`;
         }
         default: return html`<input id=${id2} class=${x.mono ? "mono" : ""} value=${v} placeholder=${x.placeholder || ""} onInput=${(e) => set(x.k, e.target.value)} />`;
       }

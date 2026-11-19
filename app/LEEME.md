@@ -223,3 +223,13 @@ Para usar Cerebro desde el celular, por ejemplo en obra, sin depender del comput
 - La foto de la factura o del comprobante queda guardada: en Gestión, los gastos y pagos con 📎 la muestran al abrirlos.
 
 Próxima etapa: aprobaciones y resumen del día para Dirección.
+
+## Festivos, días hábiles y premio del ranking (2.26)
+
+**Festivos de Colombia.** Cerebro conoce los festivos (fijos, los de la Ley Emiliani que pasan al lunes y los de Semana Santa). Se usan así:
+- **Ausencias** en **días hábiles** (lunes a viernes sin festivos). Al registrar una se ve cuántos días hábiles son y qué festivos caen en medio; escribir un número de días hábiles calcula la fecha final (útil para vacaciones).
+- Al poner una tarea que empieza o se entrega en festivo o fin de semana, aparece un aviso.
+- En Mi cronograma y en la Línea de tiempo los festivos se ven marcados.
+- En Gestión, un festivo trabajado cuenta como hora extra.
+
+**Premio del ranking.** Administración o Dirección ponen el premio, **de la semana o del mes** (por ejemplo "almuerzo pagado"). Mientras no esté puesto, les aparece una franja en Inicio, un aviso cada mañana (también por Telegram) y un hallazgo del agente de Equipo. El premio se ve arriba del ranking (en la app, la oficina y la TV). Al cerrar el período, quien más puntos tenga lo gana, recibe la celebración con el texto del premio y lleva corona durante el período siguiente. En modo mensual, el ranking suma los puntos de las semanas del mes.

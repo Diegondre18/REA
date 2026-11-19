@@ -231,6 +231,7 @@
       ${L.WellAlert && html`<${L.WellAlert} />`}
       ${L.AnunciosBanner && html`<${L.AnunciosBanner} />`}
       ${L.BackupBanner && html`<${L.BackupBanner} />`}
+      ${L.PremioBanner && html`<${L.PremioBanner} />`}
       ${s.mode === "offline" && html`<div class="banner glass"><p><strong>Sin conexión con el servidor.</strong> Lo que ves puede estar desactualizado. La app reintenta sola cada minuto.</p><button type="button" class="btn sm" onClick=${act.reconnect}>Reintentar ahora</button></div>`}
       ${showWeek && html`<div class="banner glass wk-banner"><p><strong>Empieza la semana ${L.isoWeek(L.today())}.</strong> Mira qué vence, qué está bloqueado y quién del equipo no estará.</p><div class="inline"><button type="button" class="btn sm ghost" onClick=${markWeek}>Ahora no</button><button type="button" class="btn sm primary" onClick=${() => { markWeek(); L.go("#semana"); }}>Ver mi semana</button></div></div>`}
       ${sample && html`<div class="banner glass"><p><strong>Hay proyectos de ejemplo.</strong> Torre Alameda y Casa Encinos son ficticios, para ver cómo funciona todo.</p><button type="button" class="btn sm" onClick=${act.clearSample}>Borrar ejemplos</button></div>`}`;
