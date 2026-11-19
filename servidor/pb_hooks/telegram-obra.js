@@ -161,7 +161,7 @@ function crearTarea(app, u, pid, titulo, para, origen, nota) {
   t.set("updatedBy", u.id);
   app.save(t);
   lib.registrar(app, u.id, "create", t.getString("title"), t.id, pid);
-  if (para !== u.id) lib.notificar(app, para, "tarea", "Nueva tarea: " + corto(titulo, 150), lib.primerNombre(u) + " la anotó en obra, para el " + lib.fechaCorta(t.getString("due")) + ".", "#tarea/" + t.id, { de: u.id });
+  if (para !== u.id) lib.notificar(app, para, "tarea", "Nueva tarea: " + corto(titulo, 150), lib.nombreCompleto(u) + " la anotó en obra, para el " + lib.fechaCorta(t.getString("due")) + ".", "#tarea/" + t.id, { de: u.id });
   return t;
 }
 
@@ -194,7 +194,7 @@ function textoActa(app, token, chatId, u, v, f, text) {
       const p = l.split(/\s+[-–]\s+/);
       const texto = corto(p[0], 500), resp = (p[1] || "").trim(), fecha = fechaDe(p[2]);
       const quien = resp && personaPorNombre(app, resp);
-      if (quien) { crearTarea(app, u, a.getString("proyecto"), texto, quien.id, "acta:" + a.id, { due: fecha }); hechos.push("tarea para " + lib.primerNombre(quien)); }
+      if (quien) { crearTarea(app, u, a.getString("proyecto"), texto, quien.id, "acta:" + a.id, { due: fecha }); hechos.push("tarea para " + lib.nombreCompleto(quien)); }
       else { comps.push({ id: $security.randomString(8), texto, resp, fecha, hecho: false }); hechos.push(resp ? "a cargo de " + resp : "sin responsable"); }
     }
     a.set("compromisos", comps); app.save(a);
@@ -262,7 +262,7 @@ function onFlujo(app, token, chatId, u, v, msg) {
     else if (f.foto) { try { const r = app.findRecordById("fotos_obra", f.foto); r.set("nota", corto("Pendiente: " + nota, 1000)); app.save(r); } catch (e) { /* nada */ } }
     f.foto = ""; f.n = (f.n || 0) + 1; ponerFlujo(app, v, f);
     let quien = "ti";
-    try { quien = para === u.id ? "ti" : lib.primerNombre(app.findRecordById("users", para)); } catch (e) { /* nada */ }
+    try { quien = para === u.id ? "ti" : lib.nombreCompleto(app.findRecordById("users", para)); } catch (e) { /* nada */ }
     enviar(token, chatId, "📌 Pendiente creado como tarea para <b>" + esc(quien) + "</b>, para el " + lib.fechaCorta(t.getString("due")) + ". ¿Otro? Escríbelo o toca Listo.", LISTO);
     return true;
   }

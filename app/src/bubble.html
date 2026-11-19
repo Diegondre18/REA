@@ -6,14 +6,12 @@
 <title>LAP Cerebro · burbuja</title>
 <link rel="stylesheet" href="bubble.css">
 </head>
-<body>
-<div id="doll" data-hit role="button" aria-label="Tu muñeco de LAP Cerebro. Clic para cambiar tu estado; doble clic para abrir la app.">
+<body class="muneco">
+<div id="doll" role="button" aria-label="Tu muñeco de LAP Cerebro. Clic para el menú; doble clic para abrir la app; arrastra para moverlo.">
   <canvas id="cv" aria-hidden="true"></canvas>
   <span id="count" hidden></span>
   <span id="pill" hidden></span>
 </div>
-<div id="balloons" aria-live="polite"></div>
-<div id="menu" data-hit hidden role="menu"></div>
 <script src="js/pixel-core.js"></script>
 <script src="js/bubble.js"></script>
 </body>

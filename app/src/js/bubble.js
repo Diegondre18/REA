@@ -1,16 +1,16 @@
-// Burbuja de escritorio: dibuja el muñeco, muestra globitos con los avisos y el menú de estados.
-// No habla con el servidor: todo lo pide a la app principal, que sigue abierta en la bandeja.
+// Burbuja de escritorio: dibuja el muñeco (contador de avisos, etiqueta del estado y Pomodoro).
+// Es una ventana pequeña del tamaño del muñeco: clic abre el menú nativo, doble clic abre la app y
+// arrastrar lo mueve. Los avisos van en otra ventana (avisos.js).
 (() => {
   "use strict";
   const B = window.bubble;
   const PX = window.PIXCORE;
   const $ = (id) => document.getElementById(id);
-  const doll = $("doll"), cv = $("cv"), count = $("count"), pill = $("pill"), balloons = $("balloons"), menu = $("menu");
+  const doll = $("doll"), cv = $("cv"), count = $("count"), pill = $("pill");
   const PRES = Object.fromEntries(PX.PRESENCIAS.map((p) => [p.id, p]));
 
-  let state = null, place = { side: "right", dx: 300, dy: 200, W: 380, H: 300, D: { w: 84, h: 120 } };
-  let cards = []; // { n, el, timer }
-  let hop = 0, menuOpen = false, lastUnread = 0;
+  let state = null, place = { side: "right", dx: 0, dy: 0, W: 84, H: 120, D: { w: 84, h: 120 } };
+  let hop = 0, lastUnread = 0;
 
   /* ---------- muñeco ---------- */
   function paint(t) {
@@ -100,7 +100,6 @@
       lastPaint = t;
       paint(t);
       timerPill();
-      sendRegions();
       drawConfetti(t);
       if (hop > 0 && t > hop) hop = 0;
     }
@@ -156,203 +155,39 @@
     if (n > lastUnread) { count.classList.remove("pop"); void count.offsetWidth; count.classList.add("pop"); }
     lastUnread = n;
     doll.title = `${state.me ? state.me.name : ""} · ${pres.label}${n ? ` · ${n} sin leer` : ""}`;
-    if (menuOpen) { buildMenu(); fitMenu(); }
   }
 
-  /* ---------- ubicación de globitos y menú según el borde ---------- */
-  function layout() {
-    const { side, dx, dy, W, H, D } = place;
-    doll.style.left = dx + "px"; doll.style.top = dy + "px";
-    for (const el of [balloons, menu]) {
-      el.style.left = el.style.right = el.style.top = el.style.bottom = "";
-      const w = el === menu ? 256 : 268;
-      el.classList.toggle("up", false);
-      if (side === "left" || side === "right") {
-        if (side === "right") el.style.right = (W - dx + 6) + "px"; else el.style.left = (dx + D.w + 6) + "px";
-        if (dy + D.h / 2 > H / 2) { el.style.bottom = Math.max(4, H - dy - D.h) + "px"; el.classList.add("up"); } else el.style.top = Math.max(4, dy) + "px";
-      } else {
-        el.style.left = Math.max(4, Math.min(W - w - 4, dx + D.w / 2 - w / 2)) + "px";
-        if (side === "bottom") { el.style.bottom = (H - dy + 6) + "px"; el.classList.add("up"); } else el.style.top = (dy + D.h + 6) + "px";
-      }
-    }
-  }
 
-  /* ---------- globitos ---------- */
-  const esc = (s) => String(s == null ? "" : s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-  function dismiss(c) {
-    clearTimeout(c.timer);
-    c.el.remove();
-    cards = cards.filter((x) => x !== c);
-    renderMore();
-  }
-  function renderMore() {
-    const extra = cards.length - 3;
-    cards.forEach((c, i) => { c.el.hidden = i >= 3; });
-    let more = balloons.querySelector(".more");
-    if (extra > 0) {
-      if (!more) { more = document.createElement("div"); more.className = "more"; more.setAttribute("data-hit", ""); balloons.appendChild(more); more.onclick = () => B.action({ type: "bell" }); }
-      more.textContent = `+${extra} avisos más`;
-    } else if (more) more.remove();
-  }
-  function arm(c) {
-    clearTimeout(c.timer);
-    if (c.n.urgente || c.n.sticky) return; // lo urgente y los descansos se quedan hasta que se atienden
-    c.timer = setTimeout(() => dismiss(c), c.n.kind === "toque" ? 45000 : 10000);
-  }
-  function addCard(n) {
-    if (cards.some((c) => c.n.id === n.id)) return;
-    const el = document.createElement("div");
-    el.className = "card" + (n.urgente ? " urgente" : "") + (n.kind === "bienestar" ? " bienestar" : "") + (n.kind === "fiesta" ? " fiesta" : "");
-    el.setAttribute("data-hit", "");
-    el.setAttribute("role", "button");
-    const acts = n.kind === "toque" && !n.respuesta
-      ? `<div class="acts"><button type="button" data-r="voy">Voy</button><button type="button" data-r="10">En 10 min</button><button type="button" data-r="no">Ahora no</button></div>`
-      : n.actions && n.actions.length ? `<div class="acts">${n.actions.map((x) => `<button type="button" data-c="${esc(x.a)}">${esc(x.label)}</button>`).join("")}</div>` : "";
-    el.innerHTML = `${n.urgente ? `<span class="tag">${n.kind === "toque" ? "Dirección" : "Importante"}</span>` : ""}<b>${esc(n.title)}</b>${n.body ? `<small>${esc(n.body)}</small>` : ""}${acts}<button type="button" class="x" aria-label="Cerrar">×</button>`;
-    const c = { n, el, timer: 0 };
-    el.addEventListener("click", (ev) => {
-      const r = ev.target.closest("[data-r]");
-      if (ev.target.closest(".x")) { B.action({ type: "seen", id: n.id }); dismiss(c); return; }
-      if (r) { B.action({ type: "reply", id: n.id, respuesta: r.dataset.r }); dismiss(c); return; }
-      const cc = ev.target.closest("[data-c]");
-      if (cc) { B.action({ type: "custom", id: n.id, act: cc.dataset.c }); dismiss(c); return; }
-      if (n.kind === "bienestar" || n.kind === "fiesta") { if (n.kind === "fiesta") dismiss(c); return; }
-      B.action({ type: "open", id: n.id, route: n.route || "" });
-      dismiss(c);
-    });
-    el.addEventListener("mouseenter", () => clearTimeout(c.timer));
-    el.addEventListener("mouseleave", () => arm(c));
-    cards.unshift(c);
-    balloons.insertBefore(el, balloons.firstChild);
-    arm(c);
-    renderMore();
-    hop = performance.now() + 1600;
-    closeMenu();
-  }
-
-  /* ---------- menú ---------- */
-  function buildMenu() {
-    const pres = state.presencia || "disponible";
-    const n = state.unread || 0;
-    menu.innerHTML = `<div class="head"><b>${esc(state.me ? state.me.name : "")}</b><small>${esc((PRES[pres] || PRES.disponible).label)}${PX.PRESENCIAS.find((p) => p.id === pres && p.hint) ? " · " + esc(PX.PRESENCIAS.find((p) => p.id === pres).hint) : ""}</small></div>
-      ${n ? `<button type="button" class="unread" data-a="bell">Ver ${n === 1 ? "1 aviso sin leer" : n + " avisos sin leer"}</button><div class="sep"></div>` : ""}
-      ${state.timer ? `<button type="button" data-c="pomo-stop">Terminar el Pomodoro</button>` : `<button type="button" data-c="pomo-start">Empezar Pomodoro</button>`}
-      <button type="button" data-c="pausa-ahora">Pausa activa ahora</button>
-      ${state.agua ? `<button type="button" data-c="agua-tome">Tomé un vaso de agua (${state.agua.n}/${state.agua.meta})</button>` : ""}
-      <div class="sep"></div>
-      ${PX.PRESENCIAS.map((p) => `<button type="button" role="menuitemradio" aria-checked="${p.id === pres}" data-p="${p.id}"><i class="dot" style="background:${p.color}"></i>${p.label}</button>`).join("")}
-      <div class="sep"></div>
-      <button type="button" data-a="open">Abrir LAP Cerebro</button>
-      <button type="button" data-a="mute">${state.muted ? "Activar el sonido" : "Silenciar el sonido"}</button>
-      <button type="button" data-a="hide">Ocultar la burbuja</button>
-      <div class="hint">${state.muted ? "Lo urgente suena igual." : "Vuelve desde el ícono junto al reloj o tu perfil."}</div>`;
-  }
-  function openMenu() { if (!state) return; menuOpen = true; buildMenu(); menu.hidden = false; balloons.hidden = true; fitMenu(); }
-  // El menú se abre hacia donde haya espacio, sin salirse de la ventana.
-  function fitMenu() {
-    const { side, dy, H, D } = place;
-    menu.style.maxHeight = (H - 8) + "px";
-    if (side === "top" || side === "bottom") return;
-    // Nunca más alto que la ventana: si no cabe, se desplaza por dentro (antes se cortaba y algunas
-    // opciones, como Disponible, quedaban fuera de la vista).
-    menu.style.maxHeight = (H - 8) + "px";
-    const h = menu.offsetHeight;
-    menu.style.top = menu.style.bottom = "";
-    if (h >= H - 8) menu.style.top = "4px";
-    else if (dy + h <= H - 4) menu.style.top = dy + "px";
-    else if (dy + D.h - h >= 4) menu.style.bottom = (H - dy - D.h) + "px";
-    else menu.style.top = "4px";
-  }
-  function closeMenu() { menuOpen = false; menu.hidden = true; balloons.hidden = false; }
-  menu.addEventListener("click", (ev) => {
-    const b = ev.target.closest("button"); if (!b) return;
-    if (b.dataset.c) B.action({ type: "custom", act: b.dataset.c });
-    else if (b.dataset.p) B.action({ type: "presence", value: b.dataset.p });
-    else if (b.dataset.a === "mute") B.action({ type: "mute", value: !state.muted });
-    else if (b.dataset.a) B.action({ type: b.dataset.a });
-    closeMenu();
-  });
-
-  /* ---------- zonas que reciben el mouse ----------
-     El programa principal mira dónde está el mouse y solo deja de pasar los clics cuando está sobre estas
-     zonas. No depende de los eventos que Windows reenvía a las ventanas transparentes (fallan a veces). */
-  let lastRegions = "";
-  function sendRegions() {
-    const rs = [];
-    const add = (el, pad = 0) => {
-      if (!el || el.hidden || el.offsetParent === null && el !== menu) return;
-      const r = el.getBoundingClientRect();
-      if (r.width && r.height) rs.push({ x: Math.round(r.left - pad), y: Math.round(r.top - pad), w: Math.round(r.width + 2 * pad), h: Math.round(r.height + 2 * pad) });
-    };
-    if (headBox && state && state.me) rs.push({ x: Math.round(headBox.x - 3), y: Math.round(headBox.y - 3), w: Math.round(headBox.w + 6), h: Math.round(headBox.h + 6) });
-    add(count); add(pill);
-    if (menuOpen) add(menu, 4);
-    else for (const el of balloons.querySelectorAll(".card, .more")) add(el, 2);
-    const key = JSON.stringify(rs);
-    if (key !== lastRegions) { lastRegions = key; B.regions(rs); }
-  }
-  // Pulso y zonas con un reloj aparte: el dibujo puede pausarse cuando Windows cree que la ventana no se ve.
-  setInterval(() => { if (B.alive) B.alive(); lastRegions = ""; sendRegions(); }, 2000);
-  if (B.onHover) B.onHover((on) => {
-    if (!on && !dragging && press) press = null; // un clic que quedó a medias no bloquea el siguiente
-    if (!menuOpen || dragging) return;
-    clearTimeout(leaveTimer);
-    if (!on) leaveTimer = setTimeout(closeMenu, 1500);
-  });
-
-  /* ---------- mouse: clics pasan de largo salvo sobre el muñeco, los globitos o el menú ---------- */
-  let interactive = false, press = null, dragging = false, clickTimer = 0, leaveTimer = 0;
-  // ¿Hay dibujo bajo el mouse? (con 3 px de margen para que sea fácil de agarrar)
-  function painted(x, y) {
-    const r = cv.getBoundingClientRect(), dpr = cv.width / r.width;
-    const px = Math.round((x - r.left) * dpr), py = Math.round((y - r.top) * dpr), m = Math.round(3 * dpr);
-    const x0 = Math.max(0, px - m), y0 = Math.max(0, py - m), w = Math.min(cv.width, px + m + 1) - x0, h = Math.min(cv.height, py + m + 1) - y0;
-    if (w <= 0 || h <= 0) return false;
-    const d = cv.getContext("2d", { willReadFrequently: true }).getImageData(x0, y0, w, h).data;
-    for (let i = 3; i < d.length; i += 4) if (d[i] > 40) return true;
-    return false;
-  }
-  // La página también avisa lo que ve bajo el mouse (además de las zonas que revisa el programa principal).
-  function setInteractive(on) { if (on !== interactive) { interactive = on; B.interactive(on); } }
-  window.addEventListener("mousemove", (ev) => {
-    if (press && !dragging && Math.hypot(ev.screenX - press.x, ev.screenY - press.y) > 4) {
-      dragging = true; doll.classList.add("dragging"); closeMenu(); B.drag("start");
-    }
-    if (dragging) return;
-    const el = document.elementFromPoint(ev.clientX, ev.clientY);
-    let hit = !!(el && el.closest("[data-hit]"));
-    if (hit && (el === cv || el === doll)) hit = painted(ev.clientX, ev.clientY);
-    setInteractive(hit);
-    if (menuOpen) {
-      clearTimeout(leaveTimer);
-      if (!hit) leaveTimer = setTimeout(closeMenu, 1500);
-    }
-  });
-  document.addEventListener("mouseleave", () => { if (!dragging && !press) setInteractive(false); if (menuOpen) { clearTimeout(leaveTimer); leaveTimer = setTimeout(closeMenu, 1500); } });
+  /* ---------- mouse: clic = menú, doble clic = abrir la app, arrastrar = mover ---------- */
+  let press = null, dragging = false, clickTimer = 0;
   doll.addEventListener("mousedown", (ev) => { if (ev.button === 0) press = { x: ev.screenX, y: ev.screenY }; });
+  window.addEventListener("mousemove", (ev) => {
+    if (press && !dragging && !(ev.buttons & 1)) { press = null; return; } // se soltó fuera de la ventana
+    if (press && !dragging && Math.hypot(ev.screenX - press.x, ev.screenY - press.y) > 4) {
+      dragging = true; doll.classList.add("dragging"); B.drag("start");
+    }
+  });
   window.addEventListener("mouseup", (ev) => {
     if (dragging) { dragging = false; press = null; doll.classList.remove("dragging"); B.drag("end"); return; }
     if (!press) return;
     press = null;
-    if (ev.button !== 0 || !ev.target.closest("#doll")) return;
-    // Un clic abre el menú; doble clic abre la app.
-    if (clickTimer) { clearTimeout(clickTimer); clickTimer = 0; closeMenu(); B.action({ type: "open" }); return; }
-    clickTimer = setTimeout(() => { clickTimer = 0; if (menuOpen) closeMenu(); else openMenu(); }, 230);
+    if (ev.button !== 0) return;
+    if (clickTimer) { clearTimeout(clickTimer); clickTimer = 0; B.action({ type: "open" }); return; }
+    clickTimer = setTimeout(() => { clickTimer = 0; B.menu(); }, 230);
   });
-  doll.addEventListener("contextmenu", (ev) => { ev.preventDefault(); openMenu(); });
+  // El muñeco es pequeño: al arrastrar rápido el mouse sale de la ventana antes de que esta lo siga.
+  // Por eso salir no cancela; solo cancela soltar el botón (ver mousemove y mouseup).
+  doll.addEventListener("contextmenu", (ev) => { ev.preventDefault(); B.menu(); });
 
-  B.onPlace((p) => { place = p; layout(); });
+  // Pulso para que el programa principal sepa que la página sigue viva.
+  setInterval(() => { if (B.alive) B.alive(); }, 2000);
+
+  B.onPlace((p) => { place = { ...place, ...p }; });
   B.onState((s) => { state = s; render(); });
   B.onNotify((n) => {
-    if (n && n.clearAll) { for (const c of [...cards]) dismiss(c); return; }
-    if (n && n.nag) { hop = performance.now() + 2000; const c = cards.find((x) => x.n.id === n.nag); if (c) { c.el.classList.remove("shake"); void c.el.offsetWidth; c.el.classList.add("shake"); } return; }
-    if (n && n.celebrate) {
-      burst(n.big); hop = performance.now() + 2400;
-      addCard({ id: "fiesta-" + Date.now(), kind: "fiesta", title: n.celebrate });
-      return;
-    }
-    if (n && n.clear) { const c = cards.find((x) => x.n.id === n.clear); if (c) dismiss(c); return; }
-    if (n && n.id) addCard(n);
+    if (!n) return;
+    if (n.celebrate) { burst(n.big); hop = performance.now() + 2400; return; }
+    if (n.nag) { hop = performance.now() + 2000; return; }
+    if (n.id && !n.clear) hop = performance.now() + 1600;
   });
-  layout();
 })();

@@ -26,6 +26,12 @@ function fechaCorta(iso) {
   return p.length === 3 ? Number(p[2]) + " " + m[Number(p[1]) - 1] : "";
 }
 
+// Nombre y apellido: en los avisos que nombran a alguien, porque en el estudio hay nombres repetidos.
+function nombreCompleto(rec) {
+  const n = rec ? String(rec.getString("name") || "").trim() : "";
+  return n || "Alguien";
+}
+
 function primerNombre(rec) {
   const n = rec ? rec.getString("name") : "";
   return n ? n.split(" ")[0] : "Alguien";
@@ -158,7 +164,7 @@ function enviarPlan(e) {
     const ruta = "#proyecto/" + project.id + "/plan";
     for (const m of integrantes(project)) {
       notificar(tx, m, "plan_visto", "Da tu visto bueno al plan de " + project.getString("name"),
-        primerNombre(e.auth) + " envió la versión " + plan.getInt("version") + " del plan de entregables. Revísala y da tu visto bueno.", ruta);
+        nombreCompleto(e.auth) + " envió la versión " + plan.getInt("version") + " del plan de entregables. Revísala y da tu visto bueno.", ruta);
     }
     registrar(tx, e.auth.id, "plan_sent", "Plan v" + plan.getInt("version"), plan.id, project.id);
     out = { id: plan.id, status: "en_aprobacion", pendientes: integrantes(project).length };
@@ -302,7 +308,7 @@ function avisarVisto(app, visto, auth) {
   const cargo = [project.getString("leader"), project.getString("apoyo")].filter(Boolean);
   const avisar = (title, body) => { for (const u of cargo) notificar(app, u, "plan_visto", title, body, ruta); };
   const ruta = "#proyecto/" + project.id + "/plan";
-  const quien = primerNombre(auth);
+  const quien = nombreCompleto(auth);
   const nombre = project.getString("name");
   if (visto.getString("verdict") !== "ok") {
     avisar(quien + " pide cambios en el plan de " + nombre, visto.getString("comment"));
@@ -380,7 +386,7 @@ function avisarRevision(e, nueva) {
   const yo = e.auth ? e.auth.id : "";
   const titulo = nueva ? "Revisión nueva: " + r.getString("titulo") : "Comentarios en " + r.getString("titulo");
   for (const u of arr(t.getStringSlice("assignees"))) {
-    if (u !== yo) aviso(e, u, "revision", titulo, primerNombre(e.auth) + " " + (nueva ? "pidió revisar esta imagen." : "dejó comentarios."), "#revision/" + r.id);
+    if (u !== yo) aviso(e, u, "revision", titulo, nombreCompleto(e.auth) + " " + (nueva ? "pidió revisar esta imagen." : "dejó comentarios."), "#revision/" + r.id);
   }
 }
 
@@ -441,7 +447,7 @@ function toque(e) {
   const hace = new Date(Date.now() - 20000).toISOString().replace("T", " ");
   const prev = e.app.findRecordsByFilter("notificaciones", "user = {:u} && de = {:d} && kind = 'toque' && created > {:t}", "", 1, 0, { u: to, d: e.auth.id, t: hace });
   if (prev.length) throw new BadRequestError("Ya le tocaste el hombro hace un momento. Espera su respuesta.");
-  notificar(e.app, to, "toque", primerNombre(e.auth) + " te tocó el hombro", msg || "¿Tienes un momento?", "#oficina", { de: e.auth.id, urgente: esDirector(e.auth) });
+  notificar(e.app, to, "toque", nombreCompleto(e.auth) + " te tocó el hombro", msg || "¿Tienes un momento?", "#oficina", { de: e.auth.id, urgente: esDirector(e.auth) });
   return e.json(200, { ok: true, presencia: dest.getString("presencia") || "disponible" });
 }
 const RESPUESTAS = { voy: " va para allá", "10": " te busca en 10 minutos", no: " ahora no puede" };
@@ -456,7 +462,7 @@ function responderToque(e) {
   n.set("respuesta", r);
   n.set("read", true);
   e.app.save(n);
-  notificar(e.app, n.getString("de"), "toque_resp", primerNombre(e.auth) + RESPUESTAS[r], n.getString("body"), "#oficina", { de: e.auth.id, urgente: esDirector(e.auth) });
+  notificar(e.app, n.getString("de"), "toque_resp", nombreCompleto(e.auth) + RESPUESTAS[r], n.getString("body"), "#oficina", { de: e.auth.id, urgente: esDirector(e.auth) });
   return e.json(200, { ok: true });
 }
 
@@ -491,6 +497,6 @@ function cumpleanos(app) {
 module.exports = {
   validarCargo, cumpleanos, conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
   avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
-  DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, esDirector, notificar, registrar, integrantes,
+  DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, nombreCompleto, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,
 };

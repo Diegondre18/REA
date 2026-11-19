@@ -172,6 +172,7 @@ function updateTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: "Abrir LAP Cerebro", click: showWindow },
     { label: "Mostrar la burbuja", type: "checkbox", checked: !!(bubble && bubble.visible()), click: (it) => setBubbleVisible(it.checked) },
+    { label: "Cerrar los avisos de la burbuja", click: () => { if (bubble) bubble.clearAll(); } },
     { type: "separator" },
     { label: serving ? "Salir (el equipo se queda sin servidor)" : "Salir", click: () => { quitting = true; app.quit(); } },
   ]));

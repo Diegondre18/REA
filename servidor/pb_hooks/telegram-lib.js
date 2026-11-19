@@ -249,7 +249,7 @@ function responderToque(app, u, notifId, r) {
   n.set("respuesta", r);
   n.set("read", true);
   app.save(n);
-  lib.notificar(app, n.getString("de"), "toque_resp", lib.primerNombre(u) + RESPUESTAS[r], n.getString("body"), "#oficina", { de: u.id, urgente: lib.esDirector(u) });
+  lib.notificar(app, n.getString("de"), "toque_resp", lib.nombreCompleto(u) + RESPUESTAS[r], n.getString("body"), "#oficina", { de: u.id, urgente: lib.esDirector(u) });
   return r === "voy" ? "Le avisaste que vas." : r === "10" ? "Le avisaste que vas en 10 minutos." : "Le avisaste que ahora no puedes.";
 }
 

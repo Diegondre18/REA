@@ -71,13 +71,14 @@
     leaf: "#6aa34a", leaf2: "#4f8a36", leaf3: "#3b6e2a", pot: "#ebe4dc", glass: "rgba(176,208,226,0.38)", frame: "#6d6470",
     sofa: "#e6ddd2", rug: "#c9b9a8", lab: "#c3ccd2", labLine: "#b6c0c7", dirFloor: "#cdb79c", dirLine: "#c2ab8f", paper: "#f4f1ea", win: "#9fb6c8",
   };
-  const AREA_HEX = { arquitectura: "#8a7f73", interior: "#c08a3e", visualizacion: "#0057ff", administracion: "#4f8a6a", otros: "#9a9a9a" };
+  const AREA_HEX = { arquitectura: "#8a7f73", interior: "#c08a3e", visualizacion: "#0057ff", administracion: "#4f8a6a", gestion: "#b0601e", otros: "#9a9a9a" };
 
   /* ================= mapa del estudio ================= */
-  const ROWS = [["arquitectura", "Arquitectura"], ["interior", "Diseño Interior"], ["visualizacion", "Visualización"], ["administracion", "Administración"]];
+  const ROWS = [["arquitectura", "Arquitectura"], ["interior", "Diseño Interior"], ["visualizacion", "Visualización"], ["administracion", "Administración"], ["gestion", "Gestión"]];
   function buildMap() {
     const staff = L.sortPeople ? L.sortPeople(q.staff()) : q.staff();
-    const zoneOf = (u) => (u.role === "director" ? "direccion" : (u.areas || []).find((a) => a !== "direccion") || "otros");
+    const conFila = new Set(ROWS.map((r) => r[0]));
+    const zoneOf = (u) => (u.role === "director" ? "direccion" : (u.areas || []).find((a) => conFila.has(a)) || "otros");
     const by = {};
     for (const u of staff) (by[zoneOf(u)] = by[zoneOf(u)] || []).push(u);
     const rows = ROWS.map(([id, label]) => ({ id, label, people: by[id] || [] }));
