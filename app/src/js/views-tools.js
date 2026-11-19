@@ -102,18 +102,19 @@
     },
     ausencias: {
       title: "Ausencia",
-      initial: (d) => ({ user: L.state.me.id, tipo: "vacaciones", desde: today(), hasta: today(), ...d }),
+      initial: (d) => ({ user: L.state.me.id, tipo: "vacaciones", desde: today(), hasta: today(), horaDesde: "", horaHasta: "", ...d }),
       fields: [
         { k: "user", label: "Persona", type: "user", adminOnly: true },
         { k: "tipo", label: "Tipo", type: "pills", options: () => L.AUSENCIA_TIPOS },
         { row: [{ k: "desde", label: "Desde", type: "date" }, { k: "hasta", label: "Hasta", type: "date" }] },
+        { row: [{ k: "horaDesde", label: "Sale a las (opcional)", type: "time", hint: "El primer día, desde esta hora. Vacío = todo el día." }, { k: "horaHasta", label: "Llega a las (opcional)", type: "time", hint: "El último día, hasta esta hora." }] },
         { k: "_habiles", label: "Días hábiles", type: "habiles", virtual: true },
         { k: "nota", label: "Nota", placeholder: "Opcional" },
       ],
       before: (body) => { if (body.hasta < body.desde) [body.desde, body.hasta] = [body.hasta, body.desde]; return body; },
       // Si ya tenía entregas en esas fechas, se avisa para reasignarlas (Equipo también lo marca).
       after: (a) => {
-        const clash = L.state.tareas.filter((t) => t.status !== "terminado" && (t.assignees || []).includes(a.user) && ((t.due && t.due >= a.desde && t.due <= a.hasta) || (t.start && t.start >= a.desde && t.start <= a.hasta)));
+        const clash = L.state.tareas.filter((t) => t.status !== "terminado" && (t.assignees || []).includes(a.user) && (L.cubre(a, t.due, t.dueTime) || L.cubre(a, t.start, t.startTime)));
         if (clash.length) setTimeout(() => L.toast(`Ojo: ${a.user === L.state.me.id ? "tienes" : L.first(q.name(a.user)) + " tiene"} ${L.plural(clash.length, "tarea", "tareas")} en esas fechas. Avísale a quien lidera para reasignarlas.`), 400);
       },
     },
@@ -172,6 +173,7 @@
       switch (x.type) {
         case "textarea": return html`<textarea id=${id2} rows=${x.rows || 3} value=${v} placeholder=${x.placeholder || ""} onInput=${(e) => set(x.k, e.target.value)}></textarea>`;
         case "date": return html`<input id=${id2} type="date" value=${v} onInput=${(e) => set(x.k, e.target.value)} />`;
+        case "time": return html`<input id=${id2} type="time" value=${v} onInput=${(e) => set(x.k, e.target.value)} />`;
         case "number": return html`<input id=${id2} type="number" min=${x.min} max=${x.max} step=${x.step || "any"} value=${v} onInput=${(e) => set(x.k, e.target.value)} />`;
         case "select": return html`<select id=${id2} value=${v} onChange=${(e) => set(x.k, e.target.value)}>${x.options().map((o) => html`<option key=${o.id} value=${o.id}>${o.label}</option>`)}</select>`;
         case "pills": return html`<${Pills} options=${x.options()} value=${v} attr=${x.attr} onChange=${(o) => set(x.k, o)} />`;

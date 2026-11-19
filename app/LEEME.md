@@ -233,3 +233,10 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - En Gestión, un festivo trabajado cuenta como hora extra.
 
 **Premio del ranking.** Administración o Dirección ponen el premio, **de la semana o del mes** (por ejemplo "almuerzo pagado"). Mientras no esté puesto, les aparece una franja en Inicio, un aviso cada mañana (también por Telegram) y un hallazgo del agente de Equipo. El premio se ve arriba del ranking (en la app, la oficina y la TV). Al cerrar el período, quien más puntos tenga lo gana, recibe la celebración con el texto del premio y lleva corona durante el período siguiente. En modo mensual, el ranking suma los puntos de las semanas del mes.
+
+## Ausencias por horas y tareas con hora (2.27)
+
+- **Tareas con hora (opcional).** Junto a la fecha de inicio y de entrega hay un campo de hora. Se ve en las listas ("Hoy · 4:30 pm") y una entrega de hoy cuya hora ya pasó se marca atrasada.
+- **Ausencias por horas.** En Ausencias, "Sale a las" (el primer día, desde esa hora) y "Llega a las" (el último día, hasta esa hora). Vacíos = todo el día, como antes.
+- **Choques.** Si la tarea empieza o se entrega mientras la persona no está (con hora, o un día completo), Cerebro **no deja asignarla**. Si ese día la persona sale o llega a cierta hora y la tarea no tiene hora, solo **avisa** a quien asigna, para que le ponga hora o confirme.
+- **Telegram: 🕔 Me ausento** (para todos). Día (hoy, mañana o escrito, como `25/11`) → todo el día, "Salgo a las…" o "Llego a las…" (botones o escrita, como `3:30 pm`) → tipo. El bot avisa qué entregas propias chocan y deja **cancelar** la ausencia.

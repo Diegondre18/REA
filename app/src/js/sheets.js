@@ -23,7 +23,7 @@
     const t0 = L.today();
     const [f, setF, set] = useForm(() => task ? { ...task } : {
       title: "", project: "", area: (me.areas || []).find((a) => a !== "direccion") || "", kind: "", status: "pendiente", stage: "", progress: 0,
-      assignees: [me.id], start: L.iso(t0), due: L.iso(L.addDays(t0, 3)), meeting: "", path: "", version: "", engine: "", resolution: "", notes: "", ...defaults,
+      assignees: [me.id], start: L.iso(t0), due: L.iso(L.addDays(t0, 3)), startTime: "", dueTime: "", meeting: "", path: "", version: "", engine: "", resolution: "", notes: "", ...defaults,
     });
     const [meetingTouched, setMeetingTouched] = useState(!!task);
     const [newMeeting, setNewMeeting] = useState(null); // { title, date, time }
@@ -51,8 +51,8 @@
 
     const save = async () => {
       if (!f.title.trim()) { setErr("Escribe qué hay que hacer."); return; }
-      const ab = q.absenceIssues(f.assignees, f.start, f.due).block;
-      if (ab.length && (!task || JSON.stringify([task.assignees, task.start, task.due]) !== JSON.stringify([f.assignees, f.start, f.due]))) { L.toast(ab[0].text); return; }
+      const ab = q.absenceIssues(f.assignees, f.start, f.due, f.startTime, f.dueTime).block;
+      if (ab.length && (!task || JSON.stringify([task.assignees, task.start, task.due, task.startTime || "", task.dueTime || ""]) !== JSON.stringify([f.assignees, f.start, f.due, f.startTime || "", f.dueTime || ""]))) { L.toast(ab[0].text); return; }
       if (f.status === "terminado" && viz && !f.path) { setErr("Agrega la ruta de la carpeta para dejarlo en el archivo."); return; }
       setSaving(true);
       let meeting = f.meeting;
@@ -65,7 +65,7 @@
       if (start && due && due < start) [start, due] = [due, start];
       const body = {
         title: f.title.trim(), project: f.project || "", area: f.area || "", kind: f.kind || "", status: f.status, stage: f.status === "en_curso" && viz ? f.stage || "" : "",
-        progress: Number(f.progress) || 0, assignees: f.assignees || [], start: start || "", due: due || "", meeting: meeting || "",
+        progress: Number(f.progress) || 0, assignees: f.assignees || [], start: start || "", due: due || "", startTime: (start && f.startTime) || "", dueTime: (due && f.dueTime) || "", meeting: meeting || "",
         path: (f.path || "").trim(), version: (f.version || "").trim(), engine: (f.engine || "").trim(), resolution: (f.resolution || "").trim(), notes: f.notes || "",
         dependsOn: (f.dependsOn || []).filter((d) => d !== id), parent: f.parent || "",
       };
@@ -102,11 +102,11 @@
         <div class="fld"><span class="lbl">Área</span><${Pills} options=${L.AREAS} value=${f.area} attr="data-a" onChange=${(a) => setF((p) => ({ ...p, area: p.area === a ? "" : a }))} /></div>
         <div class="fld"><span class="lbl">Estado</span><${Pills} options=${L.STATUSES} value=${f.status} attr="data-s" onChange=${(st) => setF((p) => ({ ...p, status: st, progress: st === "terminado" ? 100 : p.progress }))} /></div>
         ${viz && f.status === "en_curso" && html`<div class="fld"><span class="lbl">Etapa de visualización</span><${Pills} options=${L.STAGES} value=${f.stage} onChange=${(st) => setF((p) => ({ ...p, stage: p.stage === st ? "" : st }))} /></div>`}
-        <div class="fld"><span class="lbl">Responsables</span><${PeoplePicker} candidates=${candidates} value=${f.assignees || []} onChange=${set("assignees")} range=${[f.start, f.due]} />
-          <${L.AbsenceNote} ids=${f.assignees} start=${f.start} due=${f.due} /></div>
+        <div class="fld"><span class="lbl">Responsables</span><${PeoplePicker} candidates=${candidates} value=${f.assignees || []} onChange=${set("assignees")} range=${[f.start, f.due, f.startTime, f.dueTime]} />
+          <${L.AbsenceNote} ids=${f.assignees} start=${f.start} due=${f.due} startTime=${f.startTime} dueTime=${f.dueTime} /></div>
         <div class="two">
-          <${Field} label="Inicio" id="t-start"><input id="t-start" type="date" value=${f.start} onInput=${set("start")} /><//>
-          <${Field} label="Entrega" id="t-due"><input id="t-due" type="date" value=${f.due} onInput=${set("due")} /><//>
+          <${Field} label="Inicio" id="t-start"><div class="fecha-hora"><input id="t-start" type="date" value=${f.start} onInput=${set("start")} /><input type="time" aria-label="Hora de inicio (opcional)" title="Hora de inicio (opcional)" value=${f.startTime || ""} onInput=${set("startTime")} /></div><//>
+          <${Field} label="Entrega" id="t-due"><div class="fecha-hora"><input id="t-due" type="date" value=${f.due} onInput=${set("due")} /><input type="time" aria-label="Hora de entrega (opcional)" title="Hora de entrega (opcional)" value=${f.dueTime || ""} onInput=${set("dueTime")} /></div><//>
         </div>
         ${[["Inicio", f.start], ["Entrega", f.due]].filter(([, d]) => d && !L.esHabil(d)).map(([n, d]) => html`<p class="hint warn-hint" key=${n}>${n}: el ${L.fmtShort(d)} es ${L.festivo(d) ? "festivo (" + L.festivo(d) + ")" : "fin de semana"}.</p>`)}
         ${L.DurationHint && f.status !== "terminado" && html`<${L.DurationHint} kind=${f.kind} assignees=${f.assignees} start=${f.start} due=${f.due} onUse=${(d) => setF((p) => ({ ...p, due: d }))} />`}

@@ -66,7 +66,7 @@
   // Selector de personas con píldoras: se ve quién está y quién no de un vistazo.
   // Con `range` ([inicio, entrega]) marca a quien está ausente en esas fechas y no deja asignarle la tarea.
   function PeoplePicker({ candidates, value = [], onChange, disabled, range }) {
-    const issue = (id) => (range ? q.absenceIssues([id], range[0], range[1]) : { block: [], warn: [] });
+    const issue = (id) => (range ? q.absenceIssues([id], range[0], range[1], range[2], range[3]) : { block: [], warn: [] });
     const toggle = (id) => {
       if (!value.includes(id) && range) {
         const b = issue(id).block;
@@ -84,8 +84,8 @@
     })}</div>`;
   }
   // Aviso bajo los responsables: quién no está en las fechas elegidas.
-  function AbsenceNote({ ids, start, due }) {
-    const iss = q.absenceIssues(ids || [], start, due);
+  function AbsenceNote({ ids, start, due, startTime, dueTime }) {
+    const iss = q.absenceIssues(ids || [], start, due, startTime, dueTime);
     if (!iss.block.length && !iss.warn.length) return null;
     return html`<div class="absence-note">${iss.block.map((x) => html`<p class="err" key=${"b" + x.user}>${x.text}</p>`)}${iss.warn.map((x) => html`<p class="hint warn" key=${"w" + x.user}>${x.text}</p>`)}</div>`;
   }
@@ -102,7 +102,7 @@
     const p = Math.max(0, Math.min(100, Number(value) || 0));
     return html`<span class="bar-track" data-s=${s} title=${p + "%"}><i style=${{ width: p + "%" }}></i></span>`;
   };
-  const Due = ({ task }) => html`<span class=${"due " + L.dueClass(task)}>${task.status === "terminado" ? "Terminada" : L.relDay(task.due)}</span>`;
+  const Due = ({ task }) => html`<span class=${"due " + L.dueClass(task)}>${task.status === "terminado" ? "Terminada" : L.relDay(task.due) + (task.dueTime ? " · " + L.hora12(task.dueTime) : "")}</span>`;
 
   function copyText(text) {
     try {

@@ -6,11 +6,12 @@ const lib = require(`${__hooks}/lib.js`);
 const api = require(`${__hooks}/telegram-api.js`);
 const obra = require(`${__hooks}/telegram-obra.js`);
 const fin = require(`${__hooks}/telegram-fin.js`);
+const aus = require(`${__hooks}/telegram-ausencia.js`);
 const { tg, enviar, editar, esc, corto } = api;
 const ALFABETO = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // Menú fijo del chat, según el cargo: quien va a obra ve además acta, fotos y pendientes.
 function menuDe(u) {
-  const k = [[{ text: "📋 Mis tareas" }, { text: "🔔 Avisos" }], [{ text: "🟢 Mi estado" }, { text: "❓ Ayuda" }]];
+  const k = [[{ text: "📋 Mis tareas" }, { text: "🔔 Avisos" }], [{ text: "🟢 Mi estado" }, { text: "🕔 Me ausento" }], [{ text: "❓ Ayuda" }]];
   if (u && fin.puedeFin(u)) k.unshift([{ text: "💸 Gasto" }, { text: "💵 Pago a proveedor" }], [{ text: "🧾 Cobro recibido" }, { text: "📊 Consultar" }]);
   if (u && obra.puedeObra(u)) k.unshift([{ text: "📝 Acta de obra" }, { text: "📷 Fotos de obra" }, { text: "📌 Pendiente" }]);
   return { keyboard: k, resize_keyboard: true, is_persistent: true };
@@ -24,6 +25,7 @@ const COMANDOS = {
   "📝 acta de obra": "acta", "/acta": "acta", "📷 fotos de obra": "fotos", "/fotos": "fotos", "📌 pendiente": "pendiente", "/pendiente": "pendiente",
   "💸 gasto": "gasto", "/gasto": "gasto", "💵 pago a proveedor": "pago", "/pago": "pago",
   "🧾 cobro recibido": "cobro", "/cobro": "cobro", "📊 consultar": "consultar", "/consultar": "consultar",
+  "🕔 me ausento": "ausencia", "/ausencia": "ausencia", "me ausento": "ausencia",
   "/cancelar": "cancelar", "cancelar": "cancelar",
 };
 const ESTADOS = [
@@ -84,6 +86,7 @@ function ayuda(u) {
     "📋 <b>Mis tareas</b>: ver tus tareas, marcar en cuál estás trabajando y entregarlas.\n" +
     "🟢 <b>Mi estado</b>: disponible, en reunión, en obra, fuera…\n" +
     "🔔 <b>Avisos</b>: te llegan aquí cuando no estás en el computador, y puedes responder cuando te tocan el hombro.\n" +
+    "🕔 <b>Me ausento</b>: un día completo o por horas (\"salgo a las 5\"); nadie te podrá poner entregas en ese rato.\n" +
     (u && obra.puedeObra(u)
       ? "📝 <b>Acta de obra</b>: te pregunto paso a paso (clima, asistentes, avance, temas, compromisos y fotos) y queda como borrador en Cerebro.\n" +
         "📷 <b>Fotos de obra</b>: fotos con su descripción, a la pestaña Obra del proyecto.\n" +
@@ -108,13 +111,14 @@ function proyectoTxt(app, pid) {
   if (!pid) return "";
   try { const p = app.findRecordById("proyectos", pid); return (p.getString("code") ? p.getString("code") + " · " : "") + p.getString("name"); } catch (e) { return ""; }
 }
-function cuando(due) {
+function cuando(due, hora) {
   if (!due) return "";
   const h = lib.hoy(0), m = lib.hoy(1);
-  if (due < h) return "⚠ atrasada (" + lib.fechaCorta(due) + ")";
-  if (due === h) return "vence hoy";
-  if (due === m) return "vence mañana";
-  return "para el " + lib.fechaCorta(due);
+  const hh = hora ? (() => { const [H, M] = hora.split(":").map(Number); return " a las " + ((H % 12) || 12) + ":" + String(M).padStart(2, "0") + (H < 12 ? " am" : " pm"); })() : "";
+  if (due < h) return "⚠ atrasada (" + lib.fechaCorta(due) + hh + ")";
+  if (due === h) return "vence hoy" + hh;
+  if (due === m) return "vence mañana" + hh;
+  return "para el " + lib.fechaCorta(due) + hh;
 }
 function listaTareas(app, u) {
   const ts = misTareas(app, u.id);
@@ -131,7 +135,7 @@ function detalleTarea(app, u, t) {
   const lineas = ["<b>" + esc(t.getString("title")) + "</b>"];
   const p = proyectoTxt(app, t.getString("project"));
   if (p) lineas.push("📁 " + esc(p));
-  lineas.push("Estado: " + (STATUS[t.getString("status")] || t.getString("status")) + (t.getString("due") ? " · " + cuando(t.getString("due")) : ""));
+  lineas.push("Estado: " + (STATUS[t.getString("status")] || t.getString("status")) + (t.getString("due") ? " · " + cuando(t.getString("due"), t.getString("dueTime")) : ""));
   if (trabajando) lineas.push("⚙ Estás trabajando en esta.");
   const botones = [];
   if (t.getString("status") !== "terminado") {
@@ -272,7 +276,8 @@ function onMensaje(app, token, msg) {
   }
   const cmd = COMANDOS[text.toLowerCase()];
   if (cmd === "cancelar") return obra.cancelar(app, token, chatId, v);
-  if (!cmd && (obra.onFlujo(app, token, chatId, u, v, msg) || fin.onFlujo(app, token, chatId, u, v, msg))) return;
+  if (!cmd && (obra.onFlujo(app, token, chatId, u, v, msg) || fin.onFlujo(app, token, chatId, u, v, msg) || aus.onFlujo(app, token, chatId, u, v, msg))) return;
+  if (cmd === "ausencia") return aus.empezar(app, token, chatId, u, v);
   if (cmd === "gasto" || cmd === "pago" || cmd === "cobro" || cmd === "consultar") return fin.elegir(app, token, chatId, u, { gasto: "g", pago: "p", cobro: "c", consultar: "q" }[cmd]);
   if (cmd === "tareas") { const l = listaTareas(app, u); return enviar(token, chatId, l.text, { reply_markup: { inline_keyboard: l.botones } }); }
   if (cmd === "estado") { const e = menuEstado(u); return enviar(token, chatId, e.text, { reply_markup: { inline_keyboard: e.botones } }); }
@@ -295,7 +300,8 @@ function onBoton(app, token, cq) {
   const u = v && persona(app, v);
   if (!u) { try { tg(token, "answerCallbackQuery", { callback_query_id: cq.id, text: "Primero vincula tu cuenta desde tu perfil en LAP Cerebro." }); } catch (e) { /* nada */ } return; }
   const [k, id, extra] = data.split(":");
-  let deObra = fin.onBoton(app, token, chatId, mid, u, v, k, id, extra);
+  let deObra = aus.onBoton(app, token, chatId, mid, u, v, k, id, extra);
+  if (deObra === null) deObra = fin.onBoton(app, token, chatId, mid, u, v, k, id, extra);
   if (deObra === null) deObra = obra.onBoton(app, token, chatId, mid, u, v, k, id, extra);
   if (deObra !== null) { try { tg(token, "answerCallbackQuery", Object.assign({ callback_query_id: cq.id }, deObra ? { text: deObra } : {})); } catch (e) { /* nada */ } return; }
   if (k === "tl") { const l = listaTareas(app, u); editar(token, chatId, mid, l.text, l.botones); }

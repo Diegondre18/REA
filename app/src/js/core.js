@@ -164,6 +164,8 @@ window.LAP = {};
   const dueClass = (t) => {
     const d = parse(t.due); if (!d || t.status === "terminado") return "";
     const n = diff(today(), d);
+    // Con hora de entrega, hoy ya pasada también es atrasada.
+    if (n === 0 && t.dueTime) { const now = new Date(); const hm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0"); if (hm > t.dueTime) return "late"; }
     return n < 0 ? "late" : n <= 2 ? "soon" : "";
   };
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -229,6 +231,24 @@ window.LAP = {};
     return iso(d);
   }
 
+
+  /* ---------- ausencias por horas ---------- */
+  // ¿La ausencia cubre ese momento? true, "parcial" (ese día se va o llega a cierta hora y no hay hora) o false.
+  function cubre(a, fecha, hora) {
+    if (!fecha || fecha < a.desde || fecha > a.hasta) return false;
+    const limIni = fecha === a.desde && a.horaDesde, limFin = fecha === a.hasta && a.horaHasta;
+    if (!limIni && !limFin) return true;
+    if (!hora) return "parcial";
+    if (limIni && hora < a.horaDesde) return false;
+    if (limFin && hora >= a.horaHasta) return false;
+    return true;
+  }
+  const hora12 = (h) => { if (!h) return ""; const [H, M] = h.split(":").map(Number); return ((H % 12) || 12) + ":" + String(M).padStart(2, "0") + (H < 12 ? " am" : " pm"); };
+  function ausenciaTexto(a) {
+    if (a.desde === a.hasta) return "el " + fmtShort(a.desde) + (a.horaDesde && a.horaHasta ? ` de ${hora12(a.horaDesde)} a ${hora12(a.horaHasta)}` : a.horaDesde ? ` desde las ${hora12(a.horaDesde)}` : a.horaHasta ? ` hasta las ${hora12(a.horaHasta)}` : "");
+    return "del " + fmtShort(a.desde) + (a.horaDesde ? ` (desde las ${hora12(a.horaDesde)})` : "") + " al " + fmtShort(a.hasta) + (a.horaHasta ? ` (hasta las ${hora12(a.horaHasta)})` : "");
+  }
+
   Object.assign(LAP, {
     h, render, Fragment, html, hooks: preactHooks,
     AREAS, AREA, TEAMS, STATUSES, STATUS, STAGES, STAGE, KINDS, KIND, KIND_AREA, PHASES, PHASE, EVENT_KINDS, EVENT_KIND, PLAN_STATUS, ENGINES, RESOLUTIONS,
@@ -236,6 +256,6 @@ window.LAP = {};
     dueClass, plural, initials, first, key, byDue, cx, greeting, eventStamp, calendarLink,
     byId, TRAMITE_TIPOS, TRAMITE_ESTADOS, DISCIPLINAS, PLANO_ESTADOS, ENVIO_MEDIOS, ENVIO_PROPOSITOS, CONTACTO_TIPOS, MATERIAL_CATS,
     AUSENCIA_TIPOS, SOLICITUD_TIPOS, SOLICITUD_ESTADOS, COBRO_ESTADOS, SALUD, money, hours, PLAN_TEMPLATES,
-    festivos, festivo, esHabil, habiles, sumarHabiles,
+    festivos, festivo, esHabil, habiles, sumarHabiles, cubre, hora12, ausenciaTexto,
   });
 })();

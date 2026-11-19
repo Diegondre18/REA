@@ -107,7 +107,7 @@
       return html`<div class=${L.cx("row", !can(a) && "static")} key=${a.id} onClick=${can(a) ? () => openTool("ausencias", a.id) : null}>
         <${Avatar} id=${a.user} />
         <div class="row-main"><div class="row-title">${q.name(a.user)}</div><div class="row-meta"><span>${label(L.AUSENCIA_TIPOS, a.tipo)}</span>${a.nota && html`<span>${a.nota}</span>`}</div></div>
-        <div class="row-side">${now && html`<span class="tag warn">Hoy no está</span>`}<span class="due">${a.desde === a.hasta ? L.fmtShort(a.desde) : L.fmtShort(a.desde) + " a " + L.fmtShort(a.hasta)}</span><span class="muted">${L.plural(days, "día hábil", "días hábiles")}</span></div>
+        <div class="row-side">${now && html`<span class="tag warn">Hoy no está</span>`}<span class="due">${L.ausenciaTexto(a).replace(/^(el|del) /, "")}</span><span class="muted">${L.plural(days, "día hábil", "días hábiles")}</span></div>
       </div>`;
     };
     return html`

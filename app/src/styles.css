@@ -1377,3 +1377,4 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 .rk-head { display: grid; gap: 6px; margin-bottom: 6px; }
 .rk-premio { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, var(--blue, #0057ff) 8%, transparent); font-size: 13px; }
 .rk-premio > span:nth-child(2) { flex: 1; }
+.fecha-hora { display: grid; grid-template-columns: minmax(0, 1fr) 122px; gap: 6px; }

@@ -401,17 +401,37 @@ function limpiar(app) {
 
 // Ausencias: no se asignan tareas que empiecen o se entreguen mientras la persona no está.
 const TIPO_AUSENCIA = { vacaciones: "de vacaciones", incapacidad: "incapacitada", permiso: "de permiso", fuera: "fuera de la oficina", otro: "ausente" };
-function conflictoAusencia(app, userIds, start, due) {
-  const fechas = [];
-  for (const f of [start, due]) if (f && fechas.indexOf(f) < 0) fechas.push(f);
+// ¿La ausencia cubre ese momento? true = sí, "parcial" = ese día se va o llega a cierta hora y la tarea
+// no tiene hora, false = no. Primer día con horaDesde: desde esa hora; último día con horaHasta: antes de esa hora.
+function cubre(a, fecha, hora) {
+  const desde = a.getString("desde"), hasta = a.getString("hasta"), hD = a.getString("horaDesde"), hH = a.getString("horaHasta");
+  if (!fecha || fecha < desde || fecha > hasta) return false;
+  const limiteIni = fecha === desde && hD, limiteFin = fecha === hasta && hH;
+  if (!limiteIni && !limiteFin) return true;
+  if (!hora) return "parcial";
+  if (limiteIni && hora < hD) return false;
+  if (limiteFin && hora >= hH) return false;
+  return true;
+}
+const hora12 = (x) => { if (!x) return ""; const p = x.split(":").map(Number); return ((p[0] % 12) || 12) + ":" + String(p[1]).padStart(2, "0") + (p[0] < 12 ? " am" : " pm"); };
+function textoAusencia(a) {
+  const d = a.getString("desde"), h = a.getString("hasta"), hD = hora12(a.getString("horaDesde")), hH = hora12(a.getString("horaHasta"));
+  if (d === h) return "el " + fechaCorta(d) + (hD && hH ? " de " + hD + " a " + hH : hD ? " desde las " + hD : hH ? " hasta las " + hH : "");
+  return "del " + fechaCorta(d) + (hD ? " (desde las " + hD + ")" : "") + " al " + fechaCorta(h) + (hH ? " (hasta las " + hH + ")" : "");
+}
+function conflictoAusencia(app, userIds, start, due, startTime, dueTime) {
+  const momentos = [];
+  if (start) momentos.push([start, startTime || ""]);
+  if (due && !(due === start && (dueTime || "") === (startTime || ""))) momentos.push([due, dueTime || ""]);
   for (const u of arr(userIds)) {
-    for (const d of fechas) {
-      const a = app.findRecordsByFilter("ausencias", "user = {:u} && desde <= {:d} && hasta >= {:d}", "desde", 1, 0, { u: u, d: d });
-      if (a.length) {
+    for (const m of momentos) {
+      const as = arr(app.findRecordsByFilter("ausencias", "user = {:u} && desde <= {:d} && hasta >= {:d}", "desde", 20, 0, { u: u, d: m[0] }));
+      for (const a of as) {
+        if (cubre(a, m[0], m[1]) !== true) continue; // sin hora en un día parcial: solo aviso en la app
         let nombre = "Esa persona";
-        try { nombre = app.findRecordById("users", u).getString("name").split(" ")[0]; } catch (err) { /* sin nombre */ }
-        return nombre + " estará " + (TIPO_AUSENCIA[a[0].getString("tipo")] || "ausente") + " del " + fechaCorta(a[0].getString("desde")) + " al " + fechaCorta(a[0].getString("hasta")) +
-          ": no se le pueden asignar tareas que empiecen o se entreguen en esas fechas. Cambia las fechas o asígnala a otra persona.";
+        try { nombre = app.findRecordById("users", u).getString("name"); } catch (err) { /* sin nombre */ }
+        return nombre + " estará " + (TIPO_AUSENCIA[a.getString("tipo")] || "ausente") + " " + textoAusencia(a) +
+          ": no se le pueden asignar tareas que empiecen o se entreguen en ese momento. Cambia la fecha u hora, o asígnala a otra persona.";
       }
     }
   }
@@ -548,6 +568,6 @@ function recordarPremio(app) {
 module.exports = {
   validarCargo, cumpleanos, conflictoAusencia, validarMuneco, aviso, toque, responderToque, resumenSemana,
   avisarRevision, validarPersona, avisarVisto, recordatorios, limpiar,
-  DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, nombreCompleto, festivos, festivo, esHabil, habiles, recordarPremio, esDirector, notificar, registrar, integrantes,
+  DOMINIO, arr, hoy, diaSemana, fechaCorta, primerNombre, nombreCompleto, festivos, festivo, esHabil, habiles, recordarPremio, cubre, esDirector, notificar, registrar, integrantes,
   enviarPlan, retirarPlan, aprobarPlan, nuevaVersion,
 };

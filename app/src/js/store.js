@@ -431,18 +431,23 @@
     subtasks: (taskId) => state.tareas.filter((t) => t.parent === taskId),
     // Ausencias contra una asignación: bloquea si la tarea empieza o se entrega mientras la persona no está;
     // si la ausencia cae en medio, solo avisa.
-    absenceIssues: (ids, start, due) => {
+    // Choques con ausencias. block: la tarea empieza o se entrega mientras la persona no está (con hora,
+    // o un día completo). warn: ese día se va o llega a cierta hora y la tarea no tiene hora, o la
+    // ausencia cae en medio de la tarea.
+    absenceIssues: (ids, start, due, startTime, dueTime) => {
       const out = { block: [], warn: [] };
       const ini = start || due, fin = due || start;
       if (!ini) return out;
       const TXT = { vacaciones: "de vacaciones", incapacidad: "incapacitada", permiso: "de permiso", fuera: "fuera de la oficina", otro: "ausente" };
+      const iniT = start ? startTime || "" : dueTime || "", finT = due ? dueTime || "" : startTime || "";
       for (const uid of ids || []) {
         for (const a of state.ausencias.filter((x) => x.user === uid && x.desde <= fin && x.hasta >= ini)) {
-          const who = q.first(uid) === "Tú" ? "Tú estarás" : L.first(q.name(uid)) + " estará";
-          const when = a.desde === a.hasta ? "el " + L.fmtShort(a.desde) : "del " + L.fmtShort(a.desde) + " al " + L.fmtShort(a.hasta);
-          const hit = (d) => d && a.desde <= d && a.hasta >= d;
-          if (hit(ini) || hit(fin)) out.block.push({ user: uid, a, text: `${who} ${TXT[a.tipo] || "ausente"} ${when}. No se le pueden asignar tareas que empiecen o se entreguen en esas fechas.` });
-          else out.warn.push({ user: uid, a, text: `${who} ${TXT[a.tipo] || "ausente"} ${when}, en medio de esta tarea.` });
+          const who = q.first(uid) === "Tú" ? "Tú estarás" : q.name(uid) + " estará";
+          const when = L.ausenciaTexto(a);
+          const c1 = L.cubre(a, ini, iniT), c2 = L.cubre(a, fin, finT);
+          if (c1 === true || c2 === true) out.block.push({ user: uid, a, text: `${who} ${TXT[a.tipo] || "ausente"} ${when}. No se le pueden asignar tareas que empiecen o se entreguen en ese momento.` });
+          else if (c1 === "parcial" || c2 === "parcial") out.warn.push({ user: uid, a, text: `${who} ${TXT[a.tipo] || "ausente"} ${when}. Ponle hora a la tarea o confirma con la persona.` });
+          else if (!c1 && !c2 && a.desde <= fin && a.hasta >= ini && !(a.hasta === ini || a.desde === fin)) out.warn.push({ user: uid, a, text: `${who} ${TXT[a.tipo] || "ausente"} ${when}, en medio de esta tarea.` });
         }
       }
       return out;
@@ -513,7 +518,8 @@
         const body = { ...data, updatedBy: state.me.id };
         const next = { ...(prev || {}), ...data };
         const touched = !prev || ["assignees", "start", "due"].some((k) => k in data && JSON.stringify(data[k]) !== JSON.stringify(prev[k]));
-        const clash = touched ? q.absenceIssues(next.assignees, next.start, next.due).block : [];
+        const touched2 = touched || (prev && ["startTime", "dueTime"].some((k) => k in data && data[k] !== prev[k]));
+        const clash = touched2 ? q.absenceIssues(next.assignees, next.start, next.due, next.startTime, next.dueTime).block : [];
         if (clash.length) { toast(clash[0].text); return null; }
         if (body.status === "terminado") { body.progress = 100; if (!prev || prev.status !== "terminado") body.doneAt = L.todayIso(); }
         else if (body.status) body.doneAt = "";
@@ -749,7 +755,7 @@
       return run(async () => {
         const out = [];
         for (const t of list) {
-          const clash = q.absenceIssues(t.assignees, t.start, t.due).block;
+          const clash = q.absenceIssues(t.assignees, t.start, t.due, t.startTime, t.dueTime).block;
           if (clash.length) { toast(clash[0].text); continue; }
           const rec = await pb.collection("tareas").create({ status: "pendiente", progress: 0, updatedBy: state.me.id, ...t });
           upsert("tareas", rec); out.push(rec);
