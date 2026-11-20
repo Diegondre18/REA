@@ -983,7 +983,7 @@
     L.useStore();
     const anuncios = L.anunciosActivos ? L.anunciosActivos() : [];
     return html`<div class="board-modal" onClick=${(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div class="board glass" role="dialog" aria-label="Anuncios y ranking">
+      <div class="tv-board glass" role="dialog" aria-label="Anuncios y ranking">
         <button type="button" class="o-close" aria-label="Cerrar" onClick=${onClose}>×</button>
         <section><h2><span class="sl">//</span>Anuncios</h2>
           ${anuncios.length ? anuncios.map((a) => html`<div key=${a.id} class=${L.cx("board-anuncio", a.importante && "imp")}><p>${a.texto}</p><small>${L.first(q.name(a.by))} · hasta el ${L.fmtShort(a.hasta)}</small></div>`) : html`<p class="muted">No hay anuncios vigentes.</p>`}

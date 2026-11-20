@@ -1089,8 +1089,8 @@ input.time-in { width: 120px !important; flex: none; }
 .o-person b { display: block; font-size: 13px; font-weight: 500; }
 .o-person small { display: block; font-size: 12px; color: var(--muted); }
 .board-modal { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; background: rgba(10, 15, 28, 0.45); padding: 40px; }
-.board { position: relative; width: min(1100px, 100%); max-height: 100%; overflow: auto; display: grid; grid-template-columns: 1fr 1.3fr; gap: 28px; padding: 28px 32px; }
-.board h2 { margin: 0 0 14px; font-size: 22px; font-weight: 400; }
+.tv-board { position: relative; width: min(1100px, 100%); max-height: 100%; overflow: auto; display: grid; grid-template-columns: 1fr 1.3fr; gap: 28px; padding: 28px 32px; }
+.tv-board h2 { margin: 0 0 14px; font-size: 22px; font-weight: 400; }
 .board-anuncio { padding: 14px 16px; border-radius: 12px; border-left: 4px solid var(--blue); background: var(--glass); margin-bottom: 10px; }
 .board-anuncio.imp { border-left-color: var(--red); background: color-mix(in srgb, var(--red) 7%, var(--glass)); }
 .board-anuncio p { margin: 0 0 4px; font-size: 20px; line-height: 1.35; }
