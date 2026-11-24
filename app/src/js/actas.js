@@ -1,4 +1,4 @@
-// Actas de obra (Arquitectura y Diseño Interior): numeradas por proyecto, con asistentes, avance, temas,
+// Actas de obra (Arquitectura y Arquitectura Interior): numeradas por proyecto, con asistentes, avance, temas,
 // compromisos (los del equipo se vuelven tareas), pendientes del acta anterior, fotos, firmas y PDF con marca LAP.
 (() => {
   "use strict";

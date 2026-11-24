@@ -74,14 +74,16 @@
   const AREA_HEX = { arquitectura: "#8a7f73", interior: "#c08a3e", visualizacion: "#0057ff", administracion: "#4f8a6a", gestion: "#b0601e", otros: "#9a9a9a" };
 
   /* ================= mapa del estudio ================= */
-  const ROWS = [["arquitectura", "Arquitectura"], ["interior", "Diseño Interior"], ["visualizacion", "Visualización"], ["administracion", "Administración"], ["gestion", "Gestión"]];
+  const ROWS = [["arquitectura", "Arquitectura"], ["interior", "Arquitectura Interior"], ["visualizacion", "Visualización"], ["administracion", "Administración"], ["gestion", "Gestión"]];
   function buildMap() {
     const staff = L.sortPeople ? L.sortPeople(q.staff()) : q.staff();
     const conFila = new Set(ROWS.map((r) => r[0]));
     const zoneOf = (u) => (u.role === "director" ? "direccion" : (u.areas || []).find((a) => conFila.has(a)) || "otros");
     const by = {};
     for (const u of staff) (by[zoneOf(u)] = by[zoneOf(u)] || []).push(u);
-    const rows = ROWS.map(([id, label]) => ({ id, label, people: by[id] || [] }));
+    // Solo las áreas con gente, y cada una con un puesto por persona: al entrar alguien nuevo (o cambiar
+    // de área), el mapa se vuelve a armar solo y aparece su puesto.
+    const rows = ROWS.map(([id, label]) => ({ id, label, people: by[id] || [] })).filter((r) => r.people.length);
     if (by.otros && by.otros.length) rows.push({ id: "otros", label: "Sin área", people: by.otros });
     const N = Math.max(3, ...rows.map((r) => r.people.length));
     const DX = 8, RX = DX + 2 * N + 1;
@@ -95,7 +97,8 @@
     // Escritorios por área, en filas.
     rows.forEach((row, k) => {
       const y = 2 + k * 4;
-      for (let i = 0; i < N; i++) {
+      row.n = row.people.length;
+      for (let i = 0; i < row.n; i++) {
         const x = DX + 2 * i, u = row.people[i] || null;
         const dk = { x, y, u, area: row.id, i };
         desks.push(dk);
@@ -171,7 +174,7 @@
       tech: { x0: RX + 11, y0: -0.5, x1: W + 0.3, y1: D, label: "Nuevas tecnologías" },
       cafe: { x0: RX, y0: D - 9, x1: RX + 11, y1: D, label: "Cafetería" },
     };
-    for (const row of rows) zones["row-" + row.id] = { x0: DX - 1.5, y0: row.y - 1.2, x1: DX + 2 * N + 0.5, y1: row.y + 3, label: row.label, row };
+    for (const row of rows) zones["row-" + row.id] = { x0: DX - 1.5, y0: row.y - 1.2, x1: DX + 2 * Math.max(2, row.n) + 0.5, y1: row.y + 3, label: row.label, row };
     return { W, D, DX, RX, TX, N, rows, desks, seats, blocked, glass, labSpots, meet, maq, shelf, sofa, coffee, bar, plants, lamp, chairs, stools, armchairs, meetSpots, cafeSpots, tableKey, tech, tv, logoFloor, zones };
   }
   const walkable = (m, x, y) => x >= 0 && y >= 0 && x < m.W && y < m.D && !m.blocked.has(x + "," + y);
@@ -447,7 +450,7 @@
     drawVR(ctx, m.tech, 0);
     for (let i = 1; i < 7; i++) line(ctx, P(i, 8), P(i, D), C.labLine);
     // Franja de color de cada área frente a su fila de escritorios.
-    for (const row of m.rows) fillPoly(ctx, [P(m.DX - 0.3, row.y + 2.55), P(m.DX + 2 * m.N + 0.3, row.y + 2.55), P(m.DX + 2 * m.N + 0.3, row.y + 2.8), P(m.DX - 0.3, row.y + 2.8)], AREA_HEX[row.id] || "#999");
+    for (const row of m.rows) fillPoly(ctx, [P(m.DX - 0.3, row.y + 2.55), P(m.DX + 2 * row.n + 0.3, row.y + 2.55), P(m.DX + 2 * row.n + 0.3, row.y + 2.8), P(m.DX - 0.3, row.y + 2.8)], AREA_HEX[row.id] || "#999");
     const H = 46;
     fillPoly(ctx, [P(0, 0, 0), P(W, 0, 0), P(W, 0, H), P(0, 0, H)], C.wallY);
     fillPoly(ctx, [P(0, 0, 0), P(0, D, 0), P(0, D, H), P(0, 0, H)], C.wallX);

@@ -7,7 +7,7 @@ window.LAP = {};
 
   const AREAS = [
     { id: "arquitectura", label: "Arquitectura", short: "ARQ" },
-    { id: "interior", label: "Diseño Interior", short: "INT" },
+    { id: "interior", label: "Arquitectura Interior", short: "INT" },
     { id: "visualizacion", label: "Visualización", short: "VIZ" },
     { id: "administracion", label: "Administración", short: "ADM" },
     { id: "gestion", label: "Gestión", short: "GES" },

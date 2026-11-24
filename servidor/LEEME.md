@@ -39,7 +39,7 @@ Conviene darle a ese PC una IP fija en el router, para que la dirección no camb
 
 ## Primera vez
 
-- **Al crear la cuenta, cada persona elige su equipo:** Arquitectura, Diseño Interior, Visualización, Administración o Dirección creativa.
+- **Al crear la cuenta, cada persona elige su equipo:** Arquitectura, Arquitectura Interior, Visualización, Administración o Dirección creativa.
 - **Dirección creativa tiene un solo cupo.** Quien la elija primero queda como director; si ya está ocupada, el registro lo avisa.
 - **Solo se aceptan correos @laparq.com.** Para cambiarlo, edita `DOMINIO` al inicio de `pb_hooks/lib.js` y reinicia el servidor.
 - De lunes a viernes a las 8:05 a. m. (hora de Bogotá) el servidor manda los recordatorios del día: comités que esperan tu avance, reuniones de hoy y tareas por vencer.

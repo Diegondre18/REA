@@ -1,6 +1,6 @@
 # LAP Cerebro · App de Windows
 
-App de escritorio del estudio. Reúne los proyectos de Arquitectura, Diseño Interior, Visualización y Administración: plan de entregables con vistos buenos, cronograma personal, reuniones con cliente, comités internos y quién está trabajando en qué. Todo se sincroniza en vivo con el servidor de la oficina (ver `../servidor/LEEME.md`).
+App de escritorio del estudio. Reúne los proyectos de Arquitectura, Arquitectura Interior, Visualización y Administración: plan de entregables con vistos buenos, cronograma personal, reuniones con cliente, comités internos y quién está trabajando en qué. Todo se sincroniza en vivo con el servidor de la oficina (ver `../servidor/LEEME.md`).
 
 ## A cargo de cada proyecto
 
@@ -209,7 +209,7 @@ Para usar Cerebro desde el celular, por ejemplo en obra, sin depender del comput
 - 🟢 **Mi estado**: Disponible, No molestar, En reunión, Almuerzo, En pausa, **En obra** o Fuera.
 - 🔔 **Avisos**: llegan al celular. Por defecto solo cuando la persona no está en el computador (se puede cambiar a *Siempre* o *Nunca* en el perfil). Con "No molestar" llegan en silencio, salvo lo urgente. Cuando alguien te toca el hombro se responde con *Voy*, *En 10 min* o *Ahora no*.
 
-**Etapa 2 (2.23): obra.** Quien es de Arquitectura, Diseño Interior o Dirección ve además en el menú del chat:
+**Etapa 2 (2.23): obra.** Quien es de Arquitectura, Arquitectura Interior o Dirección ve además en el menú del chat:
 - 📝 **Acta de obra**: se elige el proyecto y el bot pregunta paso a paso: clima, asistentes (`Nombre - cargo - empresa`, uno por línea), avance, temas, compromisos (`Qué - responsable - fecha`) y fotos con su descripción. Si el responsable de un compromiso es alguien del estudio, se le crea la tarea. El acta queda como **borrador** numerado en la pestaña Obra; las firmas y el PDF se hacen en Cerebro. Si ese día ya hay un borrador de la misma persona en el proyecto, se sigue ese.
 - 📷 **Fotos de obra**: fotos sueltas con su descripción; quedan en la galería *Fotos de obra* de la pestaña Obra del proyecto.
 - 📌 **Pendiente**: lo que falta en obra se vuelve una tarea para quien dirige el proyecto (con aviso), para dentro de una semana. Se puede mandar con foto.

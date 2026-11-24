@@ -1,4 +1,4 @@
-// Bot de Telegram, etapa 2 (Arquitectura, Diseño Interior y Dirección): acta de obra guiada, fotos de
+// Bot de Telegram, etapa 2 (Arquitectura, Arquitectura Interior y Dirección): acta de obra guiada, fotos de
 // obra y pendientes de obra que se vuelven tareas. Lo que la persona está haciendo se guarda en
 // telegram.flujo y vence a las 3 horas sin movimiento.
 const lib = require(`${__hooks}/lib.js`);
@@ -33,7 +33,7 @@ function ponerFlujo(app, v, f) {
 /* ---------- elegir proyecto ---------- */
 const TITULOS = { a: "📝 <b>Acta de obra</b>\n¿De qué proyecto?", f: "📷 <b>Fotos de obra</b>\n¿De qué proyecto?", p: "📌 <b>Pendiente de obra</b>\n¿De qué proyecto?" };
 function elegirProyecto(app, token, chatId, u, tipo) {
-  if (!puedeObra(u)) return enviar(token, chatId, "Esto es para Arquitectura, Diseño Interior y Dirección.");
+  if (!puedeObra(u)) return enviar(token, chatId, "Esto es para Arquitectura, Arquitectura Interior y Dirección.");
   const ps = proyectosDe(app, u);
   if (!ps.length) return enviar(token, chatId, "No estás en ningún proyecto activo. Pídele a quien lo dirige que te sume.");
   const botones = ps.map((p) => [{ text: corto(nombreP(p), 50), callback_data: "op:" + tipo + ":" + p.id }]);
