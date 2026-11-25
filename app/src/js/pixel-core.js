@@ -9,12 +9,16 @@
   const PELO = [
     { id: "#2b2220", label: "Negro" }, { id: "#5a3825", label: "Castaño" }, { id: "#8a5a35", label: "Castaño claro" }, { id: "#d9b25f", label: "Rubio" },
     { id: "#b4532a", label: "Pelirrojo" }, { id: "#9a9a9a", label: "Gris" }, { id: "#d97aa6", label: "Rosado" }, { id: "#4b6fd1", label: "Azul" },
+    { id: "#6d2b1f", label: "Caoba" }, { id: "#e6dcc4", label: "Platinado" }, { id: "#463f32", label: "Taupe" }, { id: "#7b4bb3", label: "Morado" },
   ];
   const PIEL = [{ id: "#f3d5b5", label: "Muy clara" }, { id: "#e2b48c", label: "Clara" }, { id: "#c68e62", label: "Media" }, { id: "#9b6a43", label: "Morena" }, { id: "#6e4a2e", label: "Oscura" }];
   const ROPA = [
     { id: "#0057ff", label: "Azul LAP" }, { id: "#ea0029", label: "Rojo" }, { id: "#1f9d55", label: "Verde" }, { id: "#f08c00", label: "Naranja" },
     { id: "#7c4dff", label: "Morado" }, { id: "#0e9aa7", label: "Turquesa" }, { id: "#e8c100", label: "Amarillo" }, { id: "#e0569b", label: "Rosado" },
     { id: "#8b5a2b", label: "Café" }, { id: "#2d2f36", label: "Negro" }, { id: "#e9e6e1", label: "Blanco" }, { id: "#8a8f98", label: "Gris" },
+    { id: "#463f32", label: "Taupe" }, { id: "#7a1f2b", label: "Vinotinto" }, { id: "#6b7a3a", label: "Verde oliva" }, { id: "#1d2b4f", label: "Azul marino" },
+    { id: "#c0603a", label: "Terracota" }, { id: "#c99a2e", label: "Mostaza" }, { id: "#a99bd6", label: "Lavanda" }, { id: "#7fc8a9", label: "Menta" },
+    { id: "#d8c7a8", label: "Beige" }, { id: "#f08a7a", label: "Salmón" }, { id: "#1f5f6b", label: "Petróleo" }, { id: "#5b5f68", label: "Gris oscuro" },
     { id: "#1f3a68", label: "Azul oscuro" }, { id: "#6b7a2f", label: "Verde oliva" }, { id: "#7a1f3d", label: "Vino" }, { id: "#5fb4ff", label: "Celeste" },
   ];
   const OUT = "#2a2228", EYE = "#231c20", PANTS = "#cbbda7", PANTS_S = "#ae9f88", SHOES = "#f4f2ee", SOLE = "#c9c4bb", SHIRT = "#f4f1ea";
@@ -54,12 +58,20 @@
     if (longHair && front) { r(4, 9, 3, st === "rizado" ? 12 : 14, h); r(17, 9, 3, st === "rizado" ? 12 : 14, h); d(5, 12, 1, 7, hS); d(18, 12, 1, 7, hS); }
 
     // Piernas y tenis.
-    if (!seated) {
+    const poseL = cfg.pose || "";
+    if (!seated && poseL === "sentadilla") {
+      // Sentadilla: rodillas abiertas y dobladas; el cuerpo baja (se corre al final).
+      r(6, 30, 12, 3, PANTS); r(4, 33, 5, 4, PANTS); r(15, 33, 5, 4, PANTS);
+      d(8, 33, 1, 3, PANTS_S); d(19, 33, 1, 3, PANTS_S);
+      r(3, 37, 5, 3, SHOES); r(16, 37, 5, 3, SHOES); d(3, 39, 5, 1, SOLE); d(16, 39, 5, 1, SOLE);
+    } else if (!seated) {
+      // Marcha en el puesto: una rodilla sube.
+      const l1 = f1 + (poseL === "rodillaI" ? 4 : 0), l3 = f3 + (poseL === "rodillaD" ? 4 : 0);
       r(7, 30, 10, 2, PANTS);
-      r(7, 32 - f1, 4, 6, PANTS); r(13, 32 - f3, 4, 6, PANTS);
-      d(10, 32, 1, 6 - f1, PANTS_S); d(16, 32, 1, 6 - f3, PANTS_S);
-      r(6, 38 - f1, 5, 3, SHOES); r(13, 38 - f3, 5, 3, SHOES);
-      d(6, 40 - f1, 5, 1, SOLE); d(13, 40 - f3, 5, 1, SOLE);
+      r(7, 32 - l1, 4, 6, PANTS); r(13, 32 - l3, 4, 6, PANTS);
+      d(10, 32 - l1, 1, 6, PANTS_S); d(16, 32 - l3, 1, 6, PANTS_S);
+      r(6, 38 - l1, 5, 3, SHOES); r(13, 38 - l3, 5, 3, SHOES);
+      d(6, 40 - l1, 5, 1, SOLE); d(13, 40 - l3, 5, 1, SOLE);
     }
     // Torso: buzo con hombros, sombra a un lado, camiseta asomando abajo.
     const sh = woman ? 6 : 5, sw = woman ? 12 : 14;
@@ -74,7 +86,7 @@
     //  estira = brazos rectos arriba con las manos juntas sobre la cabeza · medio = brazos abiertos a los lados
     //  hombros = hombros arriba · giroI/giroD = brazos arriba girando el tronco · cuelloI/cuelloD = cabeza inclinada.
     const pose = cfg.pose || "";
-    const up = pose === "estira" || pose === "giroI" || pose === "giroD";
+    const up = pose === "estira" || pose === "giroI" || pose === "giroD" || pose === "inclinaI" || pose === "inclinaD" || pose === "puntillas";
     const arms = () => {
       if (up) {
         // por fuera de la cabeza y por detrás del pelo; las manos se juntan arriba
@@ -83,7 +95,18 @@
         r(3, -3, 5, 4, c); r(16, -3, 5, 4, c);           // muñecas hacia el centro
         r(7, -6, 10, 4, s); d(11, -6, 2, 4, sS);         // manos entrelazadas sobre la cabeza
         d(4, 11, 1, 7, cS); d(21, 11, 1, 7, cS); d(3, 2, 1, 8, cS); d(22, 2, 1, 8, cS);
-      } else if (pose === "medio") {
+      } else if (pose === "manos") {
+        // Muñecas: brazos doblados, manos juntas frente al pecho girando.
+        r(3, 18, 3, 6, c); r(18, 18, 3, 6, c); r(4, 23, 6, 3, c); r(14, 23, 6, 3, c);
+        r(10, 22, 2, 3, s); r(12, 22, 2, 3, s); d(11, 22, 1, 3, sS);
+      } else if (pose === "cruzaI" || pose === "cruzaD") {
+        // Brazo cruzado sobre el pecho; el otro lo sostiene.
+        const izq = pose === "cruzaI";
+        r(3, 18, 3, 10, c); r(18, 18, 3, 10, c);
+        d(izq ? 5 : 4, 19, 15, 1, OUT); d(izq ? 5 : 4, 23, 15, 1, OUT);
+        d(izq ? 5 : 4, 20, 15, 3, cS); d(izq ? 5 : 4, 20, 15, 1, c);
+        r(izq ? 20 : 2, 19, 2, 4, s); r(3, 28, 3, 2, s); r(18, 28, 3, 2, s);
+      } else if (pose === "medio" || pose === "sentadilla") {
         r(-1, 17, 6, 3, c); r(19, 17, 6, 3, c); d(-1, 19, 6, 1, cS); d(19, 19, 6, 1, cS);
         r(-3, 17, 2, 3, s); r(25, 17, 2, 3, s);
       } else {
@@ -158,16 +181,25 @@
       r(7, 1, 10, 2, "#e8b923"); r(7, -1, 2, 2, "#e8b923"); r(11, -2, 2, 3, "#e8b923"); r(15, -1, 2, 2, "#e8b923");
       d(8, 1, 1, 1, "#fff2a8"); d(11, 1, 2, 1, "#ea0029"); d(7, 2, 10, 1, "#b8860b");
     } else if (cfg.gorra && ex !== "audifonos") { r(5, 1, 14, 4, "#ea0029"); d(7, 2, 4, 1, "#ff4d6a"); if (front) r(12, 5, 9, 1, "#b8001f"); }
+    if (cfg.bufanda) { r(7, 15, 10, 3, "#c0392b"); d(7, 16, 10, 1, "#e8584a"); if (front) { r(13, 17, 3, 6, "#c0392b"); d(13, 19, 3, 1, "#e8584a"); } }
+    if (cfg.gafas && front) { r(7, 9, 4, 3, "#1d1d22"); r(13, 9, 4, 3, "#1d1d22"); d(11, 10, 2, 1, "#1d1d22"); d(8, 9, 1, 1, "#5a6b8c"); d(14, 9, 1, 1, "#5a6b8c"); }
     if (ex === "audifonos") { r(6, 0, 12, 1, "#2d2f36"); r(4, 1, 2, 4, "#2d2f36"); r(18, 1, 2, 4, "#2d2f36"); r(2, 7, 4, 6, "#3a3d46"); r(18, 7, 4, 6, "#3a3d46"); d(3, 8, 1, 4, "#ff5a6e"); d(20, 8, 1, 4, "#ff5a6e"); }
     else if (ex === "taza" && front) { r(19, 24, 4, 5, "#f4f1ea"); r(23, 25, 1, 3, "#f4f1ea"); d(19, 24, 4, 1, "#8b5a2b"); }
     else if (ex === "libreta" && front) { r(19, 19, 3, 11, "#f4f1ea"); d(19, 19, 3, 1, "#d9d4cb"); d(20, 22, 1, 5, "#5c7fb8"); }
     // Cabeza inclinada (cuello) o tronco girado (espalda): se corre la parte de arriba.
     const tilt = pose === "cuelloI" ? -2 : pose === "cuelloD" ? 2 : 0;
     if (tilt) for (let i = headFrom; i < out.length; i++) { out[i][0] += tilt; out[i][1] += 1; }
-    const twist = pose === "giroI" ? -2 : pose === "giroD" ? 2 : 0;
+    const twist = pose === "giroI" || pose === "inclinaI" ? -2 : pose === "giroD" || pose === "inclinaD" ? 2 : 0;
     if (twist) for (const p of out) if (p[1] < 30) p[0] += twist;
+    // Estiramiento lateral: además la cabeza y los brazos se inclinan más hacia el lado.
+    if (pose === "inclinaI" || pose === "inclinaD") for (const p of out) if (p[1] < 12) p[0] += pose === "inclinaI" ? -1 : 1;
+    if (pose === "sentadilla") for (const p of out) if (p[1] < 30) p[1] += 3;
+    if (pose === "puntillas") for (const p of out) p[1] -= 2;
     return out;
   }
+  // Secuencia que hace el muñeco en pausa (oficina y aviso grande): un poco de cada ejercicio.
+  const PAUSA_CICLO = ["", "medio", "estira", "estira", "inclinaI", "estira", "inclinaD", "", "hombros", "", "sentadilla", "", "sentadilla", "",
+    "rodillaI", "", "rodillaD", "", "cruzaI", "cruzaI", "cruzaD", "cruzaD", "manos", "", "puntillas", ""];
   // Accesorio que lleva cada estado.
   const EXTRA = { no_molestar: "audifonos", almuerzo: "taza", reunion: "libreta" };
   // Accesorio del estado, gorra si la ganó y, en pausa, sube y baja los brazos (t = tiempo en ms).
@@ -176,7 +208,9 @@
     if (EXTRA[presencia]) out.extra = EXTRA[presencia];
     if (Array.isArray(premios) && premios.includes("gorra")) out.gorra = true;
     if (Array.isArray(premios) && premios.includes("corona")) out.corona = true;
-    if (presencia === "pausa" && t !== undefined) out.pose = ["", "medio", "estira", "estira", "medio"][Math.floor(t / 420) % 5];
+    if (Array.isArray(premios) && premios.includes("gafas")) out.gafas = true;
+    if (Array.isArray(premios) && premios.includes("bufanda")) out.bufanda = true;
+    if (presencia === "pausa" && t !== undefined) out.pose = PAUSA_CICLO[Math.floor(t / 520) % PAUSA_CICLO.length];
     return out;
   };
   // Dibuja con contorno: primero la silueta oscura, luego los colores. k = tamaño de un pixel de la caja

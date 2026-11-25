@@ -115,13 +115,25 @@
   /* ================= premios del muñeco ================= */
   const onTime = (uid) => L.state.tareas.filter((t) => (t.assignees || []).includes(uid) && t.status === "terminado" && t.due && t.doneAt && t.doneAt <= t.due).length;
   const totalPausas = () => mine().reduce((s, x) => s + (Number(x.pausas) || 0), 0);
+  // Semanales: se ganan con lo de la semana en curso y se reinician cada lunes.
+  // Para siempre: una vez ganados, no se pierden.
+  const semanaActual = () => weekRange(0);
+  const enSemana = (iso) => { const [a, b] = semanaActual(); return !!iso && String(iso).slice(0, 10) >= a && String(iso).slice(0, 10) <= b; };
+  const onTimeSemana = (uid) => L.state.tareas.filter((t) => (t.assignees || []).includes(uid) && t.status === "terminado" && t.due && t.doneAt && t.doneAt <= t.due && enSemana(t.doneAt)).length;
+  const graciasSemana = (uid) => (L.state.reconocimientos || []).filter((r) => r.para === uid && enSemana(r.created)).length;
+  const aguaSemana = () => { const meta = aguaCfg().meta || 8; return mine().filter((x) => enSemana(x.fecha) && (Number(x.agua) || 0) >= meta).length; };
   const PREMIOS = [
+    { id: "trofeo", label: "Trofeo de la semana", how: `Cumplir la meta de bienestar: ${META} pausas o descansos esta semana`, goal: META, val: () => sumWeek(0), weekly: true },
+    { id: "rayo", label: "Rayo de puntualidad", how: "3 entregas a tiempo esta semana", goal: 3, val: () => onTimeSemana(L.state.me.id), weekly: true },
+    { id: "estrella", label: "Estrella del equipo", how: "Recibir 2 agradecimientos esta semana", goal: 2, val: () => graciasSemana(L.state.me.id), weekly: true },
+    { id: "gota", label: "Gota de agua", how: "Cumplir la meta de agua 3 días esta semana", goal: 3, val: aguaSemana, weekly: true },
     { id: "planta", label: "Planta en tu puesto", how: "5 entregas a tiempo", goal: 5, val: () => onTime(L.state.me.id) },
     { id: "taza", label: "Taza propia", how: "10 pausas activas", goal: 10, val: totalPausas },
-    { id: "trofeo", label: "Trofeo de la semana", how: `Cumplir la meta de bienestar: ${META} pausas o descansos en la semana`, goal: META, val: () => Math.max(sumWeek(0), sumWeek(-1)), weekly: true },
     { id: "cuadro", label: "Cuadro en tu puesto", how: "20 entregas a tiempo", goal: 20, val: () => onTime(L.state.me.id) },
+    { id: "gafas", label: "Gafas para tu muñeco", how: "25 pausas activas", goal: 25, val: totalPausas },
     { id: "lampara", label: "Lámpara de escritorio", how: "3 semanas cumpliendo la meta de bienestar", goal: 3, val: weeksOk },
     { id: "medalla", label: "Medalla de compañerismo", how: "Recibir 5 agradecimientos del equipo", goal: 5, val: () => (L.state.reconocimientos || []).filter((r) => r.para === L.state.me.id).length },
+    { id: "bufanda", label: "Bufanda para tu muñeco", how: "10 semanas cumpliendo la meta de bienestar", goal: 10, val: weeksOk },
     { id: "gorra", label: "Gorra para tu muñeco", how: "40 entregas a tiempo", goal: 40, val: () => onTime(L.state.me.id) },
   ];
   let premiosSig = "", premiosBusy = false;
@@ -139,7 +151,7 @@
     premiosBusy = false;
     if (ok && nuevos.length) {
       const p = PREMIOS.find((x) => x.id === nuevos[0]);
-      celebrate(`¡Ganaste: ${p.label}! Ya se ve en la oficina.`, true);
+      celebrate(p.weekly ? `¡Premio de la semana: ${p.label}! Se reinicia el lunes.` : `¡Ganaste: ${p.label}! Es tuyo para siempre y ya se ve en la oficina.`, true);
     }
   }
 
@@ -349,6 +361,31 @@
     if (n >= c.meta) celebrate(`¡Meta de agua cumplida: ${n} vasos!`); else L.toast(`Vaso ${n} de ${c.meta}`);
     L.syncBubble();
   }
+  // Próximos cumpleaños del equipo: faltan 1 a 10 días (sin contar el propio).
+  function proximosCumples() {
+    const hoy = L.today(), out = [];
+    for (const u of q.staff()) {
+      if (!u.cumple || !/^\d{2}-\d{2}$/.test(u.cumple) || (L.state.me && u.id === L.state.me.id)) continue;
+      const [m, d] = u.cumple.split("-").map(Number);
+      let f = new Date(hoy.getFullYear(), m - 1, d);
+      if (f < hoy) f = new Date(hoy.getFullYear() + 1, m - 1, d);
+      const n = L.diff(hoy, f);
+      if (n >= 1 && n <= 10) out.push({ u, n, fecha: L.iso(f) });
+    }
+    return out.sort((a, b) => a.n - b.n);
+  }
+  // Anuncio para todos al abrir la app, desde 10 días antes. "Entendido" lo esconde hasta mañana.
+  function CumpleBanner() {
+    L.useStore();
+    const [, force] = useState(0);
+    if (!L.state.me || L.state.me.role === "pantalla") return null;
+    const key = (c) => "lap-cerebro-cumple-aviso-" + todayIso() + "-" + c.u.id;
+    const lista = proximosCumples().filter((c) => !ls.get(key(c), false));
+    if (!lista.length) return null;
+    const ok = () => { for (const c of lista) ls.set(key(c), true); force((n) => n + 1); };
+    return html`<div class="banner glass cumple-banner"><p>🎂 ${lista.map((c, i) => html`<span key=${c.u.id}>${i ? " · " : ""}<strong>No olvides el cumpleaños de ${c.u.name}</strong>: ${c.n === 1 ? "es mañana" : `es en ${c.n} días`} (${L.fmtDay(c.fecha)}).</span>`)}</p><button type="button" class="btn sm" onClick=${ok}>Entendido</button></div>`;
+  }
+
   // Cumpleaños: la persona lo celebra al abrir la app ese día.
   function birthdayCheck() {
     if (!live()) return;
@@ -437,28 +474,45 @@
     { t: "Espalda", d: "De pie, estira los brazos hacia arriba y gira el tronco a cada lado.", poses: [{ pose: "medio" }, { pose: "estira" }, { pose: "giroI" }, { pose: "giroI" }, { pose: "estira" }, { pose: "giroD" }, { pose: "giroD" }, { pose: "estira" }] },
     { t: "Vista 20-20-20", d: "Mira algo a unos 6 metros durante 20 segundos y parpadea varias veces.", poses: [{ look: -1 }, { look: -1 }, { look: -1, blink: true }, { look: 1 }, { look: 1 }, { look: 1, blink: true }] },
     { t: "Camina", d: "Da una vuelta corta: sirve un vaso de agua o pásale a saludar a alguien.", poses: [{ frame: 1 }, { frame: 0 }, { frame: 3 }, { frame: 0 }] },
+    { t: "Estiramiento lateral", d: "Brazos arriba, inclínate despacio hacia un lado, sostén y cambia de lado.", poses: [{ pose: "estira" }, { pose: "inclinaI" }, { pose: "inclinaI" }, { pose: "estira" }, { pose: "inclinaD" }, { pose: "inclinaD" }] },
+    { t: "Sentadillas", d: "Pies al ancho de la cadera, baja como si te sentaras y vuelve a subir. Diez veces, sin prisa.", poses: [{}, { pose: "sentadilla" }, { pose: "sentadilla" }, {}] },
+    { t: "Marcha en el puesto", d: "Sube una rodilla y luego la otra, como si marcharas, durante 30 segundos.", poses: [{ pose: "rodillaI" }, {}, { pose: "rodillaD" }, {}] },
+    { t: "Muñecas y manos", d: "Junta las manos frente al pecho y gira las muñecas; luego abre y cierra los dedos. Ideal después del mouse.", poses: [{ pose: "manos" }, { pose: "manos", blink: true }, { pose: "manos" }, {}] },
+    { t: "Brazo cruzado", d: "Cruza un brazo sobre el pecho y sostenlo con el otro 15 segundos. Cambia de brazo.", poses: [{ pose: "cruzaI" }, { pose: "cruzaI" }, { pose: "cruzaI" }, {}, { pose: "cruzaD" }, { pose: "cruzaD" }, { pose: "cruzaD" }, {}] },
+    { t: "Puntillas", d: "Sube en puntas de pie con los brazos arriba, sostén dos segundos y baja. Mejora la circulación de las piernas.", poses: [{}, { pose: "puntillas" }, { pose: "puntillas" }, {}] },
   ];
+  // Rutina de cada pausa: 6 ejercicios que cambian según el día y la hora (siempre termina caminando).
+  function rutina() {
+    const ahora = new Date();
+    const semilla = ahora.getDate() * 7 + ahora.getHours();
+    const camina = EJERCICIOS.find((e) => e.t === "Camina");
+    const resto = EJERCICIOS.filter((e) => e !== camina);
+    const out = [];
+    for (let i = 0; out.length < 5; i++) { const e = resto[(semilla * 5 + i * 3) % resto.length]; if (!out.includes(e)) out.push(e); }
+    return [...out, camina];
+  }
   function PausaView() {
+    const [EJ] = useState(rutina);
     const total = pausaMin() * 60e3;
-    const per = total / EJERCICIOS.length;
+    const per = total / EJ.length;
     const [t0] = useState(() => Date.now());
     const [, force] = useState(0);
     useEffect(() => { const id = setInterval(() => force((n) => n + 1), 150); return () => clearInterval(id); }, []);
     const el = Date.now() - t0;
-    const i = Math.min(EJERCICIOS.length - 1, Math.floor(el / per));
-    const ex = EJERCICIOS[i];
+    const i = Math.min(EJ.length - 1, Math.floor(el / per));
+    const ex = EJ[i];
     const pz = ex.poses[Math.floor(el / 600) % ex.poses.length];
     const doneAll = el >= total;
     return html`
       <div class="pausa-view glass">
         <div class="pausa-doll"><${BigDoll} pose=${pz.pose || ""} view=${pz.view || "front"} frame=${pz.frame || 0} flip=${!!pz.flip} cfgOver=${{ look: pz.look || 0, blink: !!pz.blink }} /></div>
         <div class="pausa-body">
-          <span class="eyebrow">Pausa activa · ejercicio ${i + 1} de ${EJERCICIOS.length}</span>
+          <span class="eyebrow">Pausa activa · ejercicio ${i + 1} de ${EJ.length}</span>
           <h1>${doneAll ? "¡Listo!" : ex.t}</h1>
           <p>${doneAll ? "Pausa terminada. Vuelve con calma." : ex.d}</p>
           <div class="pausa-bar"><i style=${{ width: Math.min(100, (el / total) * 100) + "%" }}></i></div>
           <span class="mono muted">${doneAll ? "0:00" : mmss(total - el)} restantes</span>
-          <div class="pausa-steps">${EJERCICIOS.map((e, k) => html`<span key=${k} class=${L.cx(k < i || doneAll ? "done" : k === i && "now")}>${e.t}</span>`)}</div>
+          <div class="pausa-steps">${EJ.map((e, k) => html`<span key=${k} class=${L.cx(k < i || doneAll ? "done" : k === i && "now")}>${e.t}</span>`)}</div>
           <div class="inline">
             <button type="button" class="btn primary" onClick=${() => pausaEnd(doneAll || el >= total * 0.6)}>${doneAll ? "Terminar" : "Terminar la pausa"}</button>
             ${!doneAll && html`<button type="button" class="btn ghost" onClick=${() => pausaEnd(false)}>Salir sin terminar</button>`}
@@ -545,16 +599,25 @@
     cuadro: [[0, 1, 8, 6, "#8b5a2b"], [1, 2, 6, 4, "#5fb4ff"], [1, 4, 4, 2, "#6aa34a"], [5, 2, 1, 1, "#f2c94c"]],
     lampara: [[2, 0, 4, 2, "#f3d77f"], [1, 2, 6, 1, "#e9c968"], [3, 3, 1, 4, "#4a4650"], [2, 7, 4, 1, "#4a4650"]],
     gorra: [[2, 2, 4, 2, "#ea0029"], [1, 4, 6, 1, "#ea0029"], [5, 5, 3, 1, "#b8001f"]],
+    rayo: [[4, 0, 3, 1, "#f2c94c"], [3, 1, 3, 1, "#f2c94c"], [2, 2, 3, 1, "#f2c94c"], [1, 3, 5, 1, "#e8b923"], [3, 4, 3, 1, "#f2c94c"], [3, 5, 2, 1, "#f2c94c"], [2, 6, 2, 1, "#d9a925"], [2, 7, 1, 1, "#d9a925"]],
+    estrella: [[3, 0, 2, 2, "#f2c94c"], [0, 2, 8, 2, "#f2c94c"], [1, 4, 6, 1, "#e8b923"], [1, 5, 2, 2, "#d9a925"], [5, 5, 2, 2, "#d9a925"], [3, 4, 2, 2, "#fff2a8"]],
+    gota: [[3, 0, 2, 1, "#4aa8ff"], [2, 1, 4, 2, "#4aa8ff"], [1, 3, 6, 3, "#2f8de4"], [2, 6, 4, 1, "#1f6fc0"], [2, 3, 1, 2, "#bfe2ff"]],
+    gafas: [[0, 2, 8, 1, "#1d1d22"], [0, 3, 3, 3, "#1d1d22"], [5, 3, 3, 3, "#1d1d22"], [1, 3, 1, 1, "#5a6b8c"], [6, 3, 1, 1, "#5a6b8c"]],
+    bufanda: [[1, 1, 6, 2, "#c0392b"], [1, 2, 6, 1, "#e8584a"], [4, 3, 2, 4, "#c0392b"], [4, 5, 2, 1, "#e8584a"], [4, 7, 1, 1, "#8f2a20"], [5, 7, 1, 1, "#8f2a20"]],
   };
   const PremioIcon = ({ id, on }) => html`<svg class=${L.cx("premio-ico", !on && "off")} viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true">${(ICONS[id] || []).map(([x, y, w, h, c], i) => html`<rect key=${i} x=${x} y=${y} width=${w} height=${h} fill=${c} />`)}</svg>`;
   function Premios() {
     const s = L.useStore();
     const had = s.me.premios || [];
-    return html`<${L.Panel} title="Premios de tu muñeco" cls="span-7" action=${html`<a class="link" href="#oficina">Ver en la oficina</a>`}>
-      <div class="premios">${PREMIOS.map((p) => { const on = had.includes(p.id); const v = Math.min(p.goal, p.val()); return html`
+    const grupo = (lista) => html`<div class="premios">${lista.map((p) => { const on = had.includes(p.id); const v = Math.min(p.goal, p.val()); return html`
         <div class=${L.cx("premio", on && "on")} key=${p.id}><${PremioIcon} id=${p.id} on=${on} /><span><b>${p.label}</b><small>${on ? (p.weekly ? "Ganado esta semana" : "Ganado") : p.how}</small>
-          ${!on && html`<span class="bar-track wide"><i style=${{ width: (v / p.goal) * 100 + "%" }}></i></span><small class="mono">${v} de ${p.goal}</small>`}</span></div>`; })}</div>
-      <p class="hint">Se ven en tu puesto de la oficina (la gorra, en tu muñeco). Entregas a tiempo = tareas terminadas antes de su fecha.</p>
+          ${!on && html`<span class="bar-track wide"><i style=${{ width: (v / p.goal) * 100 + "%" }}></i></span><small class="mono">${v} de ${p.goal}</small>`}</span></div>`; })}</div>`;
+    return html`<${L.Panel} title="Premios de tu muñeco" cls="span-7" action=${html`<a class="link" href="#oficina">Ver en la oficina</a>`}>
+      <h3 class="premios-h">De la semana <small>se reinician cada lunes</small></h3>
+      ${grupo(PREMIOS.filter((p) => p.weekly))}
+      <h3 class="premios-h">Para siempre <small>una vez ganados, no se pierden</small></h3>
+      ${grupo(PREMIOS.filter((p) => !p.weekly))}
+      <p class="hint">Se ven en tu puesto de la oficina (gorra, gafas y bufanda, en tu muñeco). Entregas a tiempo = tareas terminadas antes de su fecha.</p>
     <//>`;
   }
 
@@ -780,5 +843,5 @@
   }
 
   Object.assign(L, { BigAlert, Ranking, ranking, rankingMes, PremioIcon, BigDoll, campeon, premiosDe, Campeon, PremioBanner, premioActual, puedePremio, guardarPremio, premioModo: modo, premioTick });
-  Object.assign(L, { celebrate, PomodoroChip, WellAlert, PausaView, CierreView, Bienestar, Premios, WellSettings, PREMIOS, wellRun: runAction });
+  Object.assign(L, { CumpleBanner, proximosCumples, celebrate, PomodoroChip, WellAlert, PausaView, CierreView, Bienestar, Premios, WellSettings, PREMIOS, wellRun: runAction });
 })();

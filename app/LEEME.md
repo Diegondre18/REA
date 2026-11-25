@@ -240,3 +240,11 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - **Ausencias por horas.** En Ausencias, "Sale a las" (el primer día, desde esa hora) y "Llega a las" (el último día, hasta esa hora). Vacíos = todo el día, como antes.
 - **Choques.** Si la tarea empieza o se entrega mientras la persona no está (con hora, o un día completo), Cerebro **no deja asignarla**. Si ese día la persona sale o llega a cierta hora y la tarea no tiene hora, solo **avisa** a quien asigna, para que le ponga hora o confirme.
 - **Telegram: 🕔 Me ausento** (para todos). Día (hoy, mañana o escrito, como `25/11`) → todo el día, "Salgo a las…" o "Llego a las…" (botones o escrita, como `3:30 pm`) → tipo. El bot avisa qué entregas propias chocan y deja **cancelar** la ausencia.
+
+## Muñeco, premios, pausas y cumpleaños (2.28)
+
+- **Más colores para el muñeco**: 12 colores de ropa nuevos (Taupe, Vinotinto, Verde oliva, Azul marino, Terracota, Mostaza, Lavanda, Menta, Beige, Salmón, Petróleo y Gris oscuro) y 4 de pelo (Caoba, Platinado, Taupe y Morado).
+- **Premios de la semana** (se reinician cada lunes): Trofeo de la semana, Rayo de puntualidad (3 entregas a tiempo), Estrella del equipo (2 agradecimientos) y Gota de agua (meta de agua 3 días).
+- **Premios para siempre** (no se pierden): planta, taza, cuadro, lámpara, medalla, gorra y, nuevos, **gafas** (25 pausas activas) y **bufanda** (10 semanas cumpliendo la meta) para el muñeco.
+- **Pausa activa con más ejercicios**: estiramiento lateral, sentadillas, marcha en el puesto, muñecas y manos, brazo cruzado y puntillas, además de los de antes. Cada pausa arma una rutina distinta de 6 ejercicios según el día y la hora, y el muñeco hace cada movimiento.
+- **Cumpleaños**: desde 10 días antes, todo el equipo (menos quien cumple) ve al abrir la app "No olvides el cumpleaños de…, es en N días". "Entendido" lo esconde hasta el día siguiente.
