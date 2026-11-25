@@ -1134,6 +1134,9 @@ input.time-in { width: 120px !important; flex: none; }
 .cargo-row { display: grid; grid-template-columns: 150px 1fr; gap: 4px 12px; align-items: center; }
 .cargo-row .cargo-rol { font-size: 13px; font-weight: 500; color: var(--fg); }
 .cargo-row .hint { grid-column: 2; margin-top: -2px; }
+.cargo-row .apoyo-extra { display: flex; gap: 6px; align-items: center; }
+.cargo-row .apoyo-extra select { flex: 1; min-width: 0; }
+.cargo-row .mas-apoyo { justify-self: start; }
 
 .clave-box { display: grid; gap: 8px; }
 .clave-box input { width: 100%; }

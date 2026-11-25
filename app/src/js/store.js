@@ -411,19 +411,22 @@
     // Dirección creativa y perfil maestro tienen los mismos permisos sobre proyectos y planes.
     isDirector: () => !!state.me && (state.me.role === "director" || state.me.role === "maestro"),
     isMaestro: () => !!state.me && state.me.role === "maestro",
-    canLead: (p) => !!p && !!state.me && (p.leader === state.me.id || p.apoyo === state.me.id || q.isDirector()),
+    canLead: (p) => !!p && !!state.me && (q.estaACargo(p, state.me.id) || q.isDirector()),
+    // Apoyos del proyecto: el primero ("apoyo") y los que se agregan con "+" ("apoyos").
+    apoyosDe: (p) => { if (!p) return []; const a = [p.apoyo, ...(p.apoyos || [])].filter(Boolean); return a.filter((u, i) => a.indexOf(u) === i && u !== p.leader); },
+    estaACargo: (p, uid) => !!p && !!uid && (p.leader === uid || q.apoyosDe(p).includes(uid)),
     // A cargo del proyecto: el Director creativo (siempre), quien lo dirige y el apoyo (opcional).
     creativeDirector: () => state.users.find((u) => u.role === "director") || null,
     aCargo: (p) => {
       if (!p) return [];
       const dc = q.creativeDirector();
-      return [dc && { id: dc.id, rol: "Director creativo" }, p.leader && { id: p.leader, rol: "Dirige el proyecto" }, p.apoyo && { id: p.apoyo, rol: "Apoyo" }].filter(Boolean);
+      return [dc && { id: dc.id, rol: "Director creativo" }, p.leader && { id: p.leader, rol: "Dirige el proyecto" }, ...q.apoyosDe(p).map((u) => ({ id: u, rol: "Apoyo" }))].filter(Boolean);
     },
     // El equipo del estudio, sin el perfil maestro de soporte.
     staff: () => state.users.filter((u) => u.role !== "maestro" && u.role !== "pantalla"),
     // Finanzas: Dirección, perfil maestro y el área de Administración (el líder ve los cobros de su proyecto).
     isFin: () => q.isDirector() || ((state.me && state.me.areas) || []).some((a) => a === "administracion" || a === "gestion"),
-    canSeeMoney: (p) => q.isFin() || (!!p && !!state.me && (p.leader === state.me.id || p.apoyo === state.me.id)),
+    canSeeMoney: (p) => q.isFin() || (!!p && !!state.me && q.estaACargo(p, state.me.id)),
     contacto: (id) => state.contactos.find((c) => c.id === id) || null,
     revision: (id) => state.revisiones.find((r) => r.id === id) || null,
     // Ausencia vigente de una persona en una fecha (hoy si no se dice).
@@ -471,7 +474,7 @@
     planItems: (planId) => state.planItems.filter((i) => i.plan === planId).sort((a, b) => a.date.localeCompare(b.date) || (a.order || 0) - (b.order || 0)),
     planVistos: (planId) => state.vistos.filter((v) => v.plan === planId),
     // Integrantes que deben dar visto bueno: todos menos quien lidera.
-    reviewers: (p) => (p ? (p.members || []).filter((m) => m !== p.leader && m !== p.apoyo) : []),
+    reviewers: (p) => (p ? (p.members || []).filter((m) => !q.estaACargo(p, m)) : []),
     // La reunión con cliente más cercana del proyecto, a partir de una fecha.
     nextClientMeeting: (pid, from) => {
       const start = from || L.todayIso();
@@ -480,7 +483,7 @@
     },
     myTasks: (uid) => state.tareas.filter((t) => (t.assignees || []).includes(uid)),
     myEvents: (uid) => state.eventos.filter((e) => (e.attendees || []).includes(uid)),
-    myProjects: (uid) => state.proyectos.filter((p) => p.status !== "cerrado" && ((p.members || []).includes(uid) || p.leader === uid || p.apoyo === uid)),
+    myProjects: (uid) => state.proyectos.filter((p) => p.status !== "cerrado" && ((p.members || []).includes(uid) || q.estaACargo(p, uid))),
     unread: () => state.notifs.filter((n) => !n.read).length,
     // Lo que está esperando una acción mía.
     pending: () => {
@@ -491,7 +494,7 @@
         const p = q.project(plan.project); if (!p) continue;
         const vistos = q.planVistos(plan.id);
         if (q.reviewers(p).includes(me) && !vistos.some((v) => v.user === me)) out.vistos.push({ plan, project: p });
-        if (p.leader === me || p.apoyo === me || q.isDirector()) {
+        if (q.estaACargo(p, me) || q.isDirector()) {
           const ok = q.reviewers(p).filter((m) => vistos.some((v) => v.user === m && v.verdict === "ok")).length;
           out.aprobar.push({ plan, project: p, ok, total: q.reviewers(p).length, cambios: vistos.filter((v) => v.verdict === "cambios") });
         }

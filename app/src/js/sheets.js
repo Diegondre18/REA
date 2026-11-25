@@ -41,7 +41,7 @@
     if (id && !task) return html`<${Sheet} title="Tarea" onClose=${L.closeSheet} footer=${html`<button type="button" class="btn" onClick=${L.closeSheet}>Cerrar</button>`}><p class="note">Esta tarea ya no existe.</p><//>`;
 
     const project = q.project(f.project);
-    const candidates = project ? [...new Set([project.leader, project.apoyo, ...(project.members || [])].filter(Boolean))] : q.staff().map((u) => u.id);
+    const candidates = project ? [...new Set([project.leader, ...q.apoyosDe(project), ...(project.members || [])].filter(Boolean))] : q.staff().map((u) => u.id);
     const meetings = f.project ? q.projectEvents(f.project).filter((e) => e.kind !== "comite" && (e.date >= L.todayIso() || e.id === f.meeting)) : [];
     const viz = f.area === "visualizacion";
     const workers = id ? q.workingOn(id) : [];
@@ -196,20 +196,29 @@
   function ProjectSheet({ id }) {
     const s = L.useStore();
     const p = id ? q.project(id) : null;
-    const [f, setF, set] = useForm(() => p ? { apoyo: "", ...p } : { name: "", code: "", client: "", phase: "anteproyecto", status: "activo", leader: s.me.role === "director" ? "" : s.me.id, apoyo: "", members: s.me.role === "director" ? [] : [s.me.id], areas: [], start: L.todayIso(), end: "", folder: "", notes: "" });
+    const [f, setF, set] = useForm(() => p ? { apoyo: "", ...p, apoyos: [...(p.apoyos || [])] } : { name: "", code: "", client: "", phase: "anteproyecto", status: "activo", leader: s.me.role === "director" ? "" : s.me.id, apoyo: "", apoyos: [], members: s.me.role === "director" ? [] : [s.me.id], areas: [], start: L.todayIso(), end: "", folder: "", notes: "" });
     const [err, setErr] = useState("");
     const can = !id || q.canLead(p);
     const save = async () => {
       if (!f.name.trim()) { setErr("Escribe el nombre del proyecto."); return; }
       if (!f.leader) { L.toast("Elige quién dirige el proyecto."); return; }
-      if (f.apoyo && f.apoyo === f.leader) { L.toast("El apoyo debe ser otra persona."); return; }
-      const members = [...new Set([f.leader, f.apoyo, ...(f.members || [])].filter(Boolean))];
-      const rec = await act.saveProject(id, { name: f.name.trim(), code: (f.code || "").trim(), client: (f.client || "").trim(), phase: f.phase, status: f.status, leader: f.leader, apoyo: f.apoyo || "", members, areas: f.areas || [], start: f.start || "", end: f.end || "", folder: (f.folder || "").trim(), notes: f.notes || "" });
+      const todos = [f.apoyo, ...(f.apoyos || [])].filter(Boolean);
+      if (todos.includes(f.leader)) { L.toast("El apoyo debe ser otra persona, no quien dirige el proyecto."); return; }
+      if (new Set(todos).size !== todos.length) { L.toast("Esa persona ya está como apoyo."); return; }
+      const [apoyo = "", ...apoyos] = todos;
+      const members = [...new Set([f.leader, ...todos, ...(f.members || [])].filter(Boolean))];
+      const rec = await act.saveProject(id, { name: f.name.trim(), code: (f.code || "").trim(), client: (f.client || "").trim(), phase: f.phase, status: f.status, leader: f.leader, apoyo, apoyos, members, areas: f.areas || [], start: f.start || "", end: f.end || "", folder: (f.folder || "").trim(), notes: f.notes || "" });
       if (rec) { L.toast(id ? "Cambios guardados" : "Proyecto creado"); L.closeSheet(); if (!id) L.go("#proyecto/" + rec.id); }
     };
     const remove = async () => { if (await act.deleteProject(id)) { L.toast("Proyecto eliminado"); L.closeSheet(); L.go("#proyectos"); } };
     const pickFolder = async () => { const dir = await L.desk.pickFolder(f.folder || ""); if (dir) setF((x) => ({ ...x, folder: dir })); };
     const ro = !can;
+    // Apoyos: el primero y los que se agregan con "+". Nadie puede repetirse ni ser quien dirige.
+    const elegidos = [f.leader, f.apoyo, ...(f.apoyos || [])].filter(Boolean);
+    const opcionesApoyo = (actual) => q.staff().filter((u) => u.role !== "director").map((u) => html`<option key=${u.id} value=${u.id} disabled=${u.id !== actual && elegidos.includes(u.id)}>${u.name}</option>`);
+    const agregarApoyo = () => setF((x) => ({ ...x, apoyos: [...(x.apoyos || []), ""] }));
+    const cambiarApoyo = (i, v) => setF((x) => ({ ...x, apoyos: (x.apoyos || []).map((u, k) => (k === i ? v : u)) }));
+    const quitarApoyo = (i) => setF((x) => ({ ...x, apoyos: (x.apoyos || []).filter((_, k) => k !== i) }));
     const footer = html`${id && can && html`<${DeleteButton} onConfirm=${remove} label="Eliminar proyecto" />`}<span class="spacer"></span>
       <button type="button" class="btn ghost" onClick=${L.closeSheet}>${can ? "Cancelar" : "Cerrar"}</button>${can && html`<button type="submit" class="btn primary">${id ? "Guardar" : "Crear proyecto"}</button>`}`;
     return html`
@@ -225,11 +234,13 @@
           <${Field} label="Estado" id="p-status"><select id="p-status" value=${f.status} onChange=${set("status")} disabled=${ro}><option value="activo">Activo</option><option value="pausado">En pausa</option><option value="cerrado">Cerrado</option></select><//>
         </div>
         <div class="fld"><span class="lbl">Áreas que participan</span><${Pills} options=${L.AREAS} value=${f.areas || []} attr="data-a" disabled=${ro} onChange=${(a) => setF((x) => ({ ...x, areas: toggleIn(x.areas || [], a) }))} /></div>
-        <div class="fld a-cargo"><span class="lbl">A cargo del proyecto · 2 personas, máximo 3 con apoyo</span>
+        <div class="fld a-cargo"><span class="lbl">A cargo del proyecto</span>
           <div class="cargo-row"><span class="cargo-rol">Director creativo</span>${q.creativeDirector() ? html`<span class="inline"><${Avatar} id=${q.creativeDirector().id} /> ${q.creativeDirector().name}</span>` : html`<span class="muted">Aún no hay Director creativo</span>`}<span class="hint">Siempre, en todos los proyectos</span></div>
-          <div class="cargo-row"><label class="cargo-rol" for="p-leader">Dirige el proyecto</label><select id="p-leader" value=${f.leader || ""} onChange=${set("leader")} disabled=${ro}><option value="">Elige a la persona…</option>${q.staff().filter((u) => u.role !== "director").map((u) => html`<option key=${u.id} value=${u.id} disabled=${u.id === f.apoyo}>${u.name}</option>`)}</select></div>
-          <div class="cargo-row"><label class="cargo-rol" for="p-apoyo">Apoyo (opcional)</label><select id="p-apoyo" value=${f.apoyo || ""} onChange=${set("apoyo")} disabled=${ro}><option value="">Sin apoyo</option>${q.staff().filter((u) => u.role !== "director").map((u) => html`<option key=${u.id} value=${u.id} disabled=${u.id === f.leader}>${u.name}</option>`)}</select></div>
-          <span class="hint">Quien dirige y el apoyo arman el plan de entregables, lo envían a visto bueno y lo aprueban; también editan el proyecto.</span></div>
+          <div class="cargo-row"><label class="cargo-rol" for="p-leader">Dirige el proyecto</label><select id="p-leader" value=${f.leader || ""} onChange=${set("leader")} disabled=${ro}><option value="">Elige a la persona…</option>${q.staff().filter((u) => u.role !== "director").map((u) => html`<option key=${u.id} value=${u.id} disabled=${u.id === f.apoyo || (f.apoyos || []).includes(u.id)}>${u.name}</option>`)}</select></div>
+          <div class="cargo-row"><label class="cargo-rol" for="p-apoyo">Apoyo (opcional)</label><select id="p-apoyo" value=${f.apoyo || ""} onChange=${set("apoyo")} disabled=${ro}><option value="">Sin apoyo</option>${opcionesApoyo(f.apoyo)}</select></div>
+          ${(f.apoyos || []).map((uid, i) => html`<div class="cargo-row" key=${"ap" + i}><label class="cargo-rol" for=${"p-apoyo-" + i}>Apoyo ${i + 2}</label><span class="inline apoyo-extra"><select id=${"p-apoyo-" + i} value=${uid || ""} onChange=${(e) => cambiarApoyo(i, e.currentTarget.value)} disabled=${ro}><option value="">Elige a la persona…</option>${opcionesApoyo(uid)}</select>${!ro && html`<button type="button" class="btn ghost sm quitar-apoyo" title="Quitar este apoyo" aria-label=${"Quitar el apoyo " + (i + 2)} onClick=${() => quitarApoyo(i)}>✕</button>`}</span></div>`)}
+          ${!ro && html`<div class="cargo-row"><span></span><button type="button" class="btn ghost sm mas-apoyo" onClick=${agregarApoyo} disabled=${!f.apoyo || (f.apoyos || []).some((x) => !x)} title=${!f.apoyo ? "Primero elige el primer apoyo" : "Agregar otra persona de apoyo"}>＋ Agregar apoyo</button></div>`}
+          <span class="hint">Quien dirige y los apoyos arman el plan de entregables, lo envían a visto bueno y lo aprueban; también editan el proyecto.</span></div>
         <div class="fld"><span class="lbl">Integrantes</span><${PeoplePicker} candidates=${q.staff().map((u) => u.id)} value=${f.members || []} onChange=${set("members")} disabled=${ro} /></div>
         <div class="two">
           <${Field} label="Inicio" id="p-start"><input id="p-start" type="date" value=${f.start} onInput=${set("start")} disabled=${ro} /><//>

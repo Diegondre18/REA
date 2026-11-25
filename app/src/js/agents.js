@@ -151,7 +151,7 @@
   }
 
   // Lo que le toca a la persona: lo suyo, y lo de los proyectos que lidera. Dirección ve todo con "Todo el estudio".
-  const relevant = (f, me) => f.who.includes(me) || (f.project && (leaderOf(f.project) === me || (q.project(f.project) || {}).apoyo === me));
+  const relevant = (f, me) => f.who.includes(me) || (f.project && (leaderOf(f.project) === me || q.apoyosDe(q.project(f.project)).includes(me)));
   function mine() { const me = L.state.me && L.state.me.id; return run().filter((f) => relevant(f, me)); }
   function counts(list) { const c = {}; for (const f of list) { c[f.agent] = c[f.agent] || { total: 0, alta: 0 }; c[f.agent].total++; if (f.level === "alta") c[f.agent].alta++; } return c; }
   const visibleAgents = () => AGENTS.filter((a) => !a.fin || q.isFin());

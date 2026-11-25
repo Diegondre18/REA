@@ -13,7 +13,7 @@ function puedeObra(u) {
   return lib.esDirector(u) || a.indexOf("arquitectura") >= 0 || a.indexOf("interior") >= 0;
 }
 function proyectosDe(app, u) {
-  const f = lib.esDirector(u) ? "status != 'cerrado'" : "status != 'cerrado' && (leader = {:u} || apoyo = {:u} || members ~ {:u})";
+  const f = lib.esDirector(u) ? "status != 'cerrado'" : "status != 'cerrado' && (leader = {:u} || apoyo = {:u} || apoyos ~ {:u} || members ~ {:u})";
   return lib.arr(app.findRecordsByFilter("proyectos", f, "name", 30, 0, { u: u.id }));
 }
 const nombreP = (p) => (p.getString("code") ? p.getString("code") + " · " : "") + p.getString("name");
@@ -43,7 +43,7 @@ function proyectoPermitido(app, u, pid) {
   try {
     const p = app.findRecordById("proyectos", pid);
     if (lib.esDirector(u)) return p;
-    const ok = p.getString("leader") === u.id || p.getString("apoyo") === u.id || lib.arr(p.getStringSlice("members")).indexOf(u.id) >= 0;
+    const ok = lib.estaACargo(p, u.id) || lib.arr(p.getStringSlice("members")).indexOf(u.id) >= 0;
     return ok ? p : null;
   } catch (e) { return null; }
 }
@@ -230,7 +230,7 @@ function guardarFoto(app, token, u, pid, msg, nota) {
   return r;
 }
 function liderDe(app, pid, u) {
-  try { const p = app.findRecordById("proyectos", pid); return p.getString("leader") || p.getString("apoyo") || u.id; } catch (e) { return u.id; }
+  try { const p = app.findRecordById("proyectos", pid); return lib.aCargo(p)[0] || u.id; } catch (e) { return u.id; }
 }
 const LISTO = { reply_markup: { inline_keyboard: [[{ text: "✅ Listo", callback_data: "fl" }]] } };
 

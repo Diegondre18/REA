@@ -248,3 +248,8 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - **Premios para siempre** (no se pierden): planta, taza, cuadro, lámpara, medalla, gorra y, nuevos, **gafas** (25 pausas activas) y **bufanda** (10 semanas cumpliendo la meta) para el muñeco.
 - **Pausa activa con más ejercicios**: estiramiento lateral, sentadillas, marcha en el puesto, muñecas y manos, brazo cruzado y puntillas, además de los de antes. Cada pausa arma una rutina distinta de 6 ejercicios según el día y la hora, y el muñeco hace cada movimiento.
 - **Cumpleaños**: desde 10 días antes, todo el equipo (menos quien cumple) ve al abrir la app una ventana grande en el centro con el muñeco de la persona: "No olvides el cumpleaños de…, es en N días". No bloquea: se cierra con Entendido, Esc o clic afuera, y vuelve a salir al día siguiente.
+
+## Más de un apoyo por proyecto (2.28.2)
+
+- En el formulario del proyecto, **A cargo del proyecto** va en este orden: Director creativo (siempre), Dirige el proyecto, Apoyo y, debajo, **＋ Agregar apoyo** para sumar más personas (Apoyo 2, Apoyo 3…). Cada apoyo extra se quita con ✕.
+- Todos los apoyos tienen los mismos permisos que quien dirige: editan el proyecto, arman y aprueban el plan, ven las finanzas del proyecto y reciben sus avisos (también en Telegram). Nadie puede repetirse ni ser apoyo y director del proyecto a la vez.

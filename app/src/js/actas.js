@@ -75,7 +75,7 @@
     }
     const set = (k, v) => { setF((x) => ({ ...x, [k]: v })); setDirty(true); clearTimeout(timer.current); timer.current = setTimeout(flush, 900); };
     const prev = actasOf(a.proyecto).find((x) => (x.numero || 0) < (a.numero || 0));
-    const people = [...new Set([p && p.leader, p && p.apoyo, ...((p && p.members) || []), ...q().staff().map((u) => u.id)].filter(Boolean))];
+    const people = [...new Set([p && p.leader, ...q().apoyosDe(p), ...((p && p.members) || []), ...q().staff().map((u) => u.id)].filter(Boolean))];
 
     // Asistentes externos
     const setAsis = (i, k, v) => set("asistentes", f.asistentes.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
