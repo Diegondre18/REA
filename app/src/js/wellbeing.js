@@ -374,16 +374,48 @@
     }
     return out.sort((a, b) => a.n - b.n);
   }
-  // Anuncio para todos al abrir la app, desde 10 días antes. "Entendido" lo esconde hasta mañana.
+  // Anuncio para todos al abrir la app, desde 10 días antes: ventana grande en el centro con el muñeco de
+  // quien cumple. No bloquea: se cierra con "Entendido", Esc o clic afuera, y vuelve a salir al otro día.
+  function MunecoDe({ u, k = 8 }) {
+    const ref = useRef(null);
+    useEffect(() => {
+      const cv = ref.current; if (!cv || !L.PIX) return;
+      const ctx = cv.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      // globos detrás del muñeco
+      const g = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x * k, y * k, 3 * k, 4 * k); ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fillRect((x + 0.5) * k, (y + 0.5) * k, k, k); ctx.fillStyle = "#8a8f98"; ctx.fillRect((x + 1.4) * k, (y + 4) * k, Math.max(1, k / 4), 4 * k); };
+      g(0, 1, "#ea0029"); g(12.5, 0, "#0057ff"); g(13.5, 5, "#e8c100");
+      L.PIX.drawFigure(ctx, 2 * k, 4 * k, L.PIX.withExtra(L.PIX.config(u), "", u.premios || []), "front", 0, false, false, k, Math.max(1, Math.round(k * 0.35)));
+    });
+    return html`<canvas ref=${ref} width=${16 * k} height=${26 * k} class="cumple-doll" aria-hidden="true"></canvas>`;
+  }
   function CumpleBanner() {
     L.useStore();
     const [, force] = useState(0);
-    if (!L.state.me || L.state.me.role === "pantalla") return null;
     const key = (c) => "lap-cerebro-cumple-aviso-" + todayIso() + "-" + c.u.id;
-    const lista = proximosCumples().filter((c) => !ls.get(key(c), false));
-    if (!lista.length) return null;
+    const lista = L.state.me && L.state.me.role !== "pantalla" ? proximosCumples().filter((c) => !ls.get(key(c), false)) : [];
     const ok = () => { for (const c of lista) ls.set(key(c), true); force((n) => n + 1); };
-    return html`<div class="banner glass cumple-banner"><p>🎂 ${lista.map((c, i) => html`<span key=${c.u.id}>${i ? " · " : ""}<strong>No olvides el cumpleaños de ${c.u.name}</strong>: ${c.n === 1 ? "es mañana" : `es en ${c.n} días`} (${L.fmtDay(c.fecha)}).</span>`)}</p><button type="button" class="btn sm" onClick=${ok}>Entendido</button></div>`;
+    useEffect(() => {
+      if (!lista.length) return;
+      const onKey = (e) => { if (e.key === "Escape") ok(); };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    });
+    if (!lista.length) return null;
+    const c = lista[0];
+    return html`<div class="cumple-wrap" onClick=${(e) => { if (e.target === e.currentTarget) ok(); }}>
+      <div class="cumple-modal glass" role="dialog" aria-labelledby="cumple-t">
+        <${MunecoDe} u=${c.u} />
+        <div class="cumple-body">
+          <span class="eyebrow">🎂 Cumpleaños del equipo</span>
+          <h1 id="cumple-t">No olvides el cumpleaños de ${c.u.name}</h1>
+          <p class="cumple-cuando">${c.n === 1 ? "¡Es mañana!" : `Es en ${c.n} días`} · ${L.fmtDay(c.fecha)}</p>
+          ${lista.length > 1 && html`<p class="cumple-mas">También: ${lista.slice(1).map((x) => `${x.u.name} (${x.n === 1 ? "mañana" : "en " + x.n + " días"})`).join(", ")}.</p>`}
+          <div class="inline"><button type="button" class="btn primary" onClick=${ok} autofocus>Entendido</button></div>
+        </div>
+      </div>
+    </div>`;
   }
 
   // Cumpleaños: la persona lo celebra al abrir la app ese día.
