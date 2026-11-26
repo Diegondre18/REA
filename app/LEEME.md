@@ -304,3 +304,9 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - **"Terminar y volver a trabajar"** solo se activa cuando se acaba el tiempo, y hasta tocarlo no se puede volver a trabajar.
 - La pausa solo suma a la racha, los premios y el ranking si se hace completa y se toca Terminar. "Salir sin terminar" queda para emergencias y **no suma puntos**.
 - Lo mismo pasa con la pausa que se empieza a mano desde el muñeco.
+
+## Anuncios de cualquiera del equipo, en el centro de la pantalla (2.33)
+
+- **Cualquiera del equipo** publica un anuncio con el botón "📣 Anuncio para todos" (en Inicio y en Equipo): texto y hasta qué fecha se muestra.
+- A los demás se les **abre la app** y el anuncio sale en una **ventana grande en el centro**, con el muñeco de quien lo publicó. Se cierra con "Entendido" y no vuelve a salir. También llega a la burbuja y queda en la TV de la oficina hasta la fecha.
+- Cada quien edita o quita sus propios anuncios. Marcar un anuncio como **importante** (suena aunque estén en No molestar) y editar los de otros sigue siendo de Dirección.

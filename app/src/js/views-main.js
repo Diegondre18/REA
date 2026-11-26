@@ -99,7 +99,9 @@
     const para = late.length + hoy.length;
     return html`
       <${PageHead} eyebrow=${`${L.cap(L.fmtLong(t))} · Semana ${L.isoWeek(L.today())}`} title=${`${L.greeting()}, ${L.first(me.name)}.`}
-        sub=${`${para ? `Tienes ${L.plural(para, "tarea", "tareas")} para hoy` : "No tienes entregas para hoy"}${estaSemana ? ` y ${L.plural(estaSemana, "reunión", "reuniones")} esta semana` : ""}.`} />
+        sub=${`${para ? `Tienes ${L.plural(para, "tarea", "tareas")} para hoy` : "No tienes entregas para hoy"}${estaSemana ? ` y ${L.plural(estaSemana, "reunión", "reuniones")} esta semana` : ""}.`}>
+        <button type="button" class="btn" onClick=${() => L.openSheet("anuncio")}>📣 Anuncio para todos</button>
+      <//>
       <div class="grid">
         ${L.Bienvenida && html`<${L.Bienvenida} />`}
         <${Pending} pend=${pend} />
@@ -322,7 +324,7 @@
     };
     return html`
       <${PageHead} title="Equipo" sub=${`${L.plural(staff.length, "persona", "personas")} · ${staff.filter(q.online).length} conectadas ahora`}>
-        ${q.isDirector() && html`<button type="button" class="btn" onClick=${() => L.openSheet("anuncio")}>Publicar un anuncio</button>`}
+        <button type="button" class="btn" onClick=${() => L.openSheet("anuncio")}>📣 Anuncio para todos</button>
         <button type="button" class="btn" onClick=${() => L.openSheet("profile", s.me.id)}><${Icon} name="edit" /> Mi perfil</button>
       <//>
       <div class="grid">

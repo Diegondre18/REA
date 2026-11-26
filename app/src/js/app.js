@@ -231,6 +231,7 @@
       ${L.WellAlert && html`<${L.WellAlert} />`}
       ${L.AnunciosBanner && html`<${L.AnunciosBanner} />`}
       ${L.BackupBanner && html`<${L.BackupBanner} />`}
+      ${L.AnuncioPantalla && html`<${L.AnuncioPantalla} />`}
       ${L.CumpleBanner && html`<${L.CumpleBanner} />`}
       ${L.Asistencia && html`<${L.Asistencia} />`}
       ${L.TareaObligatoria && html`<${L.TareaObligatoria} />`}

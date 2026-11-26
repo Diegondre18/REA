@@ -394,7 +394,7 @@
   }
   // Anuncio para todos al abrir la app, desde 10 días antes: ventana grande en el centro con el muñeco de
   // quien cumple. No bloquea: se cierra con "Entendido", Esc o clic afuera, y vuelve a salir al otro día.
-  function MunecoDe({ u, k = 8 }) {
+  function MunecoDe({ u, k = 8, globos = true }) {
     const ref = useRef(null);
     useEffect(() => {
       const cv = ref.current; if (!cv || !L.PIX) return;
@@ -403,7 +403,7 @@
       ctx.clearRect(0, 0, cv.width, cv.height);
       // globos detrás del muñeco
       const g = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x * k, y * k, 3 * k, 4 * k); ctx.fillStyle = "rgba(255,255,255,0.5)"; ctx.fillRect((x + 0.5) * k, (y + 0.5) * k, k, k); ctx.fillStyle = "#8a8f98"; ctx.fillRect((x + 1.4) * k, (y + 4) * k, Math.max(1, k / 4), 4 * k); };
-      g(0, 1, "#ea0029"); g(12.5, 0, "#0057ff"); g(13.5, 5, "#e8c100");
+      if (globos) { g(0, 1, "#ea0029"); g(12.5, 0, "#0057ff"); g(13.5, 5, "#e8c100"); }
       L.PIX.drawFigure(ctx, 2 * k, 4 * k, L.PIX.withExtra(L.PIX.config(u), "", u.premios || []), "front", 0, false, false, k, Math.max(1, Math.round(k * 0.35)));
     });
     return html`<canvas ref=${ref} width=${16 * k} height=${26 * k} class="cumple-doll" aria-hidden="true"></canvas>`;
@@ -895,5 +895,5 @@
   }
 
   Object.assign(L, { BigAlert, Ranking, ranking, rankingMes, PremioIcon, BigDoll, campeon, premiosDe, Campeon, PremioBanner, premioActual, puedePremio, guardarPremio, premioModo: modo, premioTick });
-  Object.assign(L, { CumpleBanner, proximosCumples, celebrate, PomodoroChip, WellAlert, PausaView, CierreView, Bienestar, Premios, WellSettings, PREMIOS, wellRun: runAction });
+  Object.assign(L, { MunecoDe, CumpleBanner, proximosCumples, celebrate, PomodoroChip, WellAlert, PausaView, CierreView, Bienestar, Premios, WellSettings, PREMIOS, wellRun: runAction });
 })();

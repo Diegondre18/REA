@@ -4,7 +4,7 @@
   "use strict";
   const L = LAP;
   const { html, hooks, q, act, Avatar } = L;
-  const { useState } = hooks;
+  const { useState, useEffect } = hooks;
   const ls = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* bloqueado */ } },
@@ -59,20 +59,57 @@
     return html`<${L.Sheet} title=${id ? "Anuncio" : "Nuevo anuncio"} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
       <div class="fld"><label for="an-t">Anuncio</label><textarea id="an-t" maxlength="400" value=${f.texto} onInput=${(e) => setF({ ...f, texto: e.target.value })} placeholder="El viernes cerramos a las 3 p. m."></textarea></div>
       <div class="two"><div class="fld"><label for="an-h">Se muestra hasta</label><input id="an-h" type="date" value=${f.hasta} onInput=${(e) => setF({ ...f, hasta: e.target.value })} /></div>
-        <label class="check"><input type="checkbox" checked=${f.importante} onChange=${(e) => setF({ ...f, importante: e.target.checked })} /><span><b>Importante</b><small>Suena y aparece aunque estén en No molestar.</small></span></label></div>
-      <p class="note">Llega a la burbuja de todos, queda arriba en la app y en la pantalla de la oficina hasta esa fecha.</p>
+        ${q.isDirector() ? html`<label class="check"><input type="checkbox" checked=${f.importante} onChange=${(e) => setF({ ...f, importante: e.target.checked })} /><span><b>Importante</b><small>Suena y aparece aunque estén en No molestar.</small></span></label>` : html`<span></span>`}</div>
+      <p class="note">Al publicarlo, a todo el equipo se le abre la app con tu anuncio en el centro de la pantalla. También queda en la TV de la oficina hasta esa fecha.</p>
     <//>`;
   }
   const HIDE = "lap-cerebro-anuncios-vistos";
   function AnunciosBanner() {
     const s = L.useStore();
-    const [hidden, setHidden] = useState(() => ls.get(HIDE, []));
+    const [, force] = useState(0);
+    const hidden = ls.get(HIDE, []); // se lee cada vez: la ventana del anuncio también lo marca como visto
     const list = activos().filter((a) => !hidden.includes(a.id));
     if (!list.length) return null;
-    const hide = (id) => { const h = [...hidden, id].slice(-50); setHidden(h); ls.set(HIDE, h); };
+    const hide = (id) => { ls.set(HIDE, [...hidden, id].slice(-50)); force((n) => n + 1); };
     return html`${list.slice(0, 2).map((a) => html`<div key=${a.id} class=${L.cx("banner glass anuncio", a.importante && "imp")}>
       <p><strong>${a.importante ? "Importante · " : ""}Anuncio de ${L.first(q.name(a.by))}:</strong> ${a.texto}</p>
-      <div class="inline">${q.isDirector() && html`<button type="button" class="btn sm ghost" onClick=${() => L.openSheet("anuncio", a.id)}>Editar</button>`}<button type="button" class="btn sm" onClick=${() => hide(a.id)}>Entendido</button></div></div>`)}`;
+      <div class="inline">${(q.isDirector() || a.by === s.me.id) && html`<button type="button" class="btn sm ghost" onClick=${() => L.openSheet("anuncio", a.id)}>Editar</button>`}<button type="button" class="btn sm" onClick=${() => hide(a.id)}>Entendido</button></div></div>`)}`;
+  }
+
+  // Anuncio en pantalla: cuando alguien publica, a los demás se les abre la app con el anuncio en el centro
+  // (con el muñeco de quien lo publicó). Se cierra con "Entendido"; no vuelve a salir.
+  let traidos = new Set();
+  function AnuncioPantalla() {
+    const s = L.useStore();
+    const [hidden, setHidden] = useState(() => ls.get(HIDE, []));
+    const me = s.me;
+    const list = me && me.role !== "pantalla" && s.mode === "live" ? activos().filter((a) => a.by !== me.id && !hidden.includes(a.id)).sort((a, b) => String(a.created).localeCompare(String(b.created))) : [];
+    const a = list[0];
+    const ok = () => { if (!a) return; const h = [...ls.get(HIDE, []), a.id].slice(-50); ls.set(HIDE, h); setHidden(h); L.set({}); };
+    useEffect(() => {
+      if (!a || traidos.has(a.id)) return;
+      traidos.add(a.id);
+      if (L.desk && L.desk.showApp) L.desk.showApp(); // la app se pone al frente para que nadie se lo pierda
+    }, [a && a.id]);
+    useEffect(() => {
+      if (!a) return;
+      const onKey = (e) => { if (e.key === "Escape") ok(); };
+      document.addEventListener("keydown", onKey);
+      return () => document.removeEventListener("keydown", onKey);
+    });
+    if (!a) return null;
+    const autor = q.user(a.by);
+    return html`<div class="cumple-wrap" role="dialog" aria-modal="true" aria-labelledby="anp-t">
+      <div class=${L.cx("cumple-modal glass anuncio-modal", a.importante && "imp")}>
+        ${autor && L.MunecoDe ? html`<${L.MunecoDe} u=${autor} globos=${false} />` : html`<span></span>`}
+        <div class="cumple-body">
+          <span class="eyebrow">📣 ${a.importante ? "Anuncio importante" : "Anuncio para todo el equipo"}</span>
+          <h1 id="anp-t" class="anuncio-txt">${a.texto}</h1>
+          <p class="muted">${autor ? autor.name : "Alguien del equipo"} · ${L.fmtShort(String(a.created).slice(0, 10))}${list.length > 1 ? " · hay " + L.plural(list.length - 1, "anuncio más", "anuncios más") : ""}</p>
+          <div class="inline"><button type="button" class="btn primary" onClick=${ok}>Entendido</button></div>
+        </div>
+      </div>
+    </div>`;
   }
 
   /* ================= bienvenida ================= */
@@ -198,5 +235,5 @@
       <p class="hint">Es la mediana (el valor del medio), así una tarea que se alargó mucho no distorsiona el resto. Al crear una tarea con tipo y fecha de inicio, la app sugiere una entrega realista.</p>`;
   }
 
-  Object.assign(L, { GraciasSheet, Reconocimientos, graciasPara, AnuncioSheet, AnunciosBanner, anunciosActivos: activos, Bienvenida, DurationHint, Duraciones, durSuggest: suggest, plazoCorto });
+  Object.assign(L, { GraciasSheet, Reconocimientos, graciasPara, AnuncioSheet, AnunciosBanner, AnuncioPantalla, anunciosActivos: activos, Bienvenida, DurationHint, Duraciones, durSuggest: suggest, plazoCorto });
 })();
