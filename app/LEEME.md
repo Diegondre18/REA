@@ -296,3 +296,11 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - **Contrato con el cliente**: "Retenciones que aplica": concepto de retención en la fuente (por defecto honorarios en diseño y construcción en obra), ReteIVA y ReteICA, que se marcan solos según el cliente y se pueden cambiar.
 - **Cálculo**: la retención en la fuente y el ReteICA van sobre el valor antes de IVA; en obra, sobre el subtotal AIU (costo directo + A + I + U) sin el IVA de la utilidad. El ReteIVA va sobre el IVA. Si un pago es menor que la base mínima del concepto, no se retiene y el desglose lo dice.
 - Las tarifas vienen con los valores más comunes; confírmenlas con el contador.
+
+## Pausa activa en todas las pantallas y bloqueada hasta terminar (2.32)
+
+- El aviso de la pausa activa (y el del descanso del Pomodoro) sale en **todas las pantallas** del computador, cada una con su fondo difuminado. Ningún programa se puede poner encima, y Escape o Alt+F4 no lo cierran.
+- Al tocar **Asistir**, las pantallas **siguen bloqueadas** y la rutina se hace ahí mismo: el muñeco haciendo cada ejercicio, el tiempo que falta y los pasos.
+- **"Terminar y volver a trabajar"** solo se activa cuando se acaba el tiempo, y hasta tocarlo no se puede volver a trabajar.
+- La pausa solo suma a la racha, los premios y el ranking si se hace completa y se toca Terminar. "Salir sin terminar" queda para emergencias y **no suma puntos**.
+- Lo mismo pasa con la pausa que se empieza a mano desde el muñeco.

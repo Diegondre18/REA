@@ -266,10 +266,26 @@
   let pausaPrev = null, pausaHour = "";
   function pausaStart(h) {
     pausaHour = h || "";
-    if (h) { const st = ls.get(pkey(h), {}); ls.set(pkey(h), { ...st, started: true }); clearAlert("pausa-" + h); }
+    const bloqueada = !!(L.desk && L.desk.bigAlertPausa);
+    if (h) {
+      const st = ls.get(pkey(h), {}); ls.set(pkey(h), { ...st, started: true });
+      if (bloqueada) { // las pantallas siguen bloqueadas: solo se quita el aviso de la burbuja
+        if (L.desk.bubbleNotify) L.desk.bubbleNotify({ clear: "pausa-" + h });
+        if (L.state.bigAlert && L.state.bigAlert.id === "pausa-" + h) L.set({ bigAlert: null });
+      } else clearAlert("pausa-" + h);
+    }
     const pres = q.presence(L.state.me);
     pausaPrev = pres === "pausa" ? pausaPrev || "disponible" : pres;
     if (pres !== "pausa") act.setPresence("pausa");
+    if (bloqueada) {
+      // La rutina sale en todas las pantallas, bloqueadas hasta que termine y la persona toque "Terminar".
+      const me = L.state.me;
+      const EJ = rutina();
+      L.desk.bigAlertPausa({ id: "pausa-rutina-" + (h || Date.now()), kind: "pausa", hora: h || "", total: pausaMin() * 60e3, startedAt: Date.now(),
+        ejercicios: EJ.map((e) => ({ t: e.t, d: e.d, poses: e.poses })),
+        me: { id: me.id, name: me.name, muneco: me.muneco || null, premios: premiosDe(me) } }).catch(() => { showApp(); L.go("#pausa"); });
+      return;
+    }
     showApp();
     L.go("#pausa");
   }
@@ -309,6 +325,8 @@
     else if (name === "pomo-5" && pomo) { pomo = { ...pomo, phase: "trabajo", endsAt: Date.now() + 5 * 60e3, snoozed: true }; clearAlert(BREAK_ID); savePomo(); L.toast("Cinco minutos más. Después, a descansar."); }
     else if (name === "pausa-ahora") pausaStart("");
     else if (name === "pausa-empezar") pausaStart(arg);
+    else if (name === "pausa-fin") pausaEnd(true); // tocó "Terminar" con la pausa completa
+    else if (name === "pausa-salir") pausaEnd(false); // salió sin terminar: no suma
     else if (name === "pomo-mas" && pomo) {
       const m = Number(arg) === 10 ? 10 : 5;
       pomo = { ...pomo, phase: "trabajo", endsAt: Date.now() + m * 60e3, snoozed: true };
@@ -546,10 +564,10 @@
           <span class="mono muted">${doneAll ? "0:00" : mmss(total - el)} restantes</span>
           <div class="pausa-steps">${EJ.map((e, k) => html`<span key=${k} class=${L.cx(k < i || doneAll ? "done" : k === i && "now")}>${e.t}</span>`)}</div>
           <div class="inline">
-            <button type="button" class="btn primary" onClick=${() => pausaEnd(doneAll || el >= total * 0.6)}>${doneAll ? "Terminar" : "Terminar la pausa"}</button>
-            ${!doneAll && html`<button type="button" class="btn ghost" onClick=${() => pausaEnd(false)}>Salir sin terminar</button>`}
+            <button type="button" class="btn primary" disabled=${!doneAll} onClick=${() => pausaEnd(true)}>${doneAll ? "Terminar" : "Terminar (cuando se acabe el tiempo)"}</button>
+            ${!doneAll && html`<button type="button" class="btn ghost" onClick=${() => pausaEnd(false)}>Salir sin terminar (no suma)</button>`}
           </div>
-          <p class="hint">Cuenta para tu racha de bienestar si haces al menos el 60 % de la pausa. Tu racha es privada.</p>
+          <p class="hint">Cuenta para tu racha, tus premios y el ranking solo si haces la pausa completa y tocas Terminar.</p>
         </div>
       </div>`;
   }

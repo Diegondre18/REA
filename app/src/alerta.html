@@ -32,6 +32,16 @@
   button.main:hover { background: #e9efff; }
   button:focus-visible { outline: 3px solid #9fb9ff; outline-offset: 2px; }
   .hint { margin-top: 16px; font-size: 13px; color: rgba(255,255,255,0.7); }
+  button:disabled { opacity: 0.55; cursor: not-allowed; }
+  button.link { border: 0; background: none; font-weight: 500; font-size: 14px; text-decoration: underline; color: rgba(255,255,255,0.75); padding: 13px 8px; }
+  button.link:hover { background: none; color: #fff; }
+  .bar { margin-top: 18px; height: 8px; border-radius: 99px; background: rgba(255,255,255,0.2); overflow: hidden; }
+  .bar i { display: block; height: 100%; width: 0; background: #fff; border-radius: 99px; transition: width 0.4s linear; }
+  .left { margin-top: 8px; font-size: 15px; font-variant-numeric: tabular-nums; color: #c9d6ff; }
+  .steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .steps span { font-size: 12.5px; padding: 4px 10px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.75); }
+  .steps span.now { background: #fff; color: #0057ff; border-color: #fff; font-weight: 600; }
+  .steps span.done { text-decoration: line-through; opacity: 0.6; }
 </style>
 </head>
 <body>
@@ -46,6 +56,9 @@
       <h1 id="t"></h1>
       <p id="b"></p>
       <p class="team" id="team" hidden></p>
+      <div class="bar" id="bar" hidden><i id="barfill"></i></div>
+      <p class="left" id="left"></p>
+      <div class="steps" id="steps" hidden></div>
       <div class="acts" id="acts"></div>
       <p class="hint" id="hint"></p>
     </div>

@@ -491,6 +491,12 @@ ipcMain.handle("big-alert-show", async (e, data) => {
   if (!ok && bubble) bubble.setBlocked(false);
   return ok;
 });
+// Rutina de la pausa activa en las pantallas bloqueadas (la persona tocó "Asistir").
+ipcMain.handle("big-alert-pausa", async (e, data) => {
+  if (!win || e.sender !== win.webContents) return false;
+  if (bubble) bubble.setBlocked(true);
+  return alerta.pausa(data);
+});
 ipcMain.on("big-alert-hide", (e, id) => {
   if (!win || e.sender !== win.webContents) return;
   alerta.hide(id);
