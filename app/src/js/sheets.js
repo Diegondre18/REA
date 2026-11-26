@@ -222,14 +222,30 @@
       const todos = [f.apoyo, ...(f.apoyos || [])].filter(Boolean);
       if (todos.includes(f.leader)) { L.toast("El apoyo debe ser otra persona, no quien dirige el proyecto."); return; }
       if (new Set(todos).size !== todos.length) { L.toast("Esa persona ya está como apoyo."); return; }
+      const cli = s.contactos.find((c) => c.id === f.cliente);
+      if (!cli) { L.toast("Elige el cliente del directorio (o créalo aquí mismo)."); return; }
       const [apoyo = "", ...apoyos] = todos;
       const members = [...new Set([f.leader, ...todos, ...(f.members || [])].filter(Boolean))];
-      const rec = await act.saveProject(id, { name: f.name.trim(), code: (f.code || "").trim(), client: (f.client || "").trim(), phase: f.phase, status: f.status, leader: f.leader, apoyo, apoyos, members, areas: f.areas || [], start: f.start || "", end: f.end || "", folder: (f.folder || "").trim(), notes: f.notes || "" });
-      if (rec) { L.toast(id ? "Cambios guardados" : "Proyecto creado"); L.closeSheet(); if (!id) L.go("#proyecto/" + rec.id); }
+      const rec = await act.saveProject(id, { name: f.name.trim(), code: (f.code || "").trim(), cliente: cli.id, client: cli.nombre, phase: f.phase, status: f.status, leader: f.leader, apoyo, apoyos, members, areas: f.areas || [], start: f.start || "", end: f.end || "", folder: (f.folder || "").trim(), notes: f.notes || "" });
+      if (rec) {
+        // El proyecto queda en "Proyectos asociados" del cliente (y sale del cliente anterior si cambió).
+        const antes = p && p.cliente && p.cliente !== cli.id ? s.contactos.find((c) => c.id === p.cliente) : null;
+        if (antes && (antes.proyectos || []).includes(rec.id)) await act.silencioso("contactos", antes.id, { proyectos: antes.proyectos.filter((x) => x !== rec.id) });
+        if (!(cli.proyectos || []).includes(rec.id)) await act.silencioso("contactos", cli.id, { proyectos: [...(cli.proyectos || []), rec.id] });
+        L.toast(id ? "Cambios guardados" : "Proyecto creado"); L.closeSheet(); if (!id) L.go("#proyecto/" + rec.id);
+      }
     };
     const remove = async () => { if (await act.deleteProject(id)) { L.toast("Proyecto eliminado"); L.closeSheet(); L.go("#proyectos"); } };
     const pickFolder = async () => { const dir = await L.desk.pickFolder(f.folder || ""); if (dir) setF((x) => ({ ...x, folder: dir })); };
     const ro = !can;
+    const clientes = s.contactos.filter((c) => c.tipo === "cliente").sort((a, b) => (a.nombre || "").localeCompare(b.nombre || "", "es"));
+    // Crear un cliente sin salir del formulario del proyecto.
+    const [nuevo, setNuevo] = useState(null);
+    const crearCliente = async () => {
+      if (!nuevo.nombre.trim()) { L.toast("Escribe el nombre o la razón social."); return; }
+      const rec = await act.save("contactos", null, { tipo: "cliente", nombre: nuevo.nombre.trim(), tipoId: nuevo.tipoId || "", identificacion: nuevo.identificacion.trim(), proyectos: [] });
+      if (rec) { setF((x) => ({ ...x, cliente: rec.id })); setNuevo(null); L.toast("Cliente agregado al directorio"); }
+    };
     // Apoyos: el primero y los que se agregan con "+". Nadie puede repetirse ni ser quien dirige.
     const elegidos = [f.leader, f.apoyo, ...(f.apoyos || [])].filter(Boolean);
     const opcionesApoyo = (actual) => q.staff().filter((u) => u.role !== "director").map((u) => html`<option key=${u.id} value=${u.id} disabled=${u.id !== actual && elegidos.includes(u.id)}>${u.name}</option>`);
@@ -244,8 +260,16 @@
         <${Field} label="Nombre" id="p-name" error=${err}><input id="p-name" value=${f.name} onInput=${set("name")} disabled=${ro} placeholder="Torre Alameda" /><//>
         <div class="two">
           <${Field} label="Código" id="p-code"><input id="p-code" class="mono" value=${f.code} onInput=${set("code")} disabled=${ro} placeholder="TA-24" /><//>
-          <${Field} label="Cliente" id="p-client"><input id="p-client" value=${f.client} onInput=${set("client")} disabled=${ro} /><//>
+          <${Field} label="Cliente (del directorio)" id="p-cliente" hint=${!f.cliente && f.client ? "Antes decía «" + f.client + "»: elígelo o créalo en el directorio." : ""}><select id="p-cliente" value=${f.cliente || ""} onChange=${(e) => { if (e.target.value === "__nuevo") { setNuevo({ nombre: "", tipoId: "NIT", identificacion: "" }); return; } set("cliente")(e); }} disabled=${ro}>
+            <option value="">Elige el cliente…</option>${clientes.map((c) => html`<option key=${c.id} value=${c.id}>${c.nombre}${c.identificacion ? " · " + (c.tipoId ? c.tipoId + " " : "") + c.identificacion : ""}</option>`)}
+            ${!ro && html`<option value="__nuevo">＋ Nuevo cliente…</option>`}</select><//>
         </div>
+        ${nuevo && html`<div class="nuevo-cliente glass"><b>Nuevo cliente</b>
+          <input aria-label="Nombre o razón social" placeholder="Nombre o razón social" value=${nuevo.nombre} onInput=${(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
+          <div class="inline"><select aria-label="Tipo de identificación" value=${nuevo.tipoId} onChange=${(e) => setNuevo({ ...nuevo, tipoId: e.target.value })}><option value="NIT">NIT</option><option value="CC">CC</option><option value="CE">CE</option></select>
+            <input class="mono" aria-label="Número de identificación" placeholder="Número" value=${nuevo.identificacion} onInput=${(e) => setNuevo({ ...nuevo, identificacion: e.target.value })} /></div>
+          <div class="inline"><button type="button" class="btn sm primary" onClick=${crearCliente}>Agregar al directorio</button><button type="button" class="btn sm ghost" onClick=${() => setNuevo(null)}>Cancelar</button></div>
+          <small class="muted">La carpeta del RUT y los demás documentos se pone después en el Directorio.</small></div>`}
         <div class="two">
           <${Field} label="Fase" id="p-phase"><select id="p-phase" value=${f.phase} onChange=${set("phase")} disabled=${ro}>${L.PHASES.map((x) => html`<option key=${x.id} value=${x.id}>${x.label}</option>`)}</select><//>
           <${Field} label="Estado" id="p-status"><select id="p-status" value=${f.status} onChange=${set("status")} disabled=${ro}><option value="activo">Activo</option><option value="pausado">En pausa</option><option value="cerrado">Cerrado</option></select><//>

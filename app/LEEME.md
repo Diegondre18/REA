@@ -275,3 +275,9 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - **Reuniones que se repiten**: al agendar, "Se repite" cada semana, cada 15 días o cada mes, hasta una fecha. Al editar una, se puede aplicar el cambio a las siguientes; al borrarla, "solo esta" o "esta y las siguientes". Los invitados reciben un solo aviso por la serie.
 - **Directorio: clientes** solo con nombre o razón social, identificación (CC, NIT o CE) y proyectos asociados.
 - **Plazos realistas**: no se puede guardar una entrega más corta de lo que esa persona suele tardar en ese tipo de tarea (por ejemplo, un render para el mismo día si suele tardar 3 días). Usa el historial propio desde 3 tareas terminadas de ese tipo y, antes, el del estudio. El aviso dice cuál es la fecha más cercana posible. Los días se cuentan hábiles, sin festivos.
+
+## Clientes del directorio en los proyectos (2.30.1)
+
+- Al crear o editar un proyecto, el **cliente se elige del directorio** (ya no se escribe a mano). Si no existe, "＋ Nuevo cliente…" lo crea ahí mismo con su nombre o razón social y CC/NIT. El proyecto queda solo en "Proyectos asociados" del cliente.
+- Los proyectos de antes conservan el nombre del cliente que tenían; al editarlos, Cerebro pide elegirlo del directorio.
+- Cada cliente tiene su **carpeta de documentos** (RUT, cámara de comercio…): una carpeta de la red o de Dropbox, o un enlace https. Su tarjeta en el directorio la abre con "Documentos (RUT…)"; si falta, lo indica. Cerebro solo guarda la ruta o el enlace, no toca los archivos.

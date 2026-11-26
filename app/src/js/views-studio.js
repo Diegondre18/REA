@@ -66,6 +66,8 @@
   }
 
   /* ---------- directorio ---------- */
+  // Proyectos de un contacto: los que tiene marcados y, si es cliente, los proyectos que lo tienen como cliente.
+  const proysDe = (c) => [...new Set([...(c.proyectos || []), ...L.state.proyectos.filter((p) => p.cliente === c.id).map((p) => p.id)])];
   function Directorio() {
     const s = L.useStore();
     const [tipo, setTipo] = useState("");
@@ -82,7 +84,10 @@
       ${list.length ? html`<div class="cards">${list.map((c) => html`
         <article class="glass ccard" key=${c.id}>
           <div class="pcard-top"><span class="tag">${label(L.CONTACTO_TIPOS, c.tipo)}</span><span class="spacer"></span><button type="button" class="btn icon ghost sm" title="Editar" aria-label="Editar" onClick=${() => openTool("contactos", c.id)}><${Icon} name="edit" /></button></div>
-          ${c.tipo === "cliente" ? html`<h3>${c.nombre}</h3>${c.identificacion && html`<p class="muted mono">${c.tipoId ? c.tipoId + " " : ""}${c.identificacion}</p>`}` : html`
+          ${c.tipo === "cliente" ? html`<h3>${c.nombre}</h3>${c.identificacion && html`<p class="muted mono">${c.tipoId ? c.tipoId + " " : ""}${c.identificacion}</p>`}
+            ${c.carpeta ? (/^https?:\/\//i.test(c.carpeta) ? html`<a class="btn sm" href=${c.carpeta} target="_blank" rel="noopener"><${Icon} name="folder" /> Documentos (RUT…)</a>`
+              : html`<button type="button" class="btn sm" onClick=${() => L.openPath(c.carpeta)}><${Icon} name="folder" /> Documentos (RUT…)</button>`)
+              : html`<button type="button" class="btn sm ghost" onClick=${() => openTool("contactos", c.id)}>Falta la carpeta de documentos</button>`}` : html`
           <h3>${c.empresa || c.nombre}</h3>
           ${c.empresa && html`<p class="muted">${c.nombre}${c.cargo ? " · " + c.cargo : ""}</p>`}
           ${c.especialidad && html`<p>${c.especialidad}${c.ciudad ? " · " + c.ciudad : ""}</p>`}`}
@@ -90,7 +95,7 @@
             ${c.telefono && html`<button type="button" class="copy-line" title="Copiar" onClick=${() => copy(c.telefono)}><span class="mono">${c.telefono}</span><${Icon} name="copy" size=${12} /></button>`}
             ${c.email && html`<button type="button" class="copy-line" title="Copiar" onClick=${() => copy(c.email)}><span>${c.email}</span><${Icon} name="copy" size=${12} /></button>`}
           </div>`}
-          ${(c.proyectos || []).length > 0 && html`<div class="pcard-areas">${c.proyectos.map((pid) => { const p = q.project(pid); return p && html`<a key=${pid} class="chip plain" href=${"#proyecto/" + pid}>${p.code || p.name}</a>`; })}</div>`}
+          ${proysDe(c).length > 0 && html`<div class="pcard-areas">${proysDe(c).map((pid) => { const p = q.project(pid); return p && html`<a key=${pid} class="chip plain" href=${"#proyecto/" + pid}>${p.code || p.name}</a>`; })}</div>`}
           ${c.notas && c.tipo !== "cliente" && html`<p class="meta-line">${c.notas}</p>`}
         </article>`)}</div>` : html`<div class="glass"><${Empty} small title=${s.contactos.length ? "Nada coincide" : "El directorio está vacío"} text="Guarda aquí a los proveedores y contratistas buenos para que todo el estudio los encuentre." /></div>`}`;
   }

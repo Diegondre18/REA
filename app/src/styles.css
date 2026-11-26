@@ -1421,3 +1421,6 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 .jornada-tarea:hover { border-color: var(--accent, #0057ff); }
 .jornada-tarea small { color: var(--muted); }
 .cierre-proy { grid-template-columns: 1fr auto auto; }
+.nuevo-cliente { display: grid; gap: 8px; padding: 12px 14px; border-radius: 10px; margin: -4px 0 12px; }
+.nuevo-cliente .inline select { width: 90px; flex: none; }
+.nuevo-cliente .inline input { flex: 1; }

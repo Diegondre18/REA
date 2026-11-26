@@ -89,6 +89,7 @@
         { row: [{ k: "telefono", label: "Teléfono", mono: true }, { k: "email", label: "Correo" }], when: (f) => f.tipo !== "cliente" },
         { row: [{ k: "especialidad", label: "Especialidad", placeholder: "Estructura, carpintería, iluminación…" }, { k: "ciudad", label: "Ciudad" }], when: (f) => f.tipo !== "cliente" },
         { k: "proyectos", label: "Proyectos asociados", type: "projects" },
+        { k: "carpeta", label: "Carpeta de documentos (RUT, cámara de comercio…)", type: "path", hint: "Una carpeta de la red o de Dropbox, o un enlace que empiece por https://", when: (f) => f.tipo === "cliente" },
         { k: "notas", label: "Notas", type: "textarea", when: (f) => f.tipo !== "cliente" },
       ],
     },
@@ -188,7 +189,8 @@
         case "projects": return html`<${Pills} options=${s.proyectos.filter((p) => p.status !== "cerrado" || (v || []).includes(p.id)).map((p) => ({ id: p.id, label: p.code || p.name }))} value=${v || []} onChange=${(pid) => set(x.k, (v || []).includes(pid) ? v.filter((z) => z !== pid) : [...(v || []), pid])} />`;
         case "path": return html`<div class="pick-row"><input id=${id2} class="mono" value=${v} placeholder=${x.file ? "Ruta del archivo" : "Ruta de la carpeta"} onInput=${(e) => set(x.k, e.target.value)} />
           ${L.desk && html`<button type="button" class="btn" onClick=${() => pickFolder(x.k, x.file)}>Elegir…</button>`}
-          ${L.desk && v && html`<button type="button" class="btn icon" title="Abrir" aria-label="Abrir" onClick=${() => L.openPath(v)}><${Icon} name="folder" /></button>`}</div>`;
+          ${v && /^https?:\/\//i.test(v) ? html`<a class="btn icon" href=${v} target="_blank" rel="noopener" title="Abrir el enlace" aria-label="Abrir el enlace"><${Icon} name="folder" /></a>`
+            : L.desk && v && html`<button type="button" class="btn icon" title="Abrir" aria-label="Abrir" onClick=${() => L.openPath(v)}><${Icon} name="folder" /></button>`}</div>`;
         case "planos": {
           const planos = s.planos.filter((p) => p.project === f.project).sort((a, b) => a.codigo.localeCompare(b.codigo, "es", { numeric: true }));
           const items = v || [];
