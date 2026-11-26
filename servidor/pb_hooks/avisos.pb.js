@@ -66,9 +66,11 @@ onRecordCreateRequest((e) => {
     const lib = require(`${__hooks}/lib.js`);
     const yo = e.auth ? e.auth.id : "";
     const r = e.record;
+    if (r.getString("serie")) return; // las siguientes de una serie: el aviso ya salió con la primera
     const cuando = lib.fechaCorta(r.getString("date")) + (r.getString("time") ? ", " + r.getString("time") : "");
+    const FREC = { semanal: " Se repite cada semana.", quincenal: " Se repite cada 15 días.", mensual: " Se repite cada mes." };
     for (const u of lib.arr(r.getStringSlice("attendees"))) {
-      if (u !== yo) lib.aviso(e, u, "evento", r.getString("title") + " · " + cuando, lib.nombreCompleto(e.auth) + " te incluyó.", "#evento/" + r.id);
+      if (u !== yo) lib.aviso(e, u, "evento", r.getString("title") + " · " + cuando, lib.nombreCompleto(e.auth) + " te incluyó." + (FREC[r.getString("frecuencia")] || ""), "#evento/" + r.id);
     }
   } catch (err) { console.log("aviso evento:", err); }
 }, "eventos");

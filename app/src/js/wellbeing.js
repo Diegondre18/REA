@@ -576,6 +576,7 @@
       }
       const lines = items.filter((i) => i.status !== "terminado").map((i) => `• ${i.title}: ${i.de}% → ${i.a}%`);
       const hiceTxt = [hice.trim(), ...lines.filter((l) => !hice.includes(l))].filter(Boolean).join("\n");
+      if (L.guardarCierreJornada) await L.guardarCierreJornada();
       const r = await act.save("cierres", prev ? prev.id : null, { user: me.id, fecha: t, hice: hiceTxt.slice(0, 3000), manana: manana.trim().slice(0, 3000), items });
       setBusy(false);
       if (r) { ls.set(ckey(), { done: true }); clearAlert("cierre"); celebrate("Cierre del día guardado. ¡Buen trabajo!"); L.go("#inicio"); }
@@ -591,6 +592,7 @@
               <${L.Pills} options=${L.STATUSES} value=${v.status} onChange=${(st) => upd(x.id, "status", st)} />
             </div>`; }) : html`<p class="note">No tienes tareas en curso ni por entregar mañana.</p>`}</div>
         <//>
+        ${L.CierreProyectos && html`<${L.CierreProyectos} />`}
         <${L.Panel} title="Qué hice hoy" cls="span-6"><textarea class="cierre-txt" value=${hice} onInput=${(e) => setHice(e.target.value)} placeholder="Lo principal que avanzaste. Lo que muevas arriba se agrega solo."></textarea><//>
         <${L.Panel} title="Qué sigue mañana" cls="span-6"><textarea class="cierre-txt" value=${manana} onInput=${(e) => setManana(e.target.value)} placeholder="Lo primero que harás mañana, o lo que te bloquea."></textarea><//>
         <div class="span-12 inline"><button type="button" class="btn primary" disabled=${busy} onClick=${save}>${prev ? "Actualizar el cierre" : "Guardar el cierre"}</button><button type="button" class="btn ghost" onClick=${() => L.go("#inicio")}>Ahora no</button></div>

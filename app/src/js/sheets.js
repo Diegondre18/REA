@@ -150,7 +150,10 @@
       const p = q.project(defaults.project);
       return { kind: "cliente", title: "", project: "", date: L.iso(L.addDays(L.today(), 7)), time: "10:00", duration: 60, attendees: p ? [...new Set([p.leader, ...(p.members || [])].filter(Boolean))] : [s.me.id], place: "", meetUrl: "", agenda: "", ...defaults };
     });
-    const [repeat, setRepeat] = useState(1);
+    const [frec, setFrec] = useState("");
+    const [hasta, setHasta] = useState(() => L.iso(L.addDays(L.today(), 90)));
+    const serieId = ev ? ev.serie || (ev.frecuencia ? ev.id : "") : "";
+    const [todas, setTodas] = useState(false);
     const [err, setErr] = useState("");
     const project = q.project(f.project);
     const candidates = project ? [...new Set([project.leader, ...(project.members || [])].filter(Boolean))] : q.staff().map((u) => u.id);
@@ -159,19 +162,30 @@
     const save = async () => {
       if (!f.date) { setErr("Elige la fecha."); return; }
       const base = { kind: f.kind, title: (f.title || "").trim() || defTitle(), project: f.project || "", time: f.time || "", duration: Number(f.duration) || 0, attendees: f.attendees || [], place: f.place || "", meetUrl: (f.meetUrl || "").trim(), agenda: f.agenda || "" };
-      const n = id ? 1 : Math.max(1, Math.min(12, Number(repeat) || 1));
+      const fechas = id || !frec ? [f.date] : L.fechasSerie(f.date, frec, hasta);
       let first = null;
-      for (let i = 0; i < n; i++) {
-        const rec = await act.saveEvent(id, { ...base, date: L.iso(L.addDays(L.parse(f.date), i * 7)) });
-        if (!rec) return;
-        first = first || rec;
+      if (id) {
+        if (!(await act.saveEvent(id, { ...base, date: f.date }))) return;
+        // Cambios a las siguientes de la serie (sin mover sus fechas).
+        if (todas && serieId) for (const x of L.state.eventos.filter((y) => y.id !== id && (y.serie === serieId || y.id === serieId) && y.date >= f.date)) await act.saveEvent(x.id, base);
+      } else {
+        for (const d of fechas) {
+          const rec = await act.saveEvent(null, { ...base, date: d, frecuencia: frec || "", serie: first ? first.id : "" });
+          if (!rec) return;
+          first = first || rec;
+        }
       }
-      L.toast(id ? "Cambios guardados" : n > 1 ? `${n} comités programados` : "Agendado");
+      L.toast(id ? "Cambios guardados" : fechas.length > 1 ? `${fechas.length} reuniones programadas` : "Agendado");
       L.closeSheet();
       if (!id && first) L.go("#evento/" + first.id);
     };
     const remove = async () => { if (await act.deleteEvent(id)) { L.toast("Eliminado"); L.closeSheet(); L.go(project ? "#proyecto/" + project.id + "/reuniones" : "#reuniones"); } };
-    const footer = html`${id && html`<${DeleteButton} onConfirm=${remove} />`}<span class="spacer"></span>
+    const removeSerie = async () => {
+      const list = L.state.eventos.filter((y) => (y.serie === serieId || y.id === serieId) && y.date >= ev.date && y.id !== id);
+      for (const x of list) await act.deleteEvent(x.id);
+      await remove();
+    };
+    const footer = html`${id && html`<${DeleteButton} onConfirm=${remove} label=${serieId ? "Borrar solo esta" : undefined} />`}${id && serieId && html`<${DeleteButton} onConfirm=${removeSerie} label="Borrar esta y las siguientes" />`}<span class="spacer"></span>
       <button type="button" class="btn ghost" onClick=${L.closeSheet}>Cancelar</button><button type="submit" class="btn primary">${id ? "Guardar" : "Agendar"}</button>`;
     return html`
       <${Sheet} title=${id ? "Editar" : "Agendar"} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
@@ -183,8 +197,11 @@
           <${Field} label="Hora" id="e-time"><input id="e-time" type="time" value=${f.time} onInput=${set("time")} /><//>
           <${Field} label="Minutos" id="e-dur"><input id="e-dur" type="number" min="0" step="15" value=${f.duration} onInput=${set("duration")} /><//>
         </div>
-        ${!id && f.kind === "comite" && html`<${Field} label="Repetir cada semana" id="e-rep" hint="Programa varios comités seguidos para no esperar a la víspera de la reunión con el cliente.">
-          <select id="e-rep" value=${repeat} onChange=${(e) => setRepeat(e.target.value)}>${[1, 2, 3, 4, 6, 8, 12].map((n) => html`<option key=${n} value=${n}>${n === 1 ? "Solo este" : n + " semanas"}</option>`)}</select><//>`}
+        ${!id && f.kind !== "entrega" && html`<div class="two">
+          <${Field} label="Se repite" id="e-frec"><select id="e-frec" value=${frec} onChange=${(e) => setFrec(e.target.value)}><option value="">No se repite</option><option value="semanal">Cada semana</option><option value="quincenal">Cada 15 días</option><option value="mensual">Cada mes</option></select><//>
+          ${frec && html`<${Field} label="Hasta" id="e-hasta" hint=${L.plural(L.fechasSerie(f.date, frec, hasta).length, "reunión", "reuniones")}><input id="e-hasta" type="date" value=${hasta} min=${f.date} onInput=${(e) => setHasta(e.target.value)} /><//>`}
+        </div>`}
+        ${id && serieId && html`<label class="check"><input type="checkbox" checked=${todas} onChange=${(e) => setTodas(e.target.checked)} /><span><b>Aplicar también a las siguientes de la serie</b><small>${ev.frecuencia === "mensual" ? "Se repite cada mes" : ev.frecuencia === "quincenal" ? "Se repite cada 15 días" : "Se repite cada semana"}. Sus fechas no cambian.</small></span></label>`}
         <div class="fld"><span class="lbl">Asisten</span><${PeoplePicker} candidates=${candidates} value=${f.attendees || []} onChange=${set("attendees")} /></div>
         <${Field} label="Lugar" id="e-place"><input id="e-place" value=${f.place} onInput=${set("place")} placeholder="Sala de reuniones, oficina del cliente…" /><//>
         <${Field} label="Enlace de Meet" id="e-meet" hint="Pégalo aquí después de agendarla en Google Calendar."><input id="e-meet" class="mono" value=${f.meetUrl} onInput=${set("meetUrl")} placeholder="https://meet.google.com/…" /><//>

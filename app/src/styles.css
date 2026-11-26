@@ -1411,3 +1411,13 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 .ret-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .ret-box h4 { margin: 0 0 6px; font-size: 13px; }
 .ret-box .two { gap: 8px; }
+
+/* Jornada (2.30): tarea obligatoria y asistencia a reuniones */
+.jornada-modal { grid-template-columns: 1fr; border-color: var(--accent, #0057ff); width: min(620px, calc(100vw - 48px)); }
+.asis-modal { border-color: #7c4dff; }
+.jornada-body h2 { margin: 4px 0 6px; font-size: 24px; line-height: 1.2; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--fg); }
+.jornada-tareas { display: grid; gap: 6px; margin: 14px 0; max-height: 46vh; overflow: auto; }
+.jornada-tarea { display: grid; gap: 2px; text-align: left; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel, transparent); color: inherit; font: inherit; cursor: pointer; }
+.jornada-tarea:hover { border-color: var(--accent, #0057ff); }
+.jornada-tarea small { color: var(--muted); }
+.cierre-proy { grid-template-columns: 1fr auto auto; }

@@ -225,6 +225,23 @@ window.LAP = {};
     return n;
   }
   // Fecha en la que se completan n días hábiles contando desde «desde» (incluido si es hábil).
+  // Fechas de una reunión que se repite: cada semana, cada 15 días o cada mes (el mismo día del mes, o el
+  // último si ese mes es más corto), desde la primera hasta "hasta" (máximo 60).
+  function fechasSerie(desde, frec, hasta) {
+    const d0 = parse(desde);
+    if (!d0) return [];
+    const out = [];
+    for (let i = 0; i < 60; i++) {
+      let d;
+      if (frec === "mensual") { const y = d0.getFullYear(), m = d0.getMonth() + i; d = new Date(y, m, Math.min(d0.getDate(), new Date(y, m + 1, 0).getDate())); }
+      else d = addDays(d0, i * (frec === "quincenal" ? 14 : 7));
+      const x = iso(d);
+      if (hasta && x > hasta && i > 0) break;
+      out.push(x);
+      if (!frec) break;
+    }
+    return out;
+  }
   function sumarHabiles(desde, n) {
     let d = parse(desde), c = 0;
     for (let i = 0; i < 800; i++, d = addDays(d, 1)) { if (esHabil(iso(d)) && ++c >= n) return iso(d); }
@@ -256,6 +273,6 @@ window.LAP = {};
     dueClass, plural, initials, first, key, byDue, cx, greeting, eventStamp, calendarLink,
     byId, TRAMITE_TIPOS, TRAMITE_ESTADOS, DISCIPLINAS, PLANO_ESTADOS, ENVIO_MEDIOS, ENVIO_PROPOSITOS, CONTACTO_TIPOS, MATERIAL_CATS,
     AUSENCIA_TIPOS, SOLICITUD_TIPOS, SOLICITUD_ESTADOS, COBRO_ESTADOS, SALUD, money, hours, PLAN_TEMPLATES,
-    festivos, festivo, esHabil, habiles, sumarHabiles, cubre, hora12, ausenciaTexto,
+    festivos, festivo, esHabil, habiles, sumarHabiles, fechasSerie, cubre, hora12, ausenciaTexto,
   });
 })();

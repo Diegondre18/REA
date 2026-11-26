@@ -266,3 +266,12 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
   - **Obra (AIU)**: costo directo + administración % + imprevistos % + utilidad % + IVA sobre la utilidad = valor total; − retenciones = monto a recibir.
 - **Gestión → Ajustes**: horario del viernes aparte, porcentajes de ley de la nómina (mínimo y auxilio de 2026 por defecto) y los % de IVA y retenciones para LAP y JC, en diseño y en obra.
 - Arreglo: los costos por hora, las horas registradas a mano y los materiales no se estaban cargando en la app.
+
+## Jornada, reuniones, clientes y plazos realistas (2.30)
+
+- **Marcar la tarea es obligatorio** en el horario de LAP. Si alguien está Disponible o No molestar y no tiene tarea marcada, sale una ventana en el centro que no se cierra hasta que elige una tarea, crea una nueva o dice que está en reunión, en pausa o fuera. No sale en el almuerzo, en ausencias ni fuera del horario.
+- **¿Asististe a la reunión?** A los 40 minutos de empezar una reunión, a cada invitado se le abre la app con la pregunta. Si responde Sí, lo lleva directo al acta; si No, queda anotado.
+- **Cierre del día con proyectos.** Si casi no se marcaron tareas (menos de 1 hora medida), el cierre pide en qué proyectos se trabajó: medio día o todo el día. Esas horas cuentan en Gestión. También se puede marcar "Hoy almorcé trabajando en el puesto": cuenta como hora extra del proyecto.
+- **Reuniones que se repiten**: al agendar, "Se repite" cada semana, cada 15 días o cada mes, hasta una fecha. Al editar una, se puede aplicar el cambio a las siguientes; al borrarla, "solo esta" o "esta y las siguientes". Los invitados reciben un solo aviso por la serie.
+- **Directorio: clientes** solo con nombre o razón social, identificación (CC, NIT o CE) y proyectos asociados.
+- **Plazos realistas**: no se puede guardar una entrega más corta de lo que esa persona suele tardar en ese tipo de tarea (por ejemplo, un render para el mismo día si suele tardar 3 días). Usa el historial propio desde 3 tareas terminadas de ese tipo y, antes, el del estudio. El aviso dice cuál es la fecha más cercana posible. Los días se cuentan hábiles, sin festivos.

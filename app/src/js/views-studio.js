@@ -70,7 +70,7 @@
     const s = L.useStore();
     const [tipo, setTipo] = useState("");
     const [text, setText] = useState("");
-    const list = s.contactos.filter((c) => (!tipo || c.tipo === tipo) && (!text || norm([c.nombre, c.empresa, c.especialidad, c.ciudad, c.cargo].join(" ")).includes(norm(text))))
+    const list = s.contactos.filter((c) => (!tipo || c.tipo === tipo) && (!text || norm([c.nombre, c.empresa, c.especialidad, c.ciudad, c.cargo, c.identificacion].join(" ")).includes(norm(text))))
       .sort((a, b) => (a.empresa || a.nombre).localeCompare(b.empresa || b.nombre, "es"));
     const copy = (v) => L.copyText(v);
     return html`
@@ -82,15 +82,16 @@
       ${list.length ? html`<div class="cards">${list.map((c) => html`
         <article class="glass ccard" key=${c.id}>
           <div class="pcard-top"><span class="tag">${label(L.CONTACTO_TIPOS, c.tipo)}</span><span class="spacer"></span><button type="button" class="btn icon ghost sm" title="Editar" aria-label="Editar" onClick=${() => openTool("contactos", c.id)}><${Icon} name="edit" /></button></div>
+          ${c.tipo === "cliente" ? html`<h3>${c.nombre}</h3>${c.identificacion && html`<p class="muted mono">${c.tipoId ? c.tipoId + " " : ""}${c.identificacion}</p>`}` : html`
           <h3>${c.empresa || c.nombre}</h3>
           ${c.empresa && html`<p class="muted">${c.nombre}${c.cargo ? " · " + c.cargo : ""}</p>`}
-          ${c.especialidad && html`<p>${c.especialidad}${c.ciudad ? " · " + c.ciudad : ""}</p>`}
-          <div class="contact-lines">
+          ${c.especialidad && html`<p>${c.especialidad}${c.ciudad ? " · " + c.ciudad : ""}</p>`}`}
+          ${c.tipo !== "cliente" && html`<div class="contact-lines">
             ${c.telefono && html`<button type="button" class="copy-line" title="Copiar" onClick=${() => copy(c.telefono)}><span class="mono">${c.telefono}</span><${Icon} name="copy" size=${12} /></button>`}
             ${c.email && html`<button type="button" class="copy-line" title="Copiar" onClick=${() => copy(c.email)}><span>${c.email}</span><${Icon} name="copy" size=${12} /></button>`}
-          </div>
+          </div>`}
           ${(c.proyectos || []).length > 0 && html`<div class="pcard-areas">${c.proyectos.map((pid) => { const p = q.project(pid); return p && html`<a key=${pid} class="chip plain" href=${"#proyecto/" + pid}>${p.code || p.name}</a>`; })}</div>`}
-          ${c.notas && html`<p class="meta-line">${c.notas}</p>`}
+          ${c.notas && c.tipo !== "cliente" && html`<p class="meta-line">${c.notas}</p>`}
         </article>`)}</div>` : html`<div class="glass"><${Empty} small title=${s.contactos.length ? "Nada coincide" : "El directorio está vacío"} text="Guarda aquí a los proveedores y contratistas buenos para que todo el estudio los encuentre." /></div>`}`;
   }
 

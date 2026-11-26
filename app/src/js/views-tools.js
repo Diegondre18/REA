@@ -81,12 +81,15 @@
       initial: (d) => ({ tipo: "cliente", proyectos: [], ...d }),
       fields: [
         { k: "tipo", label: "Tipo", type: "pills", options: () => L.CONTACTO_TIPOS },
-        { k: "nombre", label: "Nombre", required: true },
-        { row: [{ k: "empresa", label: "Empresa" }, { k: "cargo", label: "Cargo" }] },
-        { row: [{ k: "telefono", label: "Teléfono", mono: true }, { k: "email", label: "Correo" }] },
-        { row: [{ k: "especialidad", label: "Especialidad", placeholder: "Estructura, carpintería, iluminación…" }, { k: "ciudad", label: "Ciudad" }] },
-        { k: "proyectos", label: "Proyectos", type: "projects" },
-        { k: "notas", label: "Notas", type: "textarea" },
+        // De los clientes solo se guarda el nombre o la razón social, la identificación y sus proyectos.
+        { k: "nombre", label: "Nombre", required: true, when: (f) => f.tipo !== "cliente" },
+        { k: "nombre", label: "Nombre / Razón social", required: true, when: (f) => f.tipo === "cliente" },
+        { row: [{ k: "tipoId", label: "Identificación", type: "select", options: () => [{ id: "", label: "Tipo…" }, { id: "CC", label: "CC" }, { id: "NIT", label: "NIT" }, { id: "CE", label: "CE" }] }, { k: "identificacion", label: "Número", mono: true, placeholder: "900.123.456-7" }], when: (f) => f.tipo === "cliente" },
+        { row: [{ k: "empresa", label: "Empresa" }, { k: "cargo", label: "Cargo" }], when: (f) => f.tipo !== "cliente" },
+        { row: [{ k: "telefono", label: "Teléfono", mono: true }, { k: "email", label: "Correo" }], when: (f) => f.tipo !== "cliente" },
+        { row: [{ k: "especialidad", label: "Especialidad", placeholder: "Estructura, carpintería, iluminación…" }, { k: "ciudad", label: "Ciudad" }], when: (f) => f.tipo !== "cliente" },
+        { k: "proyectos", label: "Proyectos asociados", type: "projects" },
+        { k: "notas", label: "Notas", type: "textarea", when: (f) => f.tipo !== "cliente" },
       ],
     },
     cobros: {
@@ -142,9 +145,10 @@
     const [busy, setBusy] = useState(false);
     const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
     const project = q.project(f.project);
-    const all = sc.fields.flatMap((x) => x.row || [x]);
+    const flat = sc.fields.flatMap((x) => (x.row ? x.row.map((y) => ({ ...y, when: x.when })) : [x]));
+    const all = flat.filter((x, i) => flat.findIndex((y) => y.k === x.k) === i);
     const save = async () => {
-      const missing = all.find((x) => x.required && (f[x.k] === "" || f[x.k] == null));
+      const missing = flat.find((x) => x.required && (!x.when || x.when(f)) && (f[x.k] === "" || f[x.k] == null));
       if (missing) { setErr(`Completa «${missing.label}».`); return; }
       setBusy(true);
       let body = {};
@@ -208,7 +212,7 @@
     const footer = html`${id && html`<${DeleteButton} onConfirm=${remove} />`}<span class="spacer"></span>
       <button type="button" class="btn ghost" onClick=${L.closeSheet}>Cancelar</button><button type="submit" class="btn primary" disabled=${busy}>${id ? "Guardar" : "Agregar"}</button>`;
     return html`<${Sheet} title=${sc.title} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
-      ${sc.fields.map((x) => (x.row ? html`<div class="two">${x.row.map(field)}</div>` : field(x)))}
+      ${sc.fields.filter((x) => !x.when || x.when(f)).map((x) => (x.row ? html`<div class="two">${x.row.map(field)}</div>` : field(x)))}
       ${err && html`<p class="err">${err}</p>`}
     <//>`;
   }

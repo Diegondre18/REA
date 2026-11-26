@@ -110,14 +110,14 @@
     if (!d || !e) return null;
     if (e < d) return 1;
     let n = 0;
-    for (let i = 0; i < 400 && d <= e; i++) { const w = d.getDay(); if (w > 0 && w < 6) n++; d = L.addDays(d, 1); }
+    for (let i = 0; i < 400 && d <= e; i++) { if (L.esHabil(L.iso(d))) n++; d = L.addDays(d, 1); }
     return Math.max(1, n);
   }
   function addBdays(a, n) {
     let d = L.parse(a); if (!d) return "";
     let left = Math.max(0, n - 1);
-    while (d.getDay() === 0 || d.getDay() === 6) d = L.addDays(d, 1);
-    while (left > 0) { d = L.addDays(d, 1); if (d.getDay() > 0 && d.getDay() < 6) left--; }
+    for (let i = 0; i < 30 && !L.esHabil(L.iso(d)); i++) d = L.addDays(d, 1);
+    while (left > 0) { d = L.addDays(d, 1); if (L.esHabil(L.iso(d))) left--; }
     return L.iso(d);
   }
   const median = (xs) => { if (!xs.length) return null; const s = [...xs].sort((a, b) => a - b); const m = s.length >> 1; return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2); };
@@ -148,6 +148,22 @@
     const st = stats(use);
     return { ...st, who: use === mine ? L.first(q.name(uid)) : "el estudio", due: addBdays(start, st.real) };
   }
+  // Plazos realistas: una entrega no puede tener menos días hábiles de los que esa persona suele tardar en ese
+  // tipo de tarea (su propio historial desde 3 terminadas; antes, el del estudio). Devuelve el primer choque.
+  function plazoCorto(kind, assignees, start, due) {
+    if (!kind || !due) return null;
+    const ini = start || L.todayIso();
+    const planned = bdays(ini, due);
+    if (!planned) return null;
+    for (const uid of assignees || []) {
+      const sg = suggest(kind, [uid], ini);
+      if (sg && planned < sg.real) {
+        const label = (L.KIND[kind] || { label: "Esta tarea" }).label;
+        return { uid, sg, planned, text: `${label} le toma ${sg.who === "el estudio" ? "al estudio" : "a " + sg.who} unos ${L.plural(sg.real, "día hábil", "días hábiles")} y este plazo tiene ${L.plural(planned, "día", "días")}. La entrega más cercana posible es el ${L.fmtDay(sg.due)}.` };
+      }
+    }
+    return null;
+  }
   function DurationHint({ kind, assignees, start, due, onUse }) {
     const sg = suggest(kind, assignees, start);
     if (!sg) return null;
@@ -156,7 +172,7 @@
     const label = (L.KIND[kind] || { label: "Esto" }).label;
     return html`<div class=${L.cx("dur-hint", short && "warn")}>
       <p>${label} suele tomar <b>${L.plural(sg.real, "día hábil", "días hábiles")}</b> (${sg.who}, ${L.plural(sg.n, "tarea terminada", "tareas terminadas")}${sg.onTime !== null ? `, ${sg.onTime}% a tiempo` : ""}).
-        ${short ? ` Así como está tiene ${L.plural(planned, "día", "días")}: puede quedar corto.` : ""}</p>
+        ${short ? ` Así como está tiene ${L.plural(planned, "día", "días")}: no se puede guardar con un plazo tan corto.` : ""}</p>
       ${sg.due && sg.due !== due && html`<button type="button" class="btn sm" onClick=${() => onUse(sg.due)}>Entregar el ${L.fmtDay(sg.due)}</button>`}
     </div>`;
   }
@@ -182,5 +198,5 @@
       <p class="hint">Es la mediana (el valor del medio), así una tarea que se alargó mucho no distorsiona el resto. Al crear una tarea con tipo y fecha de inicio, la app sugiere una entrega realista.</p>`;
   }
 
-  Object.assign(L, { GraciasSheet, Reconocimientos, graciasPara, AnuncioSheet, AnunciosBanner, anunciosActivos: activos, Bienvenida, DurationHint, Duraciones, durSuggest: suggest });
+  Object.assign(L, { GraciasSheet, Reconocimientos, graciasPara, AnuncioSheet, AnunciosBanner, anunciosActivos: activos, Bienvenida, DurationHint, Duraciones, durSuggest: suggest, plazoCorto });
 })();

@@ -16,11 +16,11 @@
     horas: "horas", cobros: "cobros", tarifas: "tarifas", ausencias: "ausencias", solicitudes: "solicitudes", revisiones: "revisiones", respaldos: "respaldos",
     bienestar: "bienestar", cierres: "cierres", ajustes: "ajustes", reconocimientos: "reconocimientos", anuncios: "anuncios",
     libretas: "libretas", libreta_items: "libretaItems", actas: "actas",
-    proyecto_finanzas: "pfin", presupuesto: "presupuesto", contratos: "contratos", adicionales: "adicionales", pagos_proveedor: "pagosProv",
+    asistencias: "asistencias", proyecto_finanzas: "pfin", presupuesto: "presupuesto", contratos: "contratos", adicionales: "adicionales", pagos_proveedor: "pagosProv",
     costos: "costos", flujo: "flujo", gastos_fijos: "gastosFijos", tiempos: "tiempos", premios_semana: "premiosSemana", fotos_obra: "fotosObra", puntos_semana: "puntosSemana",
   };
   const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios", "libretas", "libreta_items", "actas",
-    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana", "fotos_obra", "puntos_semana", "materiales", "horas", "tarifas"];
+    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana", "fotos_obra", "puntos_semana", "materiales", "horas", "tarifas", "asistencias"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline
@@ -28,7 +28,7 @@
     me: null,
     users: [], proyectos: [], tareas: [], eventos: [], planes: [], planItems: [], vistos: [], reportes: [], notifs: [], actividad: [],
     tramites: [], planos: [], envios: [], visitas: [], contactos: [], materiales: [], horas: [], cobros: [], tarifas: [], ausencias: [], solicitudes: [], revisiones: [], respaldos: [], bienestar: [], cierres: [], ajustes: [], reconocimientos: [], anuncios: [], libretas: [], libretaItems: [], actas: [],
-    pfin: [], presupuesto: [], contratos: [], adicionales: [], pagosProv: [], costos: [], flujo: [], gastosFijos: [], tiempos: [], premiosSemana: [], fotosObra: [], puntosSemana: [],
+    asistencias: [], pfin: [], presupuesto: [], contratos: [], adicionales: [], pagosProv: [], costos: [], flujo: [], gastosFijos: [], tiempos: [], premiosSemana: [], fotosObra: [], puntosSemana: [],
     route: { name: "inicio", id: "", tab: "" },
     sheet: null, // { type, id, defaults }
     toast: null,
@@ -524,6 +524,9 @@
         const touched2 = touched || (prev && ["startTime", "dueTime"].some((k) => k in data && data[k] !== prev[k]));
         const clash = touched2 ? q.absenceIssues(next.assignees, next.start, next.due, next.startTime, next.dueTime).block : [];
         if (clash.length) { toast(clash[0].text); return null; }
+        // Plazos realistas: no se guarda una entrega más corta de lo que esa persona suele tardar en ese tipo de tarea.
+        const touched3 = !prev || ["assignees", "start", "due", "kind"].some((k) => k in data && JSON.stringify(data[k]) !== JSON.stringify(prev[k]));
+        if (touched3 && next.status !== "terminado" && L.plazoCorto) { const pc = L.plazoCorto(next.kind, next.assignees, next.start, next.due); if (pc) { toast(pc.text); return null; } }
         if (body.status === "terminado") { body.progress = 100; if (!prev || prev.status !== "terminado") body.doneAt = L.todayIso(); }
         else if (body.status) body.doneAt = "";
         if (body.status && body.status !== "en_curso") body.stage = "";
