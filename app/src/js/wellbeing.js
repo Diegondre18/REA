@@ -205,6 +205,7 @@
   function pomoTick() {
     if (!pomo || !live()) return;
     const t = Date.now();
+    if (pomo.phase === "trabajo" && t >= pomo.endsAt && ls.get(EN_CURSO, null)) { pomo = { ...pomo, endsAt: t + 60e3 }; savePomo(); return; } // espera a que termine la pausa activa
     if (pomo.phase === "trabajo" && t >= pomo.endsAt) {
       addWell("bloques");
       pomo = { ...pomo, phase: "espera", endsAt: 0, dueAt: t, nagAt: t + 120e3, nags: 0 };
@@ -264,6 +265,10 @@
     }
   }
   let pausaPrev = null, pausaHour = "";
+  // Pausa activa en curso: se guarda en el computador para que, si la app se recarga a mitad de la pausa,
+  // al terminar se sepa a qué estado volver.
+  const EN_CURSO = "lap-cerebro-pausa-en-curso";
+  const descansoPomo = () => !!(pomo && pomo.phase === "descanso" && pomo.endsAt > Date.now());
   function pausaStart(h) {
     pausaHour = h || "";
     const bloqueada = !!(L.desk && L.desk.bigAlertPausa);
@@ -275,7 +280,9 @@
       } else clearAlert("pausa-" + h);
     }
     const pres = q.presence(L.state.me);
-    pausaPrev = pres === "pausa" ? pausaPrev || "disponible" : pres;
+    const antes = ls.get(EN_CURSO, null);
+    pausaPrev = pres === "pausa" ? pausaPrev || (antes && antes.prev) || "disponible" : pres;
+    ls.set(EN_CURSO, { prev: pausaPrev, hora: pausaHour, desde: Date.now() });
     if (pres !== "pausa") act.setPresence("pausa");
     if (bloqueada) {
       // La rutina sale en todas las pantallas, bloqueadas hasta que termine y la persona toque "Terminar".
@@ -289,13 +296,32 @@
     showApp();
     L.go("#pausa");
   }
-  function pausaEnd(done) {
-    if (pausaHour) { const st = ls.get(pkey(pausaHour), {}); ls.set(pkey(pausaHour), { ...st, done: !!done, skip: !done }); }
-    pausaHour = "";
+  // Seguro: si quedó una pausa activa "en curso" pero ya no hay pantalla de pausa (la app se cerró o se reinició
+  // a mitad de la pausa), el estado vuelve al de antes en vez de quedarse en "En pausa".
+  async function pausaHuerfana() {
+    const marca = ls.get(EN_CURSO, null);
+    if (!marca || !live()) return;
+    let visible = false;
+    try { visible = L.desk && L.desk.bigAlertVisible ? await L.desk.bigAlertVisible() : L.state.route && L.state.route.name === "pausa"; } catch (e) { return; }
+    if (visible) return;
+    if (Date.now() - (marca.desde || 0) < 60e3) return; // recién empezada: la ventana aún puede estar abriendo
+    pausaEnd(false, true);
+  }
+  function pausaEnd(done, quieto) {
+    const marca = ls.get(EN_CURSO, null) || {};
+    const hora = pausaHour || marca.hora || "";
+    if (hora) { const st = ls.get(pkey(hora), {}); ls.set(pkey(hora), { ...st, done: !!done, skip: !done }); }
+    const volver = pausaPrev || marca.prev || "disponible";
+    pausaHour = ""; pausaPrev = null;
+    ls.set(EN_CURSO, null);
     if (done) { addWell("pausas"); celebrate("¡Pausa activa hecha!"); }
-    if (q.presence(L.state.me) === "pausa" && !(pomo && pomo.phase === "descanso")) act.setPresence(pausaPrev || "disponible");
-    pausaPrev = null;
-    L.go("#inicio");
+    // Vuelve al estado de antes (salvo que esté en medio del descanso de un Pomodoro). Si el cambio no quedó
+    // en el servidor, se intenta otra vez.
+    const restaurar = () => { if (q.presence(L.state.me) === "pausa" && !descansoPomo()) act.setPresence(volver === "pausa" ? "disponible" : volver); };
+    restaurar();
+    setTimeout(restaurar, 4000);
+    setTimeout(restaurar, 15000);
+    if (!quieto) L.go("#inicio");
   }
 
   /* ================= cierre del día ================= */
@@ -452,7 +478,7 @@
     ticks++;
     try {
       pomoTick();
-      if (ticks % 20 === 0) { pausasTick(); cierreTick(); aguaTick(); }
+      if (ticks % 20 === 0) { pausasTick(); cierreTick(); aguaTick(); pausaHuerfana(); }
       if (ticks % 15 === 3) { syncPremios(); birthdayCheck(); }
       if (ticks % 60 === 7) premioTick();
     } catch (e) { /* sigue */ }

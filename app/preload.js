@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld("lap", {
   bigAlertShow: (data) => ipcRenderer.invoke("big-alert-show", data),
   bigAlertHide: (id) => ipcRenderer.send("big-alert-hide", id),
   bigAlertPausa: (data) => ipcRenderer.invoke("big-alert-pausa", data),
+  bigAlertVisible: () => ipcRenderer.invoke("big-alert-visible"),
   bubbleSync: (st) => ipcRenderer.send("bubble-sync", st),
   // Segundos sin tocar el mouse ni el teclado (para no contar tiempo si la persona se fue).
   idleSeconds: () => ipcRenderer.invoke("idle-seconds"),

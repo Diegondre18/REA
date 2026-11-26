@@ -310,3 +310,9 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - **Cualquiera del equipo** publica un anuncio con el botón "📣 Anuncio para todos" (en Inicio y en Equipo): texto y hasta qué fecha se muestra.
 - A los demás se les **abre la app** y el anuncio sale en una **ventana grande en el centro**, con el muñeco de quien lo publicó. Se cierra con "Entendido" y no vuelve a salir. También llega a la burbuja y queda en la TV de la oficina hasta la fecha.
 - Cada quien edita o quita sus propios anuncios. Marcar un anuncio como **importante** (suena aunque estén en No molestar) y editar los de otros sigue siendo de Dirección.
+
+## Arreglo: el estado vuelve después de la pausa activa (2.33.1)
+
+- Al tocar "Terminar", el estado vuelve al de antes de la pausa y Cerebro revisa a los 4 y a los 15 segundos que de verdad cambió; si no, lo vuelve a intentar.
+- Si la app se cierra o se reinicia a mitad de una pausa activa, al volver a abrirla el estado ya no se queda en "En pausa": vuelve solo al de antes.
+- Si un Pomodoro termina su bloque en medio de una pausa activa, su aviso de descanso espera a que acabe la pausa en vez de taparla.
