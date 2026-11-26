@@ -13,7 +13,8 @@
   const cfg = () => {
     const r = st().ajustes.find((a) => a.clave === "gestion");
     const v = (r && r.valor) || {};
-    return { ...DEFAULTS, ...v, nomina: { ...NOMINA, ...(v.nomina || {}) }, retenciones: mezclarRet(v.retenciones) };
+    return { ...DEFAULTS, ...RETCFG, ...v, nomina: { ...NOMINA, ...(v.nomina || {}) },
+      retConceptos: v.retConceptos && v.retConceptos.length ? v.retConceptos : RET_CONCEPTOS, icaTipos: v.icaTipos && v.icaTipos.length ? v.icaTipos : ICA_TIPOS };
   };
   const hm = (s) => { const [h, m] = String(s || "0:0").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 
@@ -54,13 +55,6 @@
   // La exoneración (art. 114-1 E.T.) quita salud, SENA e ICBF a quienes ganan menos de 10 salarios mínimos.
   const NOMINA = { smmlv: 1750905, auxilio: 249095, cesantias: 8.33, intCesantias: 1, prima: 8.33, vacaciones: 4.17,
     salud: 8.5, pension: 12, arl: 0.522, caja: 4, icbf: 3, sena: 2, exonerada: true, saludEmpleado: 4, pensionEmpleado: 4 };
-  // Retenciones por empresa (LAP o JC) y por tipo de contrato, en %. IVA sobre el valor (diseño) o sobre la utilidad (obra).
-  const RET0 = { iva: 19, reteFuente: 0, reteIva: 0, reteIca: 0 };
-  function mezclarRet(v) {
-    const o = {};
-    for (const e of ["lap", "jc"]) for (const t of ["diseno", "obra"]) o[e + "_" + t] = { ...RET0, ...((v && v[e + "_" + t]) || {}) };
-    return o;
-  }
   const salarioDe = (uid) => st().tarifas.find((x) => x.user === uid) || null;
   // Todo lo de una persona en un mes: lo que gana, lo que le cuesta a LAP, el costo por hora y lo que se le paga.
   function nomina(uid, year, month, over) {
@@ -98,14 +92,56 @@
   const nominaMes = (year, month) => sum(q().staff(), (u) => { const n = nomina(u.id, year, month); return n ? n.costoMes : 0; });
 
   /* ---------- contrato con el cliente ---------- */
-  // Diseño: valor + IVA (y cada adicional + IVA); retención en la fuente e ICA sobre el valor, reteIVA sobre el IVA.
-  // Obra (AIU): costo directo + administración + imprevistos + utilidad + IVA sobre la utilidad; las retenciones igual,
-  // sobre el valor antes de IVA.
-  function contratoCliente(f) {
+  // Retención en la fuente: conceptos más comunes (persona jurídica declarante), con su tarifa y su base mínima en
+  // UVT. Si el pago es menor que la base mínima, no se retiene. Todo se ajusta en Gestión → Ajustes.
+  const RET_CONCEPTOS = [
+    { id: "honorarios_pj", label: "Honorarios y consultoría (persona jurídica)", pct: 11, uvt: 0 },
+    { id: "honorarios_pn", label: "Honorarios (persona natural)", pct: 10, uvt: 0 },
+    { id: "servicios", label: "Servicios generales (declarante)", pct: 4, uvt: 2 },
+    { id: "servicios_nd", label: "Servicios generales (no declarante)", pct: 6, uvt: 2 },
+    { id: "construccion", label: "Contratos de construcción y urbanización", pct: 2, uvt: 10 },
+    { id: "compras", label: "Compras generales (declarante)", pct: 2.5, uvt: 10 },
+    { id: "compras_nd", label: "Compras generales (no declarante)", pct: 3.5, uvt: 10 },
+    { id: "arriendo_inmueble", label: "Arrendamiento de inmuebles", pct: 3.5, uvt: 10 },
+    { id: "arriendo_mueble", label: "Arrendamiento de muebles", pct: 4, uvt: 0 },
+    { id: "transporte_carga", label: "Transporte de carga", pct: 1, uvt: 2 },
+    { id: "aseo_vigilancia", label: "Aseo y vigilancia", pct: 2, uvt: 2 },
+  ];
+  // ReteICA (SHD, Bogotá): solo la practican los clientes inscritos en Bogotá; la tarifa (por mil) depende del tipo de cliente.
+  const ICA_TIPOS = [
+    { id: "pj", label: "Persona jurídica", porMil: 9.66 },
+    { id: "gran", label: "Gran contribuyente", porMil: 9.66 },
+    { id: "publica", label: "Entidad pública", porMil: 9.66 },
+    { id: "pn", label: "Persona natural (agente retenedor)", porMil: 9.66 },
+  ];
+  const RETCFG = { uvt: 52374, iva: 19, reteIva: 15 };
+  const conceptoRet = (id) => (cfg().retConceptos || RET_CONCEPTOS).find((c) => c.id === id) || null;
+  const icaTipo = (id) => (cfg().icaTipos || ICA_TIPOS).find((c) => c.id === id) || null;
+  const clienteDe = (pid) => { const p = pid && q().project(pid); return p && p.cliente ? st().contactos.find((c) => c.id === p.cliente) || null : null; };
+  // Qué retenciones aplica el contrato: lo marcado en el contrato o, si no se ha marcado, lo que dice el cliente.
+  function retencionesDe(f, cli) {
+    const r = (f && f.retenciones) || {};
+    const def = { fuente: f && f.tipoContrato === "obra" ? "construccion" : "honorarios_pj", iva: !!(cli && cli.reteIva), ica: !!(cli && cli.icaBogota), icaTipo: (cli && cli.icaTipo) || "pj" };
+    return { ...def, ...r };
+  }
+  // Diseño: valor + IVA (cada adicional igual). Obra (AIU): costo directo + A + I + U + IVA sobre la utilidad.
+  // La retención en la fuente y el ReteICA van sobre el valor antes de IVA (en obra, CD + A + I + U); el ReteIVA, sobre el IVA.
+  function contratoCliente(f, cliOverride) {
     if (!f || !f.tipoContrato) return null;
-    const r = cfg().retenciones[(f.entidad || "lap") + "_" + f.tipoContrato] || RET0;
+    const c = cfg();
+    const cli = cliOverride !== undefined ? cliOverride : clienteDe(f.proyecto);
+    const sel = retencionesDe(f, cli);
+    const concepto = sel.fuente ? conceptoRet(sel.fuente) : null;
+    const tipoIca = sel.ica ? icaTipo(sel.icaTipo) : null;
+    const r = { iva: num(c.iva), reteIva: num(c.reteIva), concepto, tipoIca, sel, uvt: num(c.uvt), cli };
     const pc = (v, p) => Math.round((num(v) * num(p)) / 100);
-    const ret = (base, iva) => { const x = { fuente: pc(base, r.reteFuente), iva: pc(iva, r.reteIva), ica: pc(base, r.reteIca) }; x.total = x.fuente + x.iva + x.ica; return x; };
+    const ret = (base, iva) => {
+      const minimo = concepto ? num(concepto.uvt) * r.uvt : 0;
+      const x = { fuente: concepto && base >= minimo ? pc(base, concepto.pct) : 0, bajoMinimo: !!(concepto && base < minimo), minimo,
+        iva: sel.iva ? pc(iva, r.reteIva) : 0, ica: tipoIca ? Math.round((base * num(tipoIca.porMil)) / 1000) : 0, base };
+      x.total = x.fuente + x.iva + x.ica;
+      return x;
+    };
     if (f.tipoContrato === "obra") {
       const cd = num(f.costoDirecto);
       const a = pc(cd, f.pctAdmin), i = pc(cd, f.pctImprevistos), u = pc(cd, f.pctUtilidad);
@@ -350,6 +386,6 @@
   setInterval(() => { const t = st().me && st().me.taskId || ""; if (t !== lastTask) { lastTask = t; flush(); } }, 5e3);
   window.addEventListener("beforeunload", () => { flush(); });
 
-  L.G = { cfg, NOMINA, nomina, nominaMes, salarioDe, contratoCliente, enHorario, horasDia, horasMes, tarifa, recargo, tiemposDe, costoHoras, fijosMes, tasaFijos, finOf, cliente, proveedores, presupuestoDe, rentabilidad, semaforo, flujoMeses, flushTiempos: flush, DEFAULTS };
+  L.G = { cfg, NOMINA, RET_CONCEPTOS, ICA_TIPOS, conceptoRet, icaTipo, clienteDe, retencionesDe, nomina, nominaMes, salarioDe, contratoCliente, enHorario, horasDia, horasMes, tarifa, recargo, tiemposDe, costoHoras, fijosMes, tasaFijos, finOf, cliente, proveedores, presupuestoDe, rentabilidad, semaforo, flujoMeses, flushTiempos: flush, DEFAULTS };
   L.gestionFindings = findings;
 })();

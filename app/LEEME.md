@@ -285,3 +285,14 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 ## Por qué no se ve el muñeco (2.30.2)
 
 - Si "Mostrar la burbuja" está activado pero el muñeco no se ve, el menú del ícono junto al reloj ahora dice por qué: hay una app en **pantalla completa** (render, presentación, video o juego; vuelve solo al salir de ella) o **no hay sesión iniciada** en LAP Cerebro.
+
+## Retenciones por concepto, UVT y ReteICA de Bogotá (2.31)
+
+- **Gestión → Ajustes → Contratos con clientes**:
+  - valor de la UVT del año (2026: $52.374), IVA y ReteIVA (% del IVA);
+  - tabla editable de **conceptos de retención en la fuente** con su tarifa y su base mínima en UVT (Cerebro muestra la base en pesos): honorarios y consultoría (11% persona jurídica, 10% natural), servicios generales (4% / 6%, desde 2 UVT), contratos de construcción y urbanización (2%, desde 10 UVT), compras generales (2,5% / 3,5%, desde 10 UVT), arrendamientos, transporte de carga, aseo y vigilancia; se agregan más con "＋";
+  - **ReteICA (SHD)**: tipos de cliente con su tarifa por mil.
+- **Directorio → cliente**: si está inscrito en Bogotá (practica ReteICA), su tipo de cliente para la tarifa, y si practica ReteIVA.
+- **Contrato con el cliente**: "Retenciones que aplica": concepto de retención en la fuente (por defecto honorarios en diseño y construcción en obra), ReteIVA y ReteICA, que se marcan solos según el cliente y se pueden cambiar.
+- **Cálculo**: la retención en la fuente y el ReteICA van sobre el valor antes de IVA; en obra, sobre el subtotal AIU (costo directo + A + I + U) sin el IVA de la utilidad. El ReteIVA va sobre el IVA. Si un pago es menor que la base mínima del concepto, no se retiene y el desglose lo dice.
+- Las tarifas vienen con los valores más comunes; confírmenlas con el contador.

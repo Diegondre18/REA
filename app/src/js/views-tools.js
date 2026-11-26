@@ -78,7 +78,7 @@
     },
     contactos: {
       title: "Contacto",
-      initial: (d) => ({ tipo: "cliente", proyectos: [], ...d }),
+      initial: (d) => ({ tipo: "cliente", proyectos: [], icaBogota: false, icaTipo: "pj", reteIva: false, ...d }),
       fields: [
         { k: "tipo", label: "Tipo", type: "pills", options: () => L.CONTACTO_TIPOS },
         // De los clientes solo se guarda el nombre o la razón social, la identificación y sus proyectos.
@@ -89,6 +89,9 @@
         { row: [{ k: "telefono", label: "Teléfono", mono: true }, { k: "email", label: "Correo" }], when: (f) => f.tipo !== "cliente" },
         { row: [{ k: "especialidad", label: "Especialidad", placeholder: "Estructura, carpintería, iluminación…" }, { k: "ciudad", label: "Ciudad" }], when: (f) => f.tipo !== "cliente" },
         { k: "proyectos", label: "Proyectos asociados", type: "projects" },
+        { k: "icaBogota", label: "ReteICA", type: "bool", text: "Inscrito en Bogotá (SHD): practica ReteICA", when: (f) => f.tipo === "cliente" },
+        { k: "icaTipo", label: "Tipo de cliente (tarifa ReteICA)", type: "select", options: () => (L.G ? L.G.cfg().icaTipos : []).map((x) => ({ id: x.id, label: x.label + " · " + x.porMil + " por mil" })), when: (f) => f.tipo === "cliente" && f.icaBogota },
+        { k: "reteIva", label: "ReteIVA", type: "bool", text: "Practica ReteIVA (gran contribuyente, entidad pública…)", when: (f) => f.tipo === "cliente" },
         { k: "carpeta", label: "Carpeta de documentos (RUT, cámara de comercio…)", type: "path", hint: "Una carpeta de la red o de Dropbox, o un enlace que empiece por https://", when: (f) => f.tipo === "cliente" },
         { k: "notas", label: "Notas", type: "textarea", when: (f) => f.tipo !== "cliente" },
       ],
@@ -177,6 +180,7 @@
       const id2 = "tf-" + x.k;
       switch (x.type) {
         case "textarea": return html`<textarea id=${id2} rows=${x.rows || 3} value=${v} placeholder=${x.placeholder || ""} onInput=${(e) => set(x.k, e.target.value)}></textarea>`;
+        case "bool": return html`<label class="check"><input id=${id2} type="checkbox" checked=${!!v} onChange=${(e) => set(x.k, e.target.checked)} /><span><b>${x.text || x.label}</b></span></label>`;
         case "date": return html`<input id=${id2} type="date" value=${v} onInput=${(e) => set(x.k, e.target.value)} />`;
         case "time": return html`<input id=${id2} type="time" value=${v} onInput=${(e) => set(x.k, e.target.value)} />`;
         case "number": return html`<input id=${id2} type="number" min=${x.min} max=${x.max} step=${x.step || "any"} value=${v} onInput=${(e) => set(x.k, e.target.value)} />`;
@@ -210,7 +214,7 @@
         default: return html`<input id=${id2} class=${x.mono ? "mono" : ""} value=${v} placeholder=${x.placeholder || ""} onInput=${(e) => set(x.k, e.target.value)} />`;
       }
     };
-    const field = (x) => (x.adminOnly && !q.isDirector() ? null : html`<${Field} key=${x.k} label=${x.label} id=${"tf-" + x.k} hint=${x.hint}>${input(x)}<//>`);
+    const field = (x) => (x.adminOnly && !q.isDirector() ? null : x.type === "bool" ? html`<div class="tool-check" key=${x.k}>${input(x)}</div>` : html`<${Field} key=${x.k} label=${x.label} id=${"tf-" + x.k} hint=${x.hint}>${input(x)}<//>`);
     const footer = html`${id && html`<${DeleteButton} onConfirm=${remove} />`}<span class="spacer"></span>
       <button type="button" class="btn ghost" onClick=${L.closeSheet}>Cancelar</button><button type="submit" class="btn primary" disabled=${busy}>${id ? "Guardar" : "Agregar"}</button>`;
     return html`<${Sheet} title=${sc.title} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>

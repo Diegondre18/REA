@@ -1424,3 +1424,10 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 .nuevo-cliente { display: grid; gap: 8px; padding: 12px 14px; border-radius: 10px; margin: -4px 0 12px; }
 .nuevo-cliente .inline select { width: 90px; flex: none; }
 .nuevo-cliente .inline input { flex: 1; }
+.ret-h { margin: 14px 0 6px; font-size: 13px; }
+.ret-tabla { display: grid; gap: 6px; }
+.ret-fila { display: grid; grid-template-columns: minmax(200px, 2fr) 100px 130px 120px auto; gap: 8px; align-items: center; }
+.ret-fila.ica { grid-template-columns: minmax(200px, 2fr) 130px auto; }
+.ret-fila.head { font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.ret-sel { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.tool-check { margin: 2px 0 12px; }

@@ -569,12 +569,17 @@
     const [f, setF] = useState(c);
     const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
     const setN = (k) => (e) => setF({ ...f, nomina: { ...f.nomina, [k]: e.target.value } });
-    const setR = (k, k2) => (e) => setF({ ...f, retenciones: { ...f.retenciones, [k]: { ...f.retenciones[k], [k2]: e.target.value } } });
+    const setL = (lista, i, k) => (e) => setF({ ...f, [lista]: f[lista].map((x, j) => (j === i ? { ...x, [k]: e.target.value } : x)) });
+    const addL = (lista, x) => setF({ ...f, [lista]: [...f[lista], x] });
+    const delL = (lista, i) => setF({ ...f, [lista]: f[lista].filter((_, j) => j !== i) });
     const save = async () => {
       const rec = s.ajustes.find((a) => a.clave === "gestion");
       const nomina = Object.fromEntries(Object.entries(f.nomina).map(([k, v]) => [k, typeof v === "boolean" ? v : num(v)]));
-      const retenciones = Object.fromEntries(Object.entries(f.retenciones).map(([k, o]) => [k, Object.fromEntries(Object.entries(o).map(([k2, v]) => [k2, num(v)]))]));
-      const valor = { ...f, nomina, retenciones, recargoExtra: f.recargoExtra === "" || f.recargoExtra === null ? null : num(f.recargoExtra), saldoInicial: num(f.saldoInicial), margenObjetivo: num(f.margenObjetivo) };
+      const slug = (t, i) => (String(t || "").toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "") || "item") + (i ? "" : "");
+      const retConceptos = f.retConceptos.filter((x) => (x.label || "").trim()).map((x, i) => ({ id: x.id || slug(x.label) + "_" + i, label: x.label.trim(), pct: num(x.pct), uvt: num(x.uvt) }));
+      const icaTipos = f.icaTipos.filter((x) => (x.label || "").trim()).map((x, i) => ({ id: x.id || slug(x.label) + "_" + i, label: x.label.trim(), porMil: num(x.porMil) }));
+      const { retenciones: _viejo, ...resto } = f;
+      const valor = { ...resto, nomina, retConceptos, icaTipos, uvt: num(f.uvt), iva: num(f.iva), reteIva: num(f.reteIva), recargoExtra: f.recargoExtra === "" || f.recargoExtra === null ? null : num(f.recargoExtra), saldoInicial: num(f.saldoInicial), margenObjetivo: num(f.margenObjetivo) };
       if (await act().save("ajustes", rec ? rec.id : null, { clave: "gestion", valor })) L.toast("Ajustes guardados");
     };
     const people = q().staff().filter((u) => u.role !== "pantalla");
@@ -599,10 +604,27 @@
         <label class="check"><input type="checkbox" checked=${!!f.nomina.exonerada} onChange=${(e) => setF({ ...f, nomina: { ...f.nomina, exonerada: e.target.checked } })} /><span><b>LAP está exonerada de salud, SENA e ICBF</b><small>Para quienes ganan menos de 10 salarios mínimos (art. 114-1 del Estatuto Tributario). Confírmalo con el contador.</small></span></label>
         <p class="note">Valores por defecto de 2026 (decreto 1470 de 2025): mínimo ${$(G().NOMINA.smmlv)} y auxilio ${$(G().NOMINA.auxilio)}. Actualízalos cada enero. El auxilio de transporte se paga a quien gana hasta 2 mínimos.</p>
       <//>
-      <${L.Panel} title="Contratos con clientes: IVA y retenciones (%)" cls="span-12">
-        <div class="ret-grid">${["lap_diseno", "lap_obra", "jc_diseno", "jc_obra"].map((k) => html`<div class="ret-box" key=${k}><h4>${k.startsWith("lap") ? "LAP" : "JC"} · ${k.endsWith("obra") ? "Obra (AIU)" : "Diseño"}</h4>
-          <div class="two">${[["iva", k.endsWith("obra") ? "IVA sobre la utilidad" : "IVA"], ["reteFuente", "Retención en la fuente"], ["reteIva", "ReteIVA (% del IVA)"], ["reteIca", "ReteICA"]].map(([k2, label]) => html`<${L.Field} key=${k2} label=${label} id=${"gr-" + k + k2}><input id=${"gr-" + k + k2} type="number" step="0.001" min="0" value=${f.retenciones[k][k2]} onInput=${setR(k, k2)} /><//>`)}</div></div>`)}</div>
-        <p class="note">La retención en la fuente y el ReteICA se calculan sobre el valor antes de IVA; el ReteIVA, sobre el IVA. Pon los porcentajes que te indique el contador para cada empresa.</p>
+      <${L.Panel} title="Contratos con clientes: IVA y retenciones" cls="span-12">
+        <div class="ret-grid">
+          <${L.Field} label=${"Valor de la UVT del año · " + $(f.uvt)} id="gr-uvt"><input id="gr-uvt" type="number" step="1" min="0" value=${f.uvt} onInput=${set("uvt")} /><//>
+          <${L.Field} label="IVA %" id="gr-iva"><input id="gr-iva" type="number" step="0.01" min="0" value=${f.iva} onInput=${set("iva")} /><//>
+          <${L.Field} label="ReteIVA (% del IVA)" id="gr-riva"><input id="gr-riva" type="number" step="0.01" min="0" value=${f.reteIva} onInput=${set("reteIva")} /><//>
+        </div>
+        <h4 class="ret-h">Retención en la fuente: conceptos</h4>
+        <div class="ret-tabla"><div class="ret-fila head"><span>Concepto</span><span>Tarifa %</span><span>Base mínima (UVT)</span><span>Base en pesos</span><span></span></div>
+          ${f.retConceptos.map((x, i) => html`<div class="ret-fila" key=${i}><input aria-label="Concepto" value=${x.label} onInput=${setL("retConceptos", i, "label")} />
+            <input aria-label="Tarifa" type="number" step="0.01" min="0" value=${x.pct} onInput=${setL("retConceptos", i, "pct")} />
+            <input aria-label="Base mínima en UVT" type="number" step="1" min="0" value=${x.uvt} onInput=${setL("retConceptos", i, "uvt")} />
+            <span class="mono muted">${num(x.uvt) ? $(num(x.uvt) * num(f.uvt)) : "Sin base"}</span>
+            <button type="button" class="btn ghost sm" aria-label="Quitar concepto" onClick=${() => delL("retConceptos", i)}>✕</button></div>`)}
+          <button type="button" class="btn ghost sm mas-apoyo" onClick=${() => addL("retConceptos", { id: "", label: "", pct: "", uvt: "" })}>＋ Agregar concepto</button></div>
+        <h4 class="ret-h">ReteICA (SHD, Bogotá): tarifa según el tipo de cliente</h4>
+        <div class="ret-tabla"><div class="ret-fila ica head"><span>Tipo de cliente</span><span>Tarifa (por mil)</span><span></span></div>
+          ${f.icaTipos.map((x, i) => html`<div class="ret-fila ica" key=${i}><input aria-label="Tipo de cliente" value=${x.label} onInput=${setL("icaTipos", i, "label")} />
+            <input aria-label="Tarifa por mil" type="number" step="0.01" min="0" value=${x.porMil} onInput=${setL("icaTipos", i, "porMil")} />
+            <button type="button" class="btn ghost sm" aria-label="Quitar tipo" onClick=${() => delL("icaTipos", i)}>✕</button></div>`)}
+          <button type="button" class="btn ghost sm mas-apoyo" onClick=${() => addL("icaTipos", { id: "", label: "", porMil: "" })}>＋ Agregar tipo de cliente</button></div>
+        <p class="note">La retención en la fuente y el ReteICA van sobre el valor antes de IVA (en obra, costo directo + A + I + U, sin el IVA de la utilidad); el ReteIVA, sobre el IVA. Si un pago es menor que la base mínima del concepto, no se retiene. El ReteICA solo aplica si el cliente está inscrito en Bogotá. Las tarifas y bases vienen con los valores más comunes (UVT 2026: $52.374); confírmalas con el contador.</p>
       <//>
       <${L.Panel} title="Caja" cls="span-6">
         <div class="two"><${L.Field} label="Saldo inicial de caja" id="ga-s"><input id="ga-s" type="number" step="1000" value=${f.saldoInicial} onInput=${set("saldoInicial")} /><//><${L.Field} label="A la fecha" id="ga-sf"><input id="ga-sf" type="date" value=${f.saldoFecha} onInput=${set("saldoFecha")} /><//></div>
@@ -707,10 +729,10 @@
     if (!c) return null;
     const line = (label, v, cls) => html`<div class=${cls || ""}><span>${label}</span><b class="mono">${v}</b></div>`;
     const R = c.r;
-    const rets = (x, pre) => html`${x.fuente ? line((pre || "") + "− Retención en la fuente (" + R.reteFuente + "%)", $(x.fuente), "sm") : ""}${x.iva ? line((pre || "") + "− ReteIVA (" + R.reteIva + "% del IVA)", $(x.iva), "sm") : ""}${x.ica ? line((pre || "") + "− ReteICA (" + R.reteIca + "%)", $(x.ica), "sm") : ""}`;
+    const rets = (x) => html`${R.concepto ? (x.bajoMinimo ? line("Retención en la fuente: no aplica (" + $(x.base) + " es menos que la base mínima de " + $(x.minimo) + ")", "$ 0", "sm") : line("− Retención en la fuente: " + R.concepto.label + " " + R.concepto.pct + "% sobre " + $(x.base), $(x.fuente), "sm")) : ""}${x.iva ? line("− ReteIVA " + R.reteIva + "% del IVA", $(x.iva), "sm") : ""}${x.ica ? line("− ReteICA " + R.tipoIca.porMil + " por mil (" + R.tipoIca.label + ") sobre " + $(x.base), $(x.ica), "sm") : ""}`;
     if (c.tipo === "obra") return html`<div class="rent-calc nom-calc">
       ${line("Costo directo", $(c.cd))}${line("Administración", $(c.a), "sm")}${line("Imprevistos", $(c.i), "sm")}${line("Utilidad", $(c.u), "sm")}
-      ${line("Subtotal (antes de IVA)", $(c.antesIva), "sub")}${line("IVA sobre la utilidad (" + R.iva + "%)", $(c.iva))}
+      ${line("Subtotal AIU (antes de IVA)", $(c.antesIva), "sub")}${line("IVA sobre la utilidad (" + R.iva + "%)", $(c.iva))}
       ${line("Valor total", $(c.total), "tot")}${rets(c.ret)}${line("Monto a recibir", $(c.recibir), "tot")}</div>`;
     return html`<div class="rent-calc nom-calc">
       ${line("Valor contratado", $(c.principal.valor))}${line("IVA (" + R.iva + "%)", $(c.principal.iva), "sm")}${line("Valor total", $(c.principal.total), "sub")}${rets(c.principal.ret)}
@@ -723,14 +745,18 @@
     const rec = G().finOf(pid);
     const [f, setF] = useState(() => ({ tipoContrato: (rec && rec.tipoContrato) || "diseno", entidad: (rec && rec.entidad) || "lap", valorDiseno: (rec && rec.valorDiseno) || "",
       costoDirecto: (rec && rec.costoDirecto) || "", pctAdmin: rec && rec.pctAdmin != null ? rec.pctAdmin : "", pctImprevistos: rec && rec.pctImprevistos != null ? rec.pctImprevistos : "", pctUtilidad: rec && rec.pctUtilidad != null ? rec.pctUtilidad : "",
-      adicionalesCliente: ((rec && rec.adicionalesCliente) || []).map((a) => ({ ...a })) }));
-    const c = G().contratoCliente(f);
+      adicionalesCliente: ((rec && rec.adicionalesCliente) || []).map((a) => ({ ...a })), retenciones: rec && rec.retenciones ? { ...rec.retenciones } : null }));
+    const cli = G().clienteDe(pid);
+    const c = G().contratoCliente({ ...f, proyecto: pid }, cli);
+    const sel = c ? c.r.sel : G().retencionesDe(f, cli);
+    const setSel = (k, v) => setF({ ...f, retenciones: { ...sel, [k]: v } });
     const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
     const setA = (i, k, v) => setF((o) => ({ ...o, adicionalesCliente: o.adicionalesCliente.map((a, j) => (j === i ? { ...a, [k]: v } : a)) }));
     const save = async () => {
       const body = { proyecto: pid, tipoContrato: f.tipoContrato, entidad: f.entidad, valorDiseno: num(f.valorDiseno), costoDirecto: num(f.costoDirecto),
         pctAdmin: num(f.pctAdmin), pctImprevistos: num(f.pctImprevistos), pctUtilidad: num(f.pctUtilidad),
         adicionalesCliente: f.adicionalesCliente.filter((a) => num(a.valor)).map((a) => ({ descripcion: (a.descripcion || "").trim(), valor: num(a.valor), fecha: a.fecha || L.todayIso() })),
+        retenciones: sel,
         valorContrato: c ? c.ingreso : 0 };
       if (await act().save("proyecto_finanzas", rec ? rec.id : null, body)) { L.toast("Contrato guardado"); L.closeSheet(); }
     };
@@ -751,9 +777,15 @@
         </div>` : html`
         <${L.Field} label=${"Costo directo" + (f.costoDirecto ? " · " + $(f.costoDirecto) : "")} id="cc-cd"><input id="cc-cd" type="number" step="1000" min="0" value=${f.costoDirecto} onInput=${set("costoDirecto")} /><//>
         <div class="three">${pctIn("pctAdmin", "Administración %")}${pctIn("pctImprevistos", "Imprevistos %")}${pctIn("pctUtilidad", "Utilidad %")}</div>`}
+      <div class="fld ret-sel"><span class="lbl">Retenciones que aplica ${cli ? cli.nombre : "el cliente"}</span>
+        <${L.Field} label="Retención en la fuente" id="cc-fuente"><select id="cc-fuente" value=${sel.fuente || ""} onChange=${(e) => setSel("fuente", e.target.value)}>
+          <option value="">No practica retención en la fuente</option>${G().cfg().retConceptos.map((x) => html`<option key=${x.id} value=${x.id}>${x.label} · ${x.pct}%${num(x.uvt) ? " · desde " + x.uvt + " UVT" : ""}</option>`)}</select><//>
+        <label class="check"><input type="checkbox" checked=${!!sel.iva} onChange=${(e) => setSel("iva", e.target.checked)} /><span><b>ReteIVA (${G().cfg().reteIva}% del IVA)</b><small>Solo si el cliente lo practica (grandes contribuyentes, entidades públicas…).</small></span></label>
+        <label class="check"><input type="checkbox" checked=${!!sel.ica} onChange=${(e) => setSel("ica", e.target.checked)} /><span><b>ReteICA (SHD)</b><small>Aplica si el cliente está inscrito en Bogotá${cli ? (cli.icaBogota ? ": en el directorio dice que sí." : ": en el directorio dice que no.") : "."}</small></span></label>
+        ${sel.ica && html`<${L.Field} label="Tipo de cliente (tarifa ReteICA)" id="cc-ica"><select id="cc-ica" value=${sel.icaTipo || ""} onChange=${(e) => setSel("icaTipo", e.target.value)}>${G().cfg().icaTipos.map((x) => html`<option key=${x.id} value=${x.id}>${x.label} · ${x.porMil} por mil</option>`)}</select><//>`}
+      </div>
       <${DesgloseContrato} c=${c} />
-      ${c && !c.r.reteFuente && !c.r.reteIva && !c.r.reteIca && html`<p class="note warn">Aún no hay porcentajes de retención para ${f.entidad === "jc" ? "JC" : "LAP"} en ${f.tipoContrato === "obra" ? "obra" : "diseño"}: el monto a recibir sale sin descontarlas.</p>`}
-      <p class="hint">IVA y retenciones de ${f.entidad === "jc" ? "JC" : "LAP"} para ${f.tipoContrato === "obra" ? "obra" : "diseño"}: se ajustan en Gestión → Ajustes. La rentabilidad del proyecto usa el valor antes de IVA.</p>
+      <p class="hint">Las tarifas, bases mínimas (UVT) y tipos de cliente se ajustan en Gestión → Ajustes. La rentabilidad del proyecto usa el valor antes de IVA.</p>
     <//>`;
   }
 
