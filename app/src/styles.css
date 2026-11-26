@@ -1393,3 +1393,21 @@ button.cap-item { cursor: pointer; } button.cap-item:hover { background: var(--h
 .cumple-cuando { font-size: 20px; margin: 0 0 14px; }
 .cumple-mas { color: var(--muted); margin: -6px 0 14px; }
 @media (max-width: 640px) { .cumple-modal { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+
+/* Nómina y calculadora del contrato (2.29) */
+.nom-table { display: grid; overflow-x: auto; }
+.nom-row { display: grid; grid-template-columns: minmax(170px, 1.6fr) repeat(9, minmax(92px, 1fr)); gap: 8px; align-items: center; padding: 9px 6px; border: 0; border-bottom: 1px solid var(--line); background: none; text-align: right; font: inherit; color: inherit; cursor: pointer; min-width: 1060px; }
+.nom-row:hover { background: var(--hover, rgba(0,0,0,.03)); }
+.nom-row.head { cursor: default; font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.nom-row.head:hover { background: none; }
+.nom-row .t { display: flex; align-items: center; gap: 8px; text-align: left; }
+.nom-row > div:first-child { text-align: left; }
+.nom-row .nom-falta { grid-column: 2 / -1; text-align: left; color: var(--muted); font-size: 13px; }
+.desc-row { display: grid; grid-template-columns: 1fr 150px auto; gap: 6px; align-items: center; margin-bottom: 6px; }
+.nom-calc { margin: 4px 0 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; }
+.nom-calc .sm { font-size: 12.5px; color: var(--muted); padding: 1px 0 1px 12px; }
+.nom-calc .sub { border-top: 1px dashed var(--line); padding-top: 6px; font-weight: 500; }
+.ret-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.ret-box { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.ret-box h4 { margin: 0 0 6px; font-size: 13px; }
+.ret-box .two { gap: 8px; }

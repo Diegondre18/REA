@@ -253,3 +253,16 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 
 - En el formulario del proyecto, **A cargo del proyecto** va en este orden: Director creativo (siempre), Dirige el proyecto, Apoyo y, debajo, **＋ Agregar apoyo** para sumar más personas (Apoyo 2, Apoyo 3…). Cada apoyo extra se quita con ✕.
 - Todos los apoyos tienen los mismos permisos que quien dirige: editan el proyecto, arman y aprueban el plan, ven las finanzas del proyecto y reciben sus avisos (también en Telegram). Nadie puede repetirse ni ser apoyo y director del proyecto a la vez.
+
+## Nómina y contratos con el cliente (2.29)
+
+- **Gestión → Nómina**: de cada persona, salario base y variable (salario = base + variable) y descuentos (préstamos, anticipos…) con "＋". Cerebro calcula:
+  - prestaciones y aportes de ley **solo sobre la base** (cesantías, intereses, prima, vacaciones, pensión, ARL, caja; salud, SENA e ICBF si LAP no está exonerada) y el auxilio de transporte si gana hasta 2 mínimos;
+  - el **costo mensual para LAP** y el **costo por hora de cada mes**: lunes a jueves de 8:45 am a 6:00 pm (45 min de almuerzo) y viernes de 7:30 am a 4:30 pm (1 h de almuerzo), sin festivos. El almuerzo lo paga LAP, así que su costo se reparte en las horas trabajadas;
+  - lo que se paga: salario + auxilio − salud y pensión del empleado − descuentos, en el mes y en cada quincena.
+- El costo de las horas de cada proyecto usa el costo por hora del mes en que se trabajó. Gastos fijos muestra lo que cuesta LAP al mes con la nómina.
+- **Contrato con el cliente** (Finanzas del proyecto → Calculadora), a LAP o a JC:
+  - **Diseño**: valor + IVA = valor total; − retención en la fuente, ReteIVA y ReteICA = monto a recibir. Adicionales con "＋", cada uno con su IVA y sus retenciones.
+  - **Obra (AIU)**: costo directo + administración % + imprevistos % + utilidad % + IVA sobre la utilidad = valor total; − retenciones = monto a recibir.
+- **Gestión → Ajustes**: horario del viernes aparte, porcentajes de ley de la nómina (mínimo y auxilio de 2026 por defecto) y los % de IVA y retenciones para LAP y JC, en diseño y en obra.
+- Arreglo: los costos por hora, las horas registradas a mano y los materiales no se estaban cargando en la app.

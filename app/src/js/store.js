@@ -20,7 +20,7 @@
     costos: "costos", flujo: "flujo", gastos_fijos: "gastosFijos", tiempos: "tiempos", premios_semana: "premiosSemana", fotos_obra: "fotosObra", puntos_semana: "puntosSemana",
   };
   const TOOL_COLS = ["tramites", "planos", "envios", "visitas", "contactos", "cobros", "ausencias", "solicitudes", "revisiones", "respaldos", "bienestar", "cierres", "ajustes", "reconocimientos", "anuncios", "libretas", "libreta_items", "actas",
-    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana", "fotos_obra", "puntos_semana"];
+    "proyecto_finanzas", "presupuesto", "contratos", "adicionales", "pagos_proveedor", "costos", "flujo", "gastos_fijos", "tiempos", "premios_semana", "fotos_obra", "puntos_semana", "materiales", "horas", "tarifas"];
 
   const state = {
     mode: "boot", // boot | gate | connecting | live | offline

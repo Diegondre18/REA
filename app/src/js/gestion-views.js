@@ -331,7 +331,7 @@
   const TABS = [
     { id: "resumen", label: "Tablero" }, { id: "mapa", label: "Mapa de proyectos" }, { id: "pagos", label: "Estado de pagos" },
     { id: "presupuesto", label: "Presupuesto y costos" }, { id: "flujo", label: "Flujo de caja" }, { id: "gastos", label: "Gastos fijos" },
-    { id: "horas", label: "Horas y rentabilidad" }, { id: "ajustes", label: "Ajustes" },
+    { id: "horas", label: "Horas y rentabilidad" }, { id: "nomina", label: "Nómina" }, { id: "ajustes", label: "Ajustes" },
   ];
   function Gestion({ tab }) {
     const s = L.useStore();
@@ -349,6 +349,7 @@
       ${cur === "flujo" && html`<${Flujo} />`}
       ${cur === "gastos" && html`<${Gastos} />`}
       ${cur === "horas" && html`<${Horas} />`}
+      ${cur === "nomina" && html`<${Nomina} />`}
       ${cur === "ajustes" && html`<${Ajustes} />`}`;
   }
   const activos = () => L.state.proyectos.filter((p) => p.status !== "cerrado");
@@ -503,11 +504,13 @@
     const list = [...s.gastosFijos].sort((a, b) => num(b.valor) / (per[b.periodicidad] || 1) - num(a.valor) / (per[a.periodicidad] || 1));
     const byCat = CATS.map((c) => ({ ...c, v: list.filter((g) => g.categoria === c.id && g.activo !== false).reduce((a, g) => a + num(g.valor) / (per[g.periodicidad] || 1), 0) })).filter((c) => c.v);
     const total = G().fijosMes();
-    return html`<div class="toolbar"><span class="muted light">Lo que cuesta la oficina cada mes. Se reparte entre las horas trabajadas para calcular la rentabilidad real de cada proyecto.</span><span class="spacer"></span><button type="button" class="btn primary" onClick=${() => F.gasto()}><${Icon} name="plus" size=${12} /> Gasto fijo</button></div>
+    const hoy = new Date();
+    const nomMes = G().nominaMes(hoy.getFullYear(), hoy.getMonth());
+    return html`<div class="toolbar"><span class="muted light">Lo que cuesta la oficina cada mes${nomMes ? html`: <b>${$(total + nomMes)}</b> con la nómina` : ""}. La nómina se calcula en la pestaña Nómina y llega a cada proyecto por las horas trabajadas; los gastos fijos se reparten entre las horas trabajadas para calcular la rentabilidad real de cada proyecto.</span><span class="spacer"></span><button type="button" class="btn primary" onClick=${() => F.gasto()}><${Icon} name="plus" size=${12} /> Gasto fijo</button></div>
       <div class="grid">
         <div class="glass metrics span-12 money four" role="list">
           <div class="metric"><b>${$(total)}</b><span>Al mes</span></div><div class="metric"><b>${$(total * 12)}</b><span>Al año</span></div>
-          <div class="metric"><b>${$(G().tasaFijos())}</b><span>Por hora trabajada</span></div><div class="metric"><b>${list.filter((g) => g.activo !== false).length}</b><span>Gastos activos</span></div>
+          <div class="metric"><b>${$(G().tasaFijos())}</b><span>Por hora trabajada</span></div><div class="metric"><b>${$(nomMes)}</b><span>Nómina del mes (salarios + prestaciones)</span></div>
         </div>
         <${L.Panel} title="Gastos" cls="span-8"><div class="rows">${list.length ? list.map((g) => html`<div class=${L.cx("row", g.activo === false && "muted")} key=${g.id} onClick=${() => F.gasto(g.id)}><span class="lvl baja"></span>
           <div class="row-main"><div class="row-title">${g.concepto}</div><div class="row-meta"><span>${(CATS.find((c) => c.id === g.categoria) || {}).label}</span><span>${g.periodicidad}${g.diaPago ? " · día " + g.diaPago : ""}</span>${g.activo === false && html`<span>Inactivo</span>`}</div></div>
@@ -525,7 +528,7 @@
     const rows = G().tiemposDe({ desde, hasta });
     const k = 1 + G().recargo() / 100;
     const people = q().staff().filter((u) => u.role !== "pantalla" && u.role !== "maestro");
-    const byUser = people.map((u) => { const r = rows.filter((x) => x.user === u.id); const n = r.reduce((a, x) => a + x.normal, 0), e = r.reduce((a, x) => a + x.extra, 0); return { u, n, e, costo: G().tarifa(u.id) * (n + e * k) }; });
+    const byUser = people.map((u) => { const r = rows.filter((x) => x.user === u.id); const n = r.reduce((a, x) => a + x.normal, 0), e = r.reduce((a, x) => a + x.extra, 0); return { u, n, e, costo: G().costoHoras(r) }; });
     const pids = [...new Set(rows.map((r) => r.proyecto).filter(Boolean))];
     const byProj = pids.map((pid) => { const r = rows.filter((x) => x.proyecto === pid); const n = r.reduce((a, x) => a + x.normal, 0), e = r.reduce((a, x) => a + x.extra, 0); return { pid, n, e, costo: G().costoHoras(r), r: G().rentabilidad(pid) }; }).sort((a, b) => b.n + b.e - a.n - a.e);
     const capacidad = G().horasMes(d0.getFullYear(), d0.getMonth());
@@ -543,7 +546,7 @@
             <button type="button" class="t link" onClick=${() => setVer(ver === x.u.id ? "" : x.u.id)}><${L.Avatar} id=${x.u.id} /> ${x.u.name}</button>
             <div class="mono">${h1(x.n)} h</div><div class=${L.cx("mono", x.e > 0 && "late")}>${h1(x.e)} h</div>
             <div><${Bar} value=${x.n} max=${capacidad} /><small>${pct(x.n, capacidad)}%</small></div>
-            <button type="button" class="mono link" onClick=${() => { const t = s.tarifas.find((y) => y.user === x.u.id); F.tarifa(x.u.id, t ? t.id : null); }}>${G().tarifa(x.u.id) ? $(G().tarifa(x.u.id)) : "Poner"}</button>
+            <button type="button" class="mono link" onClick=${() => L.openSheet("g-nomina", x.u.id)}>${G().tarifa(x.u.id, desde) ? $(G().tarifa(x.u.id, desde)) : "Poner salario"}</button>
             <div class="mono">${$(x.costo)}</div>
           </div>
           ${ver === x.u.id && html`<div class="h-detail">${G().tiemposDe({ user: x.u.id, desde, hasta }).sort((a, b) => b.fecha.localeCompare(a.fecha)).map((r) => html`<button type="button" class="cap-item" key=${r.id} onClick=${() => !r.manual && F.tiempo(r.id)}>
@@ -565,22 +568,41 @@
     const c = G().cfg();
     const [f, setF] = useState(c);
     const set = (k) => (e) => setF({ ...f, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
+    const setN = (k) => (e) => setF({ ...f, nomina: { ...f.nomina, [k]: e.target.value } });
+    const setR = (k, k2) => (e) => setF({ ...f, retenciones: { ...f.retenciones, [k]: { ...f.retenciones[k], [k2]: e.target.value } } });
     const save = async () => {
       const rec = s.ajustes.find((a) => a.clave === "gestion");
-      const valor = { ...f, recargoExtra: f.recargoExtra === "" || f.recargoExtra === null ? null : num(f.recargoExtra), saldoInicial: num(f.saldoInicial), margenObjetivo: num(f.margenObjetivo) };
+      const nomina = Object.fromEntries(Object.entries(f.nomina).map(([k, v]) => [k, typeof v === "boolean" ? v : num(v)]));
+      const retenciones = Object.fromEntries(Object.entries(f.retenciones).map(([k, o]) => [k, Object.fromEntries(Object.entries(o).map(([k2, v]) => [k2, num(v)]))]));
+      const valor = { ...f, nomina, retenciones, recargoExtra: f.recargoExtra === "" || f.recargoExtra === null ? null : num(f.recargoExtra), saldoInicial: num(f.saldoInicial), margenObjetivo: num(f.margenObjetivo) };
       if (await act().save("ajustes", rec ? rec.id : null, { clave: "gestion", valor })) L.toast("Ajustes guardados");
     };
     const people = q().staff().filter((u) => u.role !== "pantalla");
     return html`<div class="grid">
       <${L.Panel} title="Horario de la oficina" cls="span-6">
-        <div class="two"><${L.Field} label="Entrada" id="ga-i"><input id="ga-i" type="time" value=${f.inicio} onInput=${set("inicio")} /><//><${L.Field} label="Salida" id="ga-f"><input id="ga-f" type="time" value=${f.fin} onInput=${set("fin")} /><//></div>
+        <div class="two"><${L.Field} label="Lunes a jueves: entrada" id="ga-i"><input id="ga-i" type="time" value=${f.inicio} onInput=${set("inicio")} /><//><${L.Field} label="Salida" id="ga-f"><input id="ga-f" type="time" value=${f.fin} onInput=${set("fin")} /><//></div>
+        <div class="two"><${L.Field} label="Viernes: entrada" id="ga-vi"><input id="ga-vi" type="time" value=${f.viernesInicio} onInput=${set("viernesInicio")} /><//><${L.Field} label="Salida" id="ga-vf"><input id="ga-vf" type="time" value=${f.viernesFin} onInput=${set("viernesFin")} /><//></div>
         <div class="two"><${L.Field} label="Almuerzo lunes a jueves: desde" id="ga-ai"><input id="ga-ai" type="time" value=${f.almuerzoIni} onInput=${set("almuerzoIni")} /><//><${L.Field} label="Hasta" id="ga-af"><input id="ga-af" type="time" value=${f.almuerzoFin} onInput=${set("almuerzoFin")} /><//></div>
-        <p class="note">El viernes el almuerzo es de una hora, de 12 a 1 o de 1 a 2, según el turno de cada persona (abajo).</p>
+        <p class="note">El viernes el almuerzo es de una hora, de 12 a 1 o de 1 a 2, según el turno de cada persona (abajo). El almuerzo lo paga LAP y no se registra; quien almuerce trabajando en el puesto lo marca en el cierre del día.</p>
       <//>
       <${L.Panel} title="Costos" cls="span-6">
         <${L.Field} label="Recargo de la hora extra (%)" id="ga-r" hint="Cuánto más cuesta una hora fuera del horario. Déjalo vacío si aún no lo defines."><input id="ga-r" type="number" min="0" step="1" value=${f.recargoExtra === null ? "" : f.recargoExtra} onInput=${set("recargoExtra")} placeholder="Ej.: 25" /><//>
         <${L.Field} label="Margen objetivo por defecto (%)" id="ga-m"><input id="ga-m" type="number" min="0" max="100" value=${f.margenObjetivo} onInput=${set("margenObjetivo")} /><//>
-        <label class="check"><input type="checkbox" checked=${!!f.incluirFijos} onChange=${set("incluirFijos")} /><span><b>Repartir los gastos fijos en los proyectos</b><small>Cada hora trabajada carga su parte del arriendo, la nómina y los servicios.</small></span></label>
+        <label class="check"><input type="checkbox" checked=${!!f.incluirFijos} onChange=${set("incluirFijos")} /><span><b>Repartir los gastos fijos en los proyectos</b><small>Cada hora trabajada carga su parte del arriendo, los servicios y lo demás (la nómina ya llega por el costo de cada hora).</small></span></label>
+      <//>
+      <${L.Panel} title="Nómina: prestaciones y aportes de ley (% sobre el salario base)" cls="span-12">
+        <div class="ret-grid">
+          ${[["smmlv", "Salario mínimo del año", "money"], ["auxilio", "Auxilio de transporte", "money"], ["cesantias", "Cesantías %"], ["intCesantias", "Intereses de cesantías %"], ["prima", "Prima %"], ["vacaciones", "Vacaciones %"],
+            ["salud", "Salud (LAP) %"], ["pension", "Pensión (LAP) %"], ["arl", "ARL %"], ["caja", "Caja de compensación %"], ["icbf", "ICBF %"], ["sena", "SENA %"], ["saludEmpleado", "Salud (empleado) %"], ["pensionEmpleado", "Pensión (empleado) %"]]
+            .map(([k, label, t]) => html`<${L.Field} key=${k} label=${label + (t === "money" ? " · " + $(f.nomina[k]) : "")} id=${"gn-" + k}><input id=${"gn-" + k} type="number" step=${t === "money" ? "1" : "0.001"} min="0" value=${f.nomina[k]} onInput=${setN(k)} /><//>`)}
+        </div>
+        <label class="check"><input type="checkbox" checked=${!!f.nomina.exonerada} onChange=${(e) => setF({ ...f, nomina: { ...f.nomina, exonerada: e.target.checked } })} /><span><b>LAP está exonerada de salud, SENA e ICBF</b><small>Para quienes ganan menos de 10 salarios mínimos (art. 114-1 del Estatuto Tributario). Confírmalo con el contador.</small></span></label>
+        <p class="note">Valores por defecto de 2026 (decreto 1470 de 2025): mínimo ${$(G().NOMINA.smmlv)} y auxilio ${$(G().NOMINA.auxilio)}. Actualízalos cada enero. El auxilio de transporte se paga a quien gana hasta 2 mínimos.</p>
+      <//>
+      <${L.Panel} title="Contratos con clientes: IVA y retenciones (%)" cls="span-12">
+        <div class="ret-grid">${["lap_diseno", "lap_obra", "jc_diseno", "jc_obra"].map((k) => html`<div class="ret-box" key=${k}><h4>${k.startsWith("lap") ? "LAP" : "JC"} · ${k.endsWith("obra") ? "Obra (AIU)" : "Diseño"}</h4>
+          <div class="two">${[["iva", k.endsWith("obra") ? "IVA sobre la utilidad" : "IVA"], ["reteFuente", "Retención en la fuente"], ["reteIva", "ReteIVA (% del IVA)"], ["reteIca", "ReteICA"]].map(([k2, label]) => html`<${L.Field} key=${k2} label=${label} id=${"gr-" + k + k2}><input id=${"gr-" + k + k2} type="number" step="0.001" min="0" value=${f.retenciones[k][k2]} onInput=${setR(k, k2)} /><//>`)}</div></div>`)}</div>
+        <p class="note">La retención en la fuente y el ReteICA se calculan sobre el valor antes de IVA; el ReteIVA, sobre el IVA. Pon los porcentajes que te indique el contador para cada empresa.</p>
       <//>
       <${L.Panel} title="Caja" cls="span-6">
         <div class="two"><${L.Field} label="Saldo inicial de caja" id="ga-s"><input id="ga-s" type="number" step="1000" value=${f.saldoInicial} onInput=${set("saldoInicial")} /><//><${L.Field} label="A la fecha" id="ga-sf"><input id="ga-sf" type="date" value=${f.saldoFecha} onInput=${set("saldoFecha")} /><//></div>
@@ -594,6 +616,147 @@
     </div>`;
   }
 
+  /* ---------- nómina ---------- */
+  const MESES = () => L.MES_L;
+  function Nomina() {
+    const s = L.useStore();
+    const now = new Date();
+    const [mes, setMes] = useState(0);
+    const d0 = new Date(now.getFullYear(), now.getMonth() + mes, 1);
+    const Y = d0.getFullYear(), M = d0.getMonth();
+    const people = q().staff().filter((u) => u.role !== "pantalla" && u.role !== "maestro");
+    const rows = people.map((u) => ({ u, n: G().nomina(u.id, Y, M), viejo: !G().nomina(u.id, Y, M) && G().tarifa(u.id) }));
+    const T = (f) => rows.reduce((a, x) => a + (x.n ? num(f(x.n)) : 0), 0);
+    const horas = G().horasMes(Y, M);
+    const c = G().cfg();
+    return html`<div class="toolbar">
+        <button type="button" class="btn sm ghost" onClick=${() => setMes(mes - 1)} aria-label="Mes anterior"><${Icon} name="left" /></button>
+        <b>${L.cap(MESES()[M])} ${Y}</b>
+        <button type="button" class="btn sm ghost" onClick=${() => setMes(mes + 1)} aria-label="Mes siguiente"><${Icon} name="right" /></button>
+        <span class="muted light">${h1(horas)} h de trabajo en el mes (lunes a jueves ${c.inicio}–${c.fin}, viernes ${c.viernesInicio}–${c.viernesFin}, sin almuerzo ni festivos)</span>
+      </div>
+      <div class="grid">
+        <div class="glass metrics span-12 money four" role="list">
+          <div class="metric"><b>${$(T((n) => n.salario))}</b><span>Salarios (base + variable)</span></div>
+          <div class="metric"><b>${$(T((n) => n.totalPrest + n.auxilio))}</b><span>Prestaciones y auxilio</span></div>
+          <div class="metric"><b>${$(T((n) => n.costoMes))}</b><span>Le cuesta a LAP en el mes</span></div>
+          <div class="metric"><b>${$(T((n) => n.aPagar))}</b><span>A pagar en el mes</span></div>
+        </div>
+        <${L.Panel} title="Por persona" cls="span-12">
+          <div class="nom-table" role="table">
+            <div class="nom-row head" role="row"><div>Persona</div><div>Base</div><div>Variable</div><div>Salario</div><div>Prestaciones y auxilio</div><div>Costo para LAP</div><div>Costo hora</div><div>Descuentos</div><div>A pagar mes</div><div>Quincena</div></div>
+            ${rows.map((x) => html`<button type="button" class="nom-row" role="row" key=${x.u.id} onClick=${() => L.openSheet("g-nomina", x.u.id)}>
+              <div class="t"><${L.Avatar} id=${x.u.id} /> ${x.u.name}</div>
+              ${x.n ? html`<div class="mono">${$(x.n.base)}</div><div class="mono">${$(x.n.variable)}</div><div class="mono">${$(x.n.salario)}</div>
+                <div class="mono">${$(x.n.totalPrest + x.n.auxilio)}</div><div class="mono"><b>${$(x.n.costoMes)}</b></div><div class="mono">${$(x.n.valorHora)}</div>
+                <div class="mono">${x.n.totalDesc ? "− " + $(x.n.totalDesc) : "—"}</div><div class="mono"><b>${$(x.n.aPagar)}</b></div><div class="mono">${$(x.n.quincena)}</div>`
+                : html`<div class="nom-falta">${x.viejo ? `Costo hora fijo ${$(x.viejo)} · pon base y variable para calcularlo solo` : "Falta el salario: toca para ponerlo"}</div>`}
+            </button>`)}
+          </div>
+          <p class="note">Salario = base + variable. Las prestaciones (cesantías, intereses, prima, vacaciones y aportes de ley) se calculan solo sobre la base. El costo para LAP se divide entre las horas de trabajo del mes: así cada mes tiene su costo por hora. A pagar = salario + auxilio de transporte − salud y pensión del empleado − descuentos; la quincena es la mitad.</p>
+        <//>
+      </div>`;
+  }
+
+  function NominaSheet({ id: uid }) {
+    const s = L.useStore();
+    const rec = G().salarioDe(uid);
+    const [f, setF] = useState(() => ({ base: rec ? rec.base || "" : "", variable: rec ? rec.variable || "" : "", descuentos: rec && rec.descuentos ? rec.descuentos.map((d) => ({ ...d })) : [], notas: rec ? rec.notas || "" : "" }));
+    const now = new Date();
+    const n = G().nomina(uid, now.getFullYear(), now.getMonth(), { base: num(f.base), variable: num(f.variable), descuentos: f.descuentos });
+    const setD = (i, k, v) => setF((o) => ({ ...o, descuentos: o.descuentos.map((d, j) => (j === i ? { ...d, [k]: v } : d)) }));
+    const save = async () => {
+      const descuentos = f.descuentos.filter((d) => num(d.valor)).map((d) => ({ concepto: (d.concepto || "").trim() || "Descuento", valor: num(d.valor) }));
+      const body = { user: uid, base: num(f.base), variable: num(f.variable), descuentos, notas: f.notas, valorHora: n ? Math.round(n.valorHora) : 0 };
+      if (await act().save("tarifas", rec ? rec.id : null, body)) { L.toast("Salario guardado"); L.closeSheet(); }
+    };
+    const line = (label, v, cls) => html`<div class=${cls || ""}><span>${label}</span><b class="mono">${v}</b></div>`;
+    const footer = html`<span class="spacer"></span><button type="button" class="btn ghost" onClick=${L.closeSheet}>Cancelar</button><button type="submit" class="btn primary">Guardar</button>`;
+    return html`<${L.Sheet} title=${"Salario de " + q().name(uid)} onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
+      <div class="two">
+        <${L.Field} label=${"Salario base" + (f.base ? " · " + $(f.base) : "")} id="n-base"><input id="n-base" type="number" step="1000" min="0" value=${f.base} onInput=${(e) => setF({ ...f, base: e.target.value })} /><//>
+        <${L.Field} label=${"Variable" + (f.variable ? " · " + $(f.variable) : "")} id="n-var"><input id="n-var" type="number" step="1000" min="0" value=${f.variable} onInput=${(e) => setF({ ...f, variable: e.target.value })} /><//>
+      </div>
+      <div class="fld"><span class="lbl">Descuentos</span>
+        ${f.descuentos.map((d, i) => html`<div class="desc-row" key=${i}><input aria-label="Concepto del descuento" placeholder="Préstamo, anticipo, libranza…" value=${d.concepto || ""} onInput=${(e) => setD(i, "concepto", e.target.value)} />
+          <input aria-label="Valor del descuento" type="number" step="1000" min="0" class="mono" value=${d.valor || ""} onInput=${(e) => setD(i, "valor", e.target.value)} />
+          <button type="button" class="btn ghost sm" aria-label="Quitar descuento" onClick=${() => setF({ ...f, descuentos: f.descuentos.filter((_, j) => j !== i) })}>✕</button></div>`)}
+        <button type="button" class="btn ghost sm mas-apoyo" onClick=${() => setF({ ...f, descuentos: [...f.descuentos, { concepto: "", valor: "" }] })}>＋ Agregar descuento</button>
+      </div>
+      ${n ? html`<div class="rent-calc nom-calc">
+        ${line("Salario base", $(n.base))}${line("Variable", $(n.variable))}${line("Salario", $(n.salario), "sub")}
+        ${n.auxilio ? line("Auxilio de transporte (gana hasta 2 mínimos)", $(n.auxilio)) : ""}
+        ${n.prestaciones.filter((p) => p.v).map((p) => line(p.label, $(p.v), "sm"))}
+        ${line("Prestaciones y aportes (sobre la base)", $(n.totalPrest), "sub")}
+        ${line("Costo mensual para LAP", $(n.costoMes), "tot")}
+        ${line(`Costo por hora este mes (${h1(n.horas)} h)`, $(n.valorHora), "tot")}
+        ${n.ley.map((p) => line("− " + p.label, $(p.v), "sm"))}
+        ${n.descuentos.map((p) => line("− " + p.label, $(p.v), "sm"))}
+        ${line("A pagar en el mes", $(n.aPagar), "tot")}
+        ${line("Cada quincena", $(n.quincena), "sub")}
+      </div>` : html`<p class="note">Escribe el salario base y el variable para ver el cálculo.</p>`}
+      <${L.Field} label="Notas" id="n-notas"><textarea id="n-notas" rows="2" value=${f.notas} onInput=${(e) => setF({ ...f, notas: e.target.value })}></textarea><//>
+      <p class="hint">Solo lo ven Dirección, Administración y Gestión. Los porcentajes de ley se cambian en Gestión → Ajustes.</p>
+    <//>`;
+  }
+
+  /* ---------- contrato con el cliente (calculadora) ---------- */
+  const ENT = [{ id: "lap", label: "LAP" }, { id: "jc", label: "JC" }];
+  const TIPOS_C = [{ id: "diseno", label: "Diseño" }, { id: "obra", label: "Obra (AIU)" }];
+  function DesgloseContrato({ c }) {
+    if (!c) return null;
+    const line = (label, v, cls) => html`<div class=${cls || ""}><span>${label}</span><b class="mono">${v}</b></div>`;
+    const R = c.r;
+    const rets = (x, pre) => html`${x.fuente ? line((pre || "") + "− Retención en la fuente (" + R.reteFuente + "%)", $(x.fuente), "sm") : ""}${x.iva ? line((pre || "") + "− ReteIVA (" + R.reteIva + "% del IVA)", $(x.iva), "sm") : ""}${x.ica ? line((pre || "") + "− ReteICA (" + R.reteIca + "%)", $(x.ica), "sm") : ""}`;
+    if (c.tipo === "obra") return html`<div class="rent-calc nom-calc">
+      ${line("Costo directo", $(c.cd))}${line("Administración", $(c.a), "sm")}${line("Imprevistos", $(c.i), "sm")}${line("Utilidad", $(c.u), "sm")}
+      ${line("Subtotal (antes de IVA)", $(c.antesIva), "sub")}${line("IVA sobre la utilidad (" + R.iva + "%)", $(c.iva))}
+      ${line("Valor total", $(c.total), "tot")}${rets(c.ret)}${line("Monto a recibir", $(c.recibir), "tot")}</div>`;
+    return html`<div class="rent-calc nom-calc">
+      ${line("Valor contratado", $(c.principal.valor))}${line("IVA (" + R.iva + "%)", $(c.principal.iva), "sm")}${line("Valor total", $(c.principal.total), "sub")}${rets(c.principal.ret)}
+      ${line("Monto a recibir", $(c.principal.recibir), "sub")}
+      ${c.adicionales.map((a, i) => html`<${L.Fragment} key=${i}>${line("Adicional: " + (a.descripcion || i + 1), $(a.valor))}${line("IVA", $(a.iva), "sm")}${line("Total del adicional", $(a.total), "sub")}${rets(a.ret)}${line("A recibir del adicional", $(a.recibir), "sub")}<//>`)}
+      ${c.adicionales.length ? html`${line("Total con adicionales", $(c.total), "tot")}${line("Retenciones", "− " + $(c.ret.total), "sm")}${line("Monto a recibir en total", $(c.recibir), "tot")}` : line("Monto a recibir en total", $(c.recibir), "tot")}</div>`;
+  }
+  function ContratoSheet({ id: pid }) {
+    L.useStore();
+    const rec = G().finOf(pid);
+    const [f, setF] = useState(() => ({ tipoContrato: (rec && rec.tipoContrato) || "diseno", entidad: (rec && rec.entidad) || "lap", valorDiseno: (rec && rec.valorDiseno) || "",
+      costoDirecto: (rec && rec.costoDirecto) || "", pctAdmin: rec && rec.pctAdmin != null ? rec.pctAdmin : "", pctImprevistos: rec && rec.pctImprevistos != null ? rec.pctImprevistos : "", pctUtilidad: rec && rec.pctUtilidad != null ? rec.pctUtilidad : "",
+      adicionalesCliente: ((rec && rec.adicionalesCliente) || []).map((a) => ({ ...a })) }));
+    const c = G().contratoCliente(f);
+    const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+    const setA = (i, k, v) => setF((o) => ({ ...o, adicionalesCliente: o.adicionalesCliente.map((a, j) => (j === i ? { ...a, [k]: v } : a)) }));
+    const save = async () => {
+      const body = { proyecto: pid, tipoContrato: f.tipoContrato, entidad: f.entidad, valorDiseno: num(f.valorDiseno), costoDirecto: num(f.costoDirecto),
+        pctAdmin: num(f.pctAdmin), pctImprevistos: num(f.pctImprevistos), pctUtilidad: num(f.pctUtilidad),
+        adicionalesCliente: f.adicionalesCliente.filter((a) => num(a.valor)).map((a) => ({ descripcion: (a.descripcion || "").trim(), valor: num(a.valor), fecha: a.fecha || L.todayIso() })),
+        valorContrato: c ? c.ingreso : 0 };
+      if (await act().save("proyecto_finanzas", rec ? rec.id : null, body)) { L.toast("Contrato guardado"); L.closeSheet(); }
+    };
+    const pctIn = (k, label) => html`<${L.Field} label=${label} id=${"cc-" + k}><input id=${"cc-" + k} type="number" min="0" max="100" step="0.1" value=${f[k]} onInput=${set(k)} placeholder="%" /><//>`;
+    const footer = html`<span class="spacer"></span><button type="button" class="btn ghost" onClick=${L.closeSheet}>Cancelar</button><button type="submit" class="btn primary">Guardar</button>`;
+    return html`<${L.Sheet} title="Contrato con el cliente" onClose=${L.closeSheet} onSubmit=${save} footer=${footer}>
+      <div class="two">
+        <div class="fld"><span class="lbl">Tipo de contrato</span><${L.Seg} label="Tipo de contrato" value=${f.tipoContrato} onChange=${(v) => setF({ ...f, tipoContrato: v })} options=${TIPOS_C} /></div>
+        <div class="fld"><span class="lbl">Contratado a</span><${L.Seg} label="Contratado a" value=${f.entidad} onChange=${(v) => setF({ ...f, entidad: v })} options=${ENT} /></div>
+      </div>
+      ${f.tipoContrato === "diseno" ? html`
+        <${L.Field} label=${"Valor contratado (antes de IVA)" + (f.valorDiseno ? " · " + $(f.valorDiseno) : "")} id="cc-v"><input id="cc-v" type="number" step="1000" min="0" value=${f.valorDiseno} onInput=${set("valorDiseno")} /><//>
+        <div class="fld"><span class="lbl">Adicionales</span>
+          ${f.adicionalesCliente.map((a, i) => html`<div class="desc-row" key=${i}><input aria-label="Qué se adicionó" placeholder="Qué se adicionó" value=${a.descripcion || ""} onInput=${(e) => setA(i, "descripcion", e.target.value)} />
+            <input aria-label="Valor del adicional antes de IVA" type="number" step="1000" min="0" class="mono" placeholder="Valor sin IVA" value=${a.valor || ""} onInput=${(e) => setA(i, "valor", e.target.value)} />
+            <button type="button" class="btn ghost sm" aria-label="Quitar adicional" onClick=${() => setF({ ...f, adicionalesCliente: f.adicionalesCliente.filter((_, j) => j !== i) })}>✕</button></div>`)}
+          <button type="button" class="btn ghost sm mas-apoyo" onClick=${() => setF({ ...f, adicionalesCliente: [...f.adicionalesCliente, { descripcion: "", valor: "", fecha: L.todayIso() }] })}>＋ Agregar adicional</button>
+        </div>` : html`
+        <${L.Field} label=${"Costo directo" + (f.costoDirecto ? " · " + $(f.costoDirecto) : "")} id="cc-cd"><input id="cc-cd" type="number" step="1000" min="0" value=${f.costoDirecto} onInput=${set("costoDirecto")} /><//>
+        <div class="three">${pctIn("pctAdmin", "Administración %")}${pctIn("pctImprevistos", "Imprevistos %")}${pctIn("pctUtilidad", "Utilidad %")}</div>`}
+      <${DesgloseContrato} c=${c} />
+      ${c && !c.r.reteFuente && !c.r.reteIva && !c.r.reteIca && html`<p class="note warn">Aún no hay porcentajes de retención para ${f.entidad === "jc" ? "JC" : "LAP"} en ${f.tipoContrato === "obra" ? "obra" : "diseño"}: el monto a recibir sale sin descontarlas.</p>`}
+      <p class="hint">IVA y retenciones de ${f.entidad === "jc" ? "JC" : "LAP"} para ${f.tipoContrato === "obra" ? "obra" : "diseño"}: se ajustan en Gestión → Ajustes. La rentabilidad del proyecto usa el valor antes de IVA.</p>
+    <//>`;
+  }
+
   /* ---------- pestaña Finanzas del proyecto ---------- */
   function FinanzasProyecto({ project }) {
     const s = L.useStore();
@@ -602,16 +765,25 @@
     const f = G().finOf(pid);
     const sem = G().semaforo(pid);
     const cl = sem.cl, r = sem.r;
+    const cc = G().contratoCliente(f);
     const pr = G().proveedores(pid);
     const [abierto, setAbierto] = useState("");
     const k = 1 + G().recargo() / 100;
     const rows = G().tiemposDe({ proyecto: pid });
-    const people = [...new Set(rows.map((x) => x.user))].map((u) => { const rr = rows.filter((x) => x.user === u); const n = rr.reduce((a, x) => a + x.normal, 0), e = rr.reduce((a, x) => a + x.extra, 0); return { u, n, e, costo: G().tarifa(u) * (n + e * k) }; }).sort((a, b) => b.n + b.e - a.n - a.e);
+    const people = [...new Set(rows.map((x) => x.user))].map((u) => { const rr = rows.filter((x) => x.user === u); const n = rr.reduce((a, x) => a + x.normal, 0), e = rr.reduce((a, x) => a + x.extra, 0); return { u, n, e, costo: G().costoHoras(rr) }; }).sort((a, b) => b.n + b.e - a.n - a.e);
     return html`<div class="grid">
       <div class="span-12"><${Semaforo} pid=${pid} /></div>
       ${fin && html`<div class="span-12 toolbar"><span class="muted light">${f ? `Contrato ${$(f.valorContrato)} · ${f.horasPresupuesto ? f.horasPresupuesto + " h presupuestadas" : "sin presupuesto de horas"}` : "Pon el valor del contrato y las horas presupuestadas para medir este proyecto."}</span><span class="spacer"></span>
         <button type="button" class="btn" onClick=${() => F.pfin(pid, f && f.id)}><${Icon} name="edit" /> Datos del proyecto</button>
         <button type="button" class="btn" onClick=${() => L.openSheet("g-import", null, { kind: "presupuesto", proyecto: pid })}>Importar presupuesto</button></div>`}
+      ${fin && html`<${L.Panel} title=${"Contrato con el cliente" + (cc ? " · " + (cc.tipo === "obra" ? "obra (AIU)" : "diseño") + " · " + (f.entidad === "jc" ? "JC" : "LAP") : "")} cls="span-12" action=${html`<button type="button" class="btn sm primary" onClick=${() => L.openSheet("g-contrato", pid)}><${Icon} name="edit" /> ${cc ? "Editar" : "Calculadora"}</button>`}>
+        ${cc ? html`<div class="glass metrics money four" role="list">
+          <div class="metric"><b>${$(cc.tipo === "obra" ? cc.antesIva : cc.valor)}</b><span>Antes de IVA${cc.tipo === "diseno" && cc.adicionales.length ? " (con " + L.plural(cc.adicionales.length, "adicional", "adicionales") + ")" : ""}</span></div>
+          <div class="metric"><b>${$(cc.total)}</b><span>Valor total con IVA</span></div>
+          <div class="metric"><b>${$(cc.ret.total)}</b><span>Retenciones</span></div>
+          <div class="metric"><b>${$(cc.recibir)}</b><span>Monto a recibir</span></div>
+        </div><${DesgloseContrato} c=${cc} />` : html`<p class="note">Elige si es por diseño o por obra (AIU), y si es a LAP o a JC: Cerebro calcula IVA, retenciones y el monto a recibir.</p>`}
+      <//>`}
       <${L.Panel} title="Cliente" cls="span-12" action=${fin && html`<button type="button" class="btn sm primary" onClick=${() => L.openTool("cobros", null, { project: pid })}><${Icon} name="plus" size=${12} /> Cobro</button>`}>
         <div class="glass metrics money five" role="list">
           <div class="metric"><b>${$(cl.contrato)}</b><span>Contrato</span></div>
@@ -673,6 +845,6 @@
     </div>`;
   }
 
-  L.EXTRA_SHEETS = { ...(L.EXTRA_SHEETS || {}), "g-form": GForm, "g-import": ImportSheet };
+  L.EXTRA_SHEETS = { ...(L.EXTRA_SHEETS || {}), "g-form": GForm, "g-import": ImportSheet, "g-nomina": NominaSheet, "g-contrato": ContratoSheet };
   Object.assign(L, { Gestion, FinanzasProyecto, Semaforo, Luz, gParseNum: parseNum, gParseDate: parseDate });
 })();

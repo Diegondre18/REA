@@ -9,21 +9,25 @@
   const sum = (arr, f) => arr.reduce((a, x) => a + num(f ? f(x) : x), 0);
 
   /* ---------- ajustes de gestión (horario, recargo, caja) ---------- */
-  const DEFAULTS = { inicio: "08:45", fin: "18:00", almuerzoIni: "13:15", almuerzoFin: "14:00", recargoExtra: null, saldoInicial: 0, saldoFecha: "", margenObjetivo: 20, incluirFijos: true };
+  const DEFAULTS = { inicio: "08:45", fin: "18:00", viernesInicio: "07:30", viernesFin: "16:30", almuerzoIni: "13:15", almuerzoFin: "14:00", recargoExtra: null, saldoInicial: 0, saldoFecha: "", margenObjetivo: 20, incluirFijos: true };
   const cfg = () => {
     const r = st().ajustes.find((a) => a.clave === "gestion");
-    return { ...DEFAULTS, ...((r && r.valor) || {}) };
+    const v = (r && r.valor) || {};
+    return { ...DEFAULTS, ...v, nomina: { ...NOMINA, ...(v.nomina || {}) }, retenciones: mezclarRet(v.retenciones) };
   };
   const hm = (s) => { const [h, m] = String(s || "0:0").split(":").map(Number); return (h || 0) * 60 + (m || 0); };
 
-  // ¿Este minuto es horario de oficina para esta persona? Lunes a viernes de 8:45 a 6:00, sin el almuerzo:
-  // de lunes a jueves de 1:15 a 2:00; el viernes una hora, de 12 a 1 o de 1 a 2 según el turno de cada persona.
+  // ¿Este minuto es horario de oficina para esta persona? Lunes a jueves de 8:45 a 6:00 y viernes de 7:30 a 4:30,
+  // sin el almuerzo: de lunes a jueves 45 minutos (1:15 a 2:00); el viernes una hora, de 12 a 1 o de 1 a 2 según
+  // el turno de cada persona. El almuerzo lo paga LAP pero no se registra.
+  const jornada = (c, day) => (day === 5 ? [hm(c.viernesInicio), hm(c.viernesFin)] : [hm(c.inicio), hm(c.fin)]);
   function enHorario(d, user) {
     const c = cfg();
     const day = d.getDay(); // 0 domingo
     if (day === 0 || day === 6 || L.festivo(L.iso(d))) return false; // fin de semana o festivo: extra
     const m = d.getHours() * 60 + d.getMinutes();
-    if (m < hm(c.inicio) || m >= hm(c.fin)) return false;
+    const [ini, fin] = jornada(c, day);
+    if (m < ini || m >= fin) return false;
     if (day === 5) {
       const ini = (user && user.almuerzoViernes === "13") ? 13 * 60 : 12 * 60;
       if (m >= ini && m < ini + 60) return false;
@@ -35,7 +39,8 @@
     const c = cfg();
     const day = d.getDay();
     if (day === 0 || day === 6 || L.festivo(L.iso(d))) return 0;
-    const total = (hm(c.fin) - hm(c.inicio)) / 60;
+    const [ini, fin] = jornada(c, day);
+    const total = (fin - ini) / 60;
     return day === 5 ? total - 1 : total - (hm(c.almuerzoFin) - hm(c.almuerzoIni)) / 60;
   }
   function horasMes(year, month) {
@@ -44,8 +49,86 @@
     return h;
   }
 
-  /* ---------- tarifas y tiempos ---------- */
-  const tarifa = (uid) => { const t = st().tarifas.find((x) => x.user === uid); return t ? num(t.valorHora) : 0; };
+  /* ---------- nómina y costo por hora ---------- */
+  // Prestaciones y aportes de ley (Colombia) que paga LAP, en % sobre el salario base. Se ajustan en Gestión → Ajustes.
+  // La exoneración (art. 114-1 E.T.) quita salud, SENA e ICBF a quienes ganan menos de 10 salarios mínimos.
+  const NOMINA = { smmlv: 1750905, auxilio: 249095, cesantias: 8.33, intCesantias: 1, prima: 8.33, vacaciones: 4.17,
+    salud: 8.5, pension: 12, arl: 0.522, caja: 4, icbf: 3, sena: 2, exonerada: true, saludEmpleado: 4, pensionEmpleado: 4 };
+  // Retenciones por empresa (LAP o JC) y por tipo de contrato, en %. IVA sobre el valor (diseño) o sobre la utilidad (obra).
+  const RET0 = { iva: 19, reteFuente: 0, reteIva: 0, reteIca: 0 };
+  function mezclarRet(v) {
+    const o = {};
+    for (const e of ["lap", "jc"]) for (const t of ["diseno", "obra"]) o[e + "_" + t] = { ...RET0, ...((v && v[e + "_" + t]) || {}) };
+    return o;
+  }
+  const salarioDe = (uid) => st().tarifas.find((x) => x.user === uid) || null;
+  // Todo lo de una persona en un mes: lo que gana, lo que le cuesta a LAP, el costo por hora y lo que se le paga.
+  function nomina(uid, year, month, over) {
+    const t = over || salarioDe(uid);
+    const n = cfg().nomina;
+    const base = num(t && t.base), variable = num(t && t.variable);
+    if (!base && !variable) return null;
+    const salario = base + variable;
+    const auxilio = base && base <= 2 * num(n.smmlv) ? num(n.auxilio) : 0;
+    const exo = n.exonerada && base < 10 * num(n.smmlv);
+    const P = (k) => (base * num(n[k])) / 100;
+    const prestaciones = [
+      ["Cesantías", P("cesantias")], ["Intereses de cesantías", P("intCesantias")], ["Prima", P("prima")], ["Vacaciones", P("vacaciones")],
+      ["Salud", exo ? 0 : P("salud")], ["Pensión", P("pension")], ["ARL", P("arl")], ["Caja de compensación", P("caja")],
+      ["ICBF", exo ? 0 : P("icbf")], ["SENA", exo ? 0 : P("sena")],
+    ].map(([label, v]) => ({ label, v: Math.round(v) }));
+    const totalPrest = sum(prestaciones, (x) => x.v);
+    const costoMes = salario + auxilio + totalPrest;
+    const horas = horasMes(year, month);
+    const ley = [["Salud (empleado)", Math.round((base * num(n.saludEmpleado)) / 100)], ["Pensión (empleado)", Math.round((base * num(n.pensionEmpleado)) / 100)]].map(([label, v]) => ({ label, v }));
+    const descuentos = ((t && t.descuentos) || []).filter((d) => num(d.valor)).map((d) => ({ label: d.concepto || "Descuento", v: num(d.valor) }));
+    const totalDesc = sum(ley, (x) => x.v) + sum(descuentos, (x) => x.v);
+    const aPagar = salario + auxilio - totalDesc;
+    return { base, variable, salario, auxilio, prestaciones, totalPrest, costoMes, horas, valorHora: horas ? costoMes / horas : 0,
+      ley, descuentos, totalDesc, aPagar, quincena: aPagar / 2 };
+  }
+  // Costo de una hora de trabajo de esa persona en el mes de la fecha (con base y variable), o el valor fijo de antes.
+  function tarifa(uid, fecha) {
+    const d = fecha ? new Date(fecha + "T12:00:00") : new Date();
+    const n = nomina(uid, d.getFullYear(), d.getMonth());
+    if (n) return n.valorHora;
+    const t = salarioDe(uid);
+    return t ? num(t.valorHora) : 0;
+  }
+  const nominaMes = (year, month) => sum(q().staff(), (u) => { const n = nomina(u.id, year, month); return n ? n.costoMes : 0; });
+
+  /* ---------- contrato con el cliente ---------- */
+  // Diseño: valor + IVA (y cada adicional + IVA); retención en la fuente e ICA sobre el valor, reteIVA sobre el IVA.
+  // Obra (AIU): costo directo + administración + imprevistos + utilidad + IVA sobre la utilidad; las retenciones igual,
+  // sobre el valor antes de IVA.
+  function contratoCliente(f) {
+    if (!f || !f.tipoContrato) return null;
+    const r = cfg().retenciones[(f.entidad || "lap") + "_" + f.tipoContrato] || RET0;
+    const pc = (v, p) => Math.round((num(v) * num(p)) / 100);
+    const ret = (base, iva) => { const x = { fuente: pc(base, r.reteFuente), iva: pc(iva, r.reteIva), ica: pc(base, r.reteIca) }; x.total = x.fuente + x.iva + x.ica; return x; };
+    if (f.tipoContrato === "obra") {
+      const cd = num(f.costoDirecto);
+      const a = pc(cd, f.pctAdmin), i = pc(cd, f.pctImprevistos), u = pc(cd, f.pctUtilidad);
+      const iva = pc(u, r.iva);
+      const antesIva = cd + a + i + u;
+      const rr = ret(antesIva, iva);
+      return { tipo: "obra", r, cd, a, i, u, iva, antesIva, total: antesIva + iva, ret: rr, recibir: antesIva + iva - rr.total, adicionales: [], ingreso: antesIva };
+    }
+    const valor = num(f.valorDiseno);
+    const iva = pc(valor, r.iva);
+    const principal = { valor, iva, total: valor + iva, ret: ret(valor, iva) };
+    principal.recibir = principal.total - principal.ret.total;
+    const adicionales = (f.adicionalesCliente || []).filter((x) => num(x.valor)).map((x) => {
+      const v = num(x.valor), iv = pc(v, r.iva), rt = ret(v, iv);
+      return { ...x, valor: v, iva: iv, total: v + iv, ret: rt, recibir: v + iv - rt.total };
+    });
+    const all = [principal, ...adicionales];
+    return { tipo: "diseno", r, principal, adicionales, valor: sum(all, (x) => x.valor), iva: sum(all, (x) => x.iva), total: sum(all, (x) => x.total),
+      ret: { fuente: sum(all, (x) => x.ret.fuente), iva: sum(all, (x) => x.ret.iva), ica: sum(all, (x) => x.ret.ica), total: sum(all, (x) => x.ret.total) },
+      recibir: sum(all, (x) => x.recibir), ingreso: sum(all, (x) => x.valor) };
+  }
+
+  /* ---------- tiempos ---------- */
   const recargo = () => { const r = cfg().recargoExtra; return r === null || r === undefined || r === "" ? 0 : num(r); };
   // Tiempos de un proyecto (automáticos y a mano), más las horas registradas antes en «horas».
   function tiemposDe({ proyecto, user, desde, hasta } = {}) {
@@ -58,7 +141,7 @@
   }
   function costoHoras(rows) {
     const k = 1 + recargo() / 100;
-    return sum(rows, (r) => tarifa(r.user) * (r.normal + r.extra * k));
+    return sum(rows, (r) => tarifa(r.user, r.fecha) * (r.normal + r.extra * k));
   }
   // Costo de los gastos fijos de la oficina por cada hora trabajada (todo el equipo).
   function fijosMes() {
@@ -79,7 +162,8 @@
     const f = finOf(pid);
     const facturado = sum(cobros.filter((c) => c.estado === "facturado" || c.estado === "pagado"), (c) => c.valor);
     const pagado = sum(cobros.filter((c) => c.estado === "pagado"), (c) => c.valor);
-    const contrato = f && num(f.valorContrato) ? num(f.valorContrato) : sum(cobros, (c) => c.valor);
+    const cc = contratoCliente(f);
+    const contrato = cc && cc.ingreso ? cc.ingreso : f && num(f.valorContrato) ? num(f.valorContrato) : sum(cobros, (c) => c.valor);
     const vencido = sum(cobros.filter((c) => c.estado !== "pagado" && c.fechaEsperada && c.fechaEsperada < L.todayIso()), (c) => c.valor);
     return { contrato, facturado, pagado, debe: facturado - pagado, porFacturar: Math.max(0, contrato - facturado), vencido, cobros };
   }
@@ -266,6 +350,6 @@
   setInterval(() => { const t = st().me && st().me.taskId || ""; if (t !== lastTask) { lastTask = t; flush(); } }, 5e3);
   window.addEventListener("beforeunload", () => { flush(); });
 
-  L.G = { cfg, enHorario, horasDia, horasMes, tarifa, recargo, tiemposDe, costoHoras, fijosMes, tasaFijos, finOf, cliente, proveedores, presupuestoDe, rentabilidad, semaforo, flujoMeses, flushTiempos: flush, DEFAULTS };
+  L.G = { cfg, NOMINA, nomina, nominaMes, salarioDe, contratoCliente, enHorario, horasDia, horasMes, tarifa, recargo, tiemposDe, costoHoras, fijosMes, tasaFijos, finOf, cliente, proveedores, presupuestoDe, rentabilidad, semaforo, flujoMeses, flushTiempos: flush, DEFAULTS };
   L.gestionFindings = findings;
 })();
