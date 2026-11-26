@@ -301,6 +301,7 @@ function createBubble({ app, onAction, isBlocked }) {
     setVisible,
     visible: () => prefs.visible,
     busy: () => busy,
+    conSesion: () => !!(state && state.me),
     // Para pruebas.
     windows: () => ({ doll, avisos }),
     menuTemplate: () => menuTemplate().map((i) => ({ label: i.label, type: i.type, checked: i.checked, enabled: i.enabled })),

@@ -281,3 +281,7 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - Al crear o editar un proyecto, el **cliente se elige del directorio** (ya no se escribe a mano). Si no existe, "＋ Nuevo cliente…" lo crea ahí mismo con su nombre o razón social y CC/NIT. El proyecto queda solo en "Proyectos asociados" del cliente.
 - Los proyectos de antes conservan el nombre del cliente que tenían; al editarlos, Cerebro pide elegirlo del directorio.
 - Cada cliente tiene su **carpeta de documentos** (RUT, cámara de comercio…): una carpeta de la red o de Dropbox, o un enlace https. Su tarjeta en el directorio la abre con "Documentos (RUT…)"; si falta, lo indica. Cerebro solo guarda la ruta o el enlace, no toca los archivos.
+
+## Por qué no se ve el muñeco (2.30.2)
+
+- Si "Mostrar la burbuja" está activado pero el muñeco no se ve, el menú del ícono junto al reloj ahora dice por qué: hay una app en **pantalla completa** (render, presentación, video o juego; vuelve solo al salir de ella) o **no hay sesión iniciada** en LAP Cerebro.

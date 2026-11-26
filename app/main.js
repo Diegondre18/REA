@@ -165,6 +165,7 @@ function createTray() {
   tray.on("click", showWindow);
   updateTray();
 }
+let traySesion = false;
 function updateTray() {
   if (!tray) return;
   const serving = !!(host && host.running());
@@ -172,6 +173,9 @@ function updateTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: "Abrir LAP Cerebro", click: showWindow },
     { label: "Mostrar la burbuja", type: "checkbox", checked: !!(bubble && bubble.visible()), click: (it) => setBubbleVisible(it.checked) },
+    // Si el muñeco está activado pero no se ve, aquí dice por qué.
+    ...(bubble && bubble.visible() && bubble.busy() ? [{ label: "El muñeco se esconde mientras hay una app en pantalla completa (render, presentación, video)", enabled: false }] : []),
+    ...(bubble && bubble.visible() && !bubble.busy() && !bubble.conSesion() ? [{ label: "El muñeco aparece cuando inicias sesión en LAP Cerebro", enabled: false }] : []),
     { label: "Cerrar los avisos de la burbuja", click: () => { if (bubble) bubble.clearAll(); } },
     { type: "separator" },
     { label: serving ? "Salir (el equipo se queda sin servidor)" : "Salir", click: () => { quitting = true; app.quit(); } },
@@ -373,7 +377,7 @@ function startBubble() {
     app,
     onAction: (a) => {
       if (a.type === "open" || a.type === "bell") showWindow();
-      if (a.type === "visibility") updateTray();
+      if (a.type === "visibility" || a.type === "screen-busy") updateTray();
       if (win && !win.isDestroyed()) win.webContents.send("bubble-action", a);
     },
   });
@@ -390,7 +394,8 @@ function setBubbleVisible(on) {
 ipcMain.on("bubble-sync", (e, st) => {
   if (!bubble || !win || e.sender !== win.webContents || !st || typeof st !== "object") return;
   const n = Math.max(0, Math.min(999, Number(st.unread) || 0));
-  if (n !== unread) { unread = n; updateTray(); }
+  const sesion = !!st.me;
+  if (n !== unread || sesion !== traySesion) { unread = n; traySesion = sesion; updateTray(); }
   bubble.setState(st);
 });
 ipcMain.on("bubble-notify", (e, n) => {
