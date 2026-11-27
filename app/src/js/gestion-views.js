@@ -730,10 +730,15 @@
     const line = (label, v, cls) => html`<div class=${cls || ""}><span>${label}</span><b class="mono">${v}</b></div>`;
     const R = c.r;
     const rets = (x) => html`${R.concepto ? (x.bajoMinimo ? line("Retención en la fuente: no aplica (" + $(x.base) + " es menos que la base mínima de " + $(x.minimo) + ")", "$ 0", "sm") : line("− Retención en la fuente: " + R.concepto.label + " " + R.concepto.pct + "% sobre " + $(x.base), $(x.fuente), "sm")) : ""}${x.iva ? line("− ReteIVA " + R.reteIva + "% del IVA", $(x.iva), "sm") : ""}${x.ica ? line("− ReteICA " + R.tipoIca.porMil + " por mil (" + R.tipoIca.label + ") sobre " + $(x.base), $(x.ica), "sm") : ""}`;
-    if (c.tipo === "obra") return html`<div class="rent-calc nom-calc">
-      ${line("Costo directo", $(c.cd))}${line("Administración", $(c.a), "sm")}${line("Imprevistos", $(c.i), "sm")}${line("Utilidad", $(c.u), "sm")}
-      ${line("Subtotal AIU (antes de IVA)", $(c.antesIva), "sub")}${line("IVA sobre la utilidad (" + R.iva + "%)", $(c.iva))}
-      ${line("Valor total", $(c.total), "tot")}${rets(c.ret)}${line("Monto a recibir", $(c.recibir), "tot")}</div>`;
+    if (c.tipo === "obra") {
+      const p = c.principal;
+      const bloque = (x, titulo, sub) => html`${line(titulo, $(x.cd))}${line("Administración", $(x.a), "sm")}${line("Imprevistos", $(x.i), "sm")}${line("Utilidad", $(x.u), "sm")}
+        ${line("Subtotal AIU (antes de IVA)", $(x.antesIva), "sub")}${line("IVA sobre la utilidad (" + R.iva + "%)", $(x.iva), "sm")}${line(sub ? "Total del adicional" : "Valor total", $(x.total), "sub")}${rets(x.ret)}`;
+      return html`<div class="rent-calc nom-calc">
+        ${bloque(p, "Costo directo")}${line("Monto a recibir", $(p.recibir), c.adicionales.length ? "sub" : "tot")}
+        ${c.adicionales.map((a, i) => html`<${L.Fragment} key=${i}>${bloque(a, "Adicional: " + (a.descripcion || i + 1) + " · costo directo", true)}${line("A recibir del adicional", $(a.recibir), "sub")}<//>`)}
+        ${c.adicionales.length ? html`${line("Total con adicionales", $(c.total), "tot")}${line("Retenciones", "− " + $(c.ret.total), "sm")}${line("Monto a recibir en total", $(c.recibir), "tot")}` : ""}</div>`;
+    }
     return html`<div class="rent-calc nom-calc">
       ${line("Valor contratado", $(c.principal.valor))}${line("IVA (" + R.iva + "%)", $(c.principal.iva), "sm")}${line("Valor total", $(c.principal.total), "sub")}${rets(c.principal.ret)}
       ${line("Monto a recibir", $(c.principal.recibir), "sub")}
@@ -767,16 +772,16 @@
         <div class="fld"><span class="lbl">Tipo de contrato</span><${L.Seg} label="Tipo de contrato" value=${f.tipoContrato} onChange=${(v) => setF({ ...f, tipoContrato: v })} options=${TIPOS_C} /></div>
         <div class="fld"><span class="lbl">Contratado a</span><${L.Seg} label="Contratado a" value=${f.entidad} onChange=${(v) => setF({ ...f, entidad: v })} options=${ENT} /></div>
       </div>
-      ${f.tipoContrato === "diseno" ? html`
-        <${L.Field} label=${"Valor contratado (antes de IVA)" + (f.valorDiseno ? " · " + $(f.valorDiseno) : "")} id="cc-v"><input id="cc-v" type="number" step="1000" min="0" value=${f.valorDiseno} onInput=${set("valorDiseno")} /><//>
-        <div class="fld"><span class="lbl">Adicionales</span>
-          ${f.adicionalesCliente.map((a, i) => html`<div class="desc-row" key=${i}><input aria-label="Qué se adicionó" placeholder="Qué se adicionó" value=${a.descripcion || ""} onInput=${(e) => setA(i, "descripcion", e.target.value)} />
-            <input aria-label="Valor del adicional antes de IVA" type="number" step="1000" min="0" class="mono" placeholder="Valor sin IVA" value=${a.valor || ""} onInput=${(e) => setA(i, "valor", e.target.value)} />
-            <button type="button" class="btn ghost sm" aria-label="Quitar adicional" onClick=${() => setF({ ...f, adicionalesCliente: f.adicionalesCliente.filter((_, j) => j !== i) })}>✕</button></div>`)}
-          <button type="button" class="btn ghost sm mas-apoyo" onClick=${() => setF({ ...f, adicionalesCliente: [...f.adicionalesCliente, { descripcion: "", valor: "", fecha: L.todayIso() }] })}>＋ Agregar adicional</button>
-        </div>` : html`
+${f.tipoContrato === "diseno" ? html`
+        <${L.Field} label=${"Valor contratado (antes de IVA)" + (f.valorDiseno ? " · " + $(f.valorDiseno) : "")} id="cc-v"><input id="cc-v" type="number" step="1000" min="0" value=${f.valorDiseno} onInput=${set("valorDiseno")} /><//>` : html`
         <${L.Field} label=${"Costo directo" + (f.costoDirecto ? " · " + $(f.costoDirecto) : "")} id="cc-cd"><input id="cc-cd" type="number" step="1000" min="0" value=${f.costoDirecto} onInput=${set("costoDirecto")} /><//>
         <div class="three">${pctIn("pctAdmin", "Administración %")}${pctIn("pctImprevistos", "Imprevistos %")}${pctIn("pctUtilidad", "Utilidad %")}</div>`}
+        <div class="fld"><span class="lbl">Adicionales${f.tipoContrato === "obra" ? " (costo directo; se les aplica el mismo AIU)" : ""}</span>
+          ${f.adicionalesCliente.map((a, i) => html`<div class="desc-row" key=${i}><input aria-label="Qué se adicionó" placeholder="Qué se adicionó" value=${a.descripcion || ""} onInput=${(e) => setA(i, "descripcion", e.target.value)} />
+            <input aria-label=${f.tipoContrato === "obra" ? "Costo directo del adicional" : "Valor del adicional antes de IVA"} type="number" step="1000" min="0" class="mono" placeholder=${f.tipoContrato === "obra" ? "Costo directo" : "Valor sin IVA"} value=${a.valor || ""} onInput=${(e) => setA(i, "valor", e.target.value)} />
+            <button type="button" class="btn ghost sm" aria-label="Quitar adicional" onClick=${() => setF({ ...f, adicionalesCliente: f.adicionalesCliente.filter((_, j) => j !== i) })}>✕</button></div>`)}
+          <button type="button" class="btn ghost sm mas-apoyo" onClick=${() => setF({ ...f, adicionalesCliente: [...f.adicionalesCliente, { descripcion: "", valor: "", fecha: L.todayIso() }] })}>＋ Agregar adicional</button>
+        </div>
       <div class="fld ret-sel"><span class="lbl">Retenciones que aplica ${cli ? cli.nombre : "el cliente"}</span>
         <${L.Field} label="Retención en la fuente" id="cc-fuente"><select id="cc-fuente" value=${sel.fuente || ""} onChange=${(e) => setSel("fuente", e.target.value)}>
           <option value="">No practica retención en la fuente</option>${G().cfg().retConceptos.map((x) => html`<option key=${x.id} value=${x.id}>${x.label} · ${x.pct}%${num(x.uvt) ? " · desde " + x.uvt + " UVT" : ""}</option>`)}</select><//>
@@ -810,7 +815,7 @@
         <button type="button" class="btn" onClick=${() => L.openSheet("g-import", null, { kind: "presupuesto", proyecto: pid })}>Importar presupuesto</button></div>`}
       ${fin && html`<${L.Panel} title=${"Contrato con el cliente" + (cc ? " · " + (cc.tipo === "obra" ? "obra (AIU)" : "diseño") + " · " + (f.entidad === "jc" ? "JC" : "LAP") : "")} cls="span-12" action=${html`<button type="button" class="btn sm primary" onClick=${() => L.openSheet("g-contrato", pid)}><${Icon} name="edit" /> ${cc ? "Editar" : "Calculadora"}</button>`}>
         ${cc ? html`<div class="glass metrics money four" role="list">
-          <div class="metric"><b>${$(cc.tipo === "obra" ? cc.antesIva : cc.valor)}</b><span>Antes de IVA${cc.tipo === "diseno" && cc.adicionales.length ? " (con " + L.plural(cc.adicionales.length, "adicional", "adicionales") + ")" : ""}</span></div>
+          <div class="metric"><b>${$(cc.tipo === "obra" ? cc.antesIvaTotal : cc.valor)}</b><span>Antes de IVA${cc.adicionales.length ? " (con " + L.plural(cc.adicionales.length, "adicional", "adicionales") + ")" : ""}</span></div>
           <div class="metric"><b>${$(cc.total)}</b><span>Valor total con IVA</span></div>
           <div class="metric"><b>${$(cc.ret.total)}</b><span>Retenciones</span></div>
           <div class="metric"><b>${$(cc.recibir)}</b><span>Monto a recibir</span></div>

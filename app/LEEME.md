@@ -316,3 +316,7 @@ Próxima etapa: aprobaciones y resumen del día para Dirección.
 - Al tocar "Terminar", el estado vuelve al de antes de la pausa y Cerebro revisa a los 4 y a los 15 segundos que de verdad cambió; si no, lo vuelve a intentar.
 - Si la app se cierra o se reinicia a mitad de una pausa activa, al volver a abrirla el estado ya no se queda en "En pausa": vuelve solo al de antes.
 - Si un Pomodoro termina su bloque en medio de una pausa activa, su aviso de descanso espera a que acabe la pausa en vez de taparla.
+
+## Adicionales también en obra (2.33.2)
+
+- En los contratos de **obra (AIU)** ya se pueden agregar adicionales con "＋", igual que en diseño. De cada adicional se pone su **costo directo**; Cerebro le aplica los mismos % de administración, imprevistos y utilidad del contrato, el IVA sobre su utilidad y las mismas retenciones, y suma todo al monto a recibir.

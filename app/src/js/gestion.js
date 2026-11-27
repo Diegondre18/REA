@@ -143,12 +143,23 @@
       return x;
     };
     if (f.tipoContrato === "obra") {
-      const cd = num(f.costoDirecto);
-      const a = pc(cd, f.pctAdmin), i = pc(cd, f.pctImprevistos), u = pc(cd, f.pctUtilidad);
-      const iva = pc(u, r.iva);
-      const antesIva = cd + a + i + u;
-      const rr = ret(antesIva, iva);
-      return { tipo: "obra", r, cd, a, i, u, iva, antesIva, total: antesIva + iva, ret: rr, recibir: antesIva + iva - rr.total, adicionales: [], ingreso: antesIva };
+      // Cada parte (el contrato y cada adicional) con su costo directo y los mismos % de A, I y U del contrato.
+      const aiu = (costo) => {
+        const cd = num(costo);
+        const a = pc(cd, f.pctAdmin), i = pc(cd, f.pctImprevistos), u = pc(cd, f.pctUtilidad);
+        const iva = pc(u, r.iva);
+        const antesIva = cd + a + i + u;
+        const rr = ret(antesIva, iva);
+        return { cd, a, i, u, iva, antesIva, total: antesIva + iva, ret: rr, recibir: antesIva + iva - rr.total };
+      };
+      const principal = aiu(f.costoDirecto);
+      const adicionales = (f.adicionalesCliente || []).filter((x) => num(x.valor)).map((x) => ({ ...x, ...aiu(x.valor) }));
+      const all = [principal, ...adicionales];
+      const S = (k) => sum(all, (x) => x[k]);
+      return { tipo: "obra", r, ...principal, principal, adicionales,
+        cdTotal: S("cd"), antesIvaTotal: S("antesIva"), iva: S("iva"), total: S("total"),
+        ret: { fuente: sum(all, (x) => x.ret.fuente), iva: sum(all, (x) => x.ret.iva), ica: sum(all, (x) => x.ret.ica), total: sum(all, (x) => x.ret.total), base: principal.ret.base, bajoMinimo: principal.ret.bajoMinimo, minimo: principal.ret.minimo },
+        recibir: S("recibir"), ingreso: S("antesIva") };
     }
     const valor = num(f.valorDiseno);
     const iva = pc(valor, r.iva);
